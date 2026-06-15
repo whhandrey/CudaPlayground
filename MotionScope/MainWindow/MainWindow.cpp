@@ -15,27 +15,58 @@ MainWindow::MainWindow(QWidget* parent)
     auto* central = new QWidget(this);
     setCentralWidget(central);
 
+    // this registers mainLayout in the central one.
     auto* mainLayout = new QVBoxLayout(central);
-
-    auto* imageLayout = new QHBoxLayout();
 
     m_prevImgLabel = CreateImagePlaceholder("PrevFrame");
     m_currImgLabel = CreateImagePlaceholder("CurrFrame");
     m_confImgLabel = CreateImagePlaceholder("ConfImage");
 
-    imageLayout->addWidget(m_prevImgLabel);
-    imageLayout->addWidget(m_currImgLabel);
-    imageLayout->addWidget(m_confImgLabel);
+    QVBoxLayout* leftLayout = new QVBoxLayout();
+    leftLayout->addWidget(m_prevImgLabel);
+    leftLayout->addWidget(m_currImgLabel);
 
+    QHBoxLayout* fullImageLayout = new QHBoxLayout();
+    fullImageLayout->addLayout(leftLayout);
+    fullImageLayout->addWidget(m_confImgLabel);
 
+    m_frameSlider = new QSlider(Qt::Horizontal, central);
+    m_frameSlider->setRange(0, 0);
+
+    auto* controlsLayout = new QHBoxLayout();
+
+    m_openFolderBtn = new QPushButton("Open Folder", central);
+    m_playBtn = new QPushButton("Play", central);
+
+    controlsLayout->addWidget(m_openFolderBtn);
+    controlsLayout->addWidget(m_playBtn);
+
+    mainLayout->addLayout(fullImageLayout);
+    mainLayout->addWidget(m_frameSlider);
+    mainLayout->addLayout(controlsLayout);
+
+    resize(1300, 650);
 }
 
 MainWindow::~MainWindow()
 {
 }
 
-QLabel* MainWindow::CreateImagePlaceholder(const QString& text)
-{
-    return nullptr;
+QLabel* MainWindow::CreateImagePlaceholder(const QString& text) {
+    auto* label = new QLabel(text, this);
+
+    label->setMinimumSize(360, 270);
+    label->setAlignment(Qt::AlignCenter);
+
+    label->setStyleSheet(
+        "QLabel {"
+        " background-color: #222;"
+        " color: white;"
+        " border: 1px solid #555;"
+        " font-size: 16px;"
+        "}"
+    );
+
+    label->setScaledContents(false);
+    return label;
 }
-    
