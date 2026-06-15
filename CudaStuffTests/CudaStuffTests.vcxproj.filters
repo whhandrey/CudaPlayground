@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Benchmark">
+      <UniqueIdentifier>{057e851e-1891-4f7a-9214-a8dcd76b7cfe}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

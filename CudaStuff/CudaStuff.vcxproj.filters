@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{7ee8b674-f7c0-4ce9-a281-9a3ea6526799}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Cuda">
+      <UniqueIdentifier>{9d7a1c1b-2bca-47d2-a090-760d4798e00a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Image">
+      <UniqueIdentifier>{711c4a26-99d3-4ddf-ba79-80d8f2c3b54a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Common\Common.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Logger.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Common\Common.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Image\Image.h">
+      <Filter>Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\CudaTimer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\TimedCudaCall.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Logger.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Motion.cuh">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Reduction.cuh">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Common.cuh">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="Cuda\Filter.cu">
+      <Filter>Cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Filter.cuh">
+      <Filter>Cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Motion.cu">
+      <Filter>Cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Reduction.cu">
+      <Filter>Cuda</Filter>
+    </CudaCompile>
+  </ItemGroup>
+</Project>
