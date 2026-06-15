@@ -67,3 +67,51 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.VC.db
+*.VC.VC.opendb
+ipch/
+x64/
+x86/
+Debug/
+Release/
+
+# Visual Studio generated
+*.tlog
+*.lastbuildstate
+*.recipe
+*.iobj
+*.ipdb
+*.exp
+
+# Qt / Qt Creator
+*.pro.user
+*.pro.user.*
+moc_*
+qrc_*
+ui_*
+*_autogen/
+*.moc
+
+# CUDA generated
+*.cubin
+*.fatbin
+*.ptx
+*.nvvp
+*.nsys-rep
+*.qdrep
+
+# Local machine config
+local.props
+local.pri
+.env
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
