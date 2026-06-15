@@ -6,6 +6,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QWidget>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -44,6 +45,28 @@ MainWindow::MainWindow(QWidget* parent)
     mainLayout->addLayout(fullImageLayout);
     mainLayout->addWidget(m_frameSlider);
     mainLayout->addLayout(controlsLayout);
+
+    {
+        m_playTimer = new QTimer(this);
+        m_playTimer->setInterval(80); // 12.5 fps
+
+        connect(m_openFolderBtn, &QPushButton::clicked, this, &MainWindow::OpenFolder);
+        connect(m_playBtn, &QPushButton::clicked, this, &MainWindow::TogglePlay);
+        connect(m_frameSlider, &QSlider::valueChanged, this, &MainWindow::ShowFrame);
+
+        connect(m_playTimer, &QTimer::timeout, this, [this]() {
+            if (m_frameFiles.isEmpty())
+                return;
+
+            int next = m_currentFrame + 1;
+            if (next > m_frameFiles.size()) {
+                next = 0;
+            }
+
+            m_frameSlider->setValue(next);
+            m_currentFrame = next;
+        });
+    }
 
     resize(1300, 650);
 }
