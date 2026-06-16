@@ -66,7 +66,21 @@ namespace image {
 		}
 	}
 
-	QImage Loader::Load(const std::string& name) {
+	QImage Loader::Load(int index) const {
+		if (index < 0 || index >= m_framePaths.size()) {
+			throw std::logic_error("Loader: invalid index");
+		}
 
+		QImage img(QString::fromStdString(m_framePaths[index]));
+		if (img.isNull()) {
+			throw std::logic_error("Loader: image load failed");
+		}
+
+		return img.convertToFormat(QImage::Format_RGBA8888);
+	}
+
+	int Loader::NumImages() const
+	{
+		return static_cast<int>(m_framePaths.size());
 	}
 }

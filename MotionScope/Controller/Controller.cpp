@@ -1,4 +1,6 @@
 #include "Controller.h"
+#include "../ImageLoader/ImageLoader.h"
+#include "../GpuProcessor/IMotionGpuProcessor.h"
 #include <queue>
 #include <thread>
 #include <condition_variable>
@@ -6,9 +8,11 @@
 namespace loader {
 	using Task = std::function<void()>;
 
+	const int defThreadsNum = 2;
+
 	class ThreadPool {
 	public:
-		ThreadPool(int numThreads = 2)
+		ThreadPool(int numThreads = defThreadsNum)
 		{
 			for (int i = 0; i < numThreads; ++i) {
 				m_threads.emplace_back(&ThreadPool::Run, this);
@@ -17,18 +21,7 @@ namespace loader {
 
 		~ThreadPool()
 		{
-			{
-				std::lock_guard<std::mutex> lock(m_mutex);
-				m_stop = true;
-			}
-
-			m_queueCond.notify_all();
-
-			for (auto& th : m_threads) {
-				if (th.joinable()) {
-					th.join();
-				}
-			}
+			Stop();
 		}
 
 		void AddTask(Task task) {
@@ -42,6 +35,21 @@ namespace loader {
 			}
 
 			m_queueCond.notify_one();
+		}
+
+		void Stop() {
+			{
+				std::lock_guard<std::mutex> lock(m_mutex);
+				m_stop = true;
+			}
+
+			m_queueCond.notify_all();
+
+			for (auto& th : m_threads) {
+				if (th.joinable()) {
+					th.join();
+				}
+			}
 		}
 
 	private:
@@ -76,12 +84,82 @@ namespace loader {
 	};
 }
 
-Controller::Controller(const std::string& folderPath)
-	: m_loader(folderPath)
-	, m_pool{ std::make_unique<loader::ThreadPool>() }
+namespace {
+	ImageViewRGBA8 MakeImageView(const QImage& img) {
+		return ImageViewRGBA8 {
+			img.constBits(),
+			img.width(),
+			img.height(),
+			int(img.bytesPerLine())
+		};
+	}
+}
+
+Controller::Controller(GpuProcessor&& gpuProcessor)
+	: m_pool{ std::make_unique<loader::ThreadPool>() }
+	, m_gpuProcessor{ std::move(gpuProcessor) }
 {
 }
 
 Controller::~Controller()
 {
+}
+
+void Controller::SetFolder(const std::string& folderPath)
+{
+	++m_generation;
+
+	m_pool->Stop();
+
+	m_loader = std::make_unique<image::Loader>(folderPath);
+	m_pool = std::make_unique<loader::ThreadPool>();
+
+	m_cache = std::vector<QImage>(m_loader->NumImages());
+}
+
+void Controller::RequestFrame(int index)
+{
+	const size_t generation = m_generation;
+
+	m_pool->AddTask([this, index, generation]() {
+		auto img = m_loader->Load(index);
+
+		QMetaObject::invokeMethod(this, [this, index, generation, frame = std::move(img)]() mutable {
+			if (generation != m_generation)
+				return;
+			
+			OnFrameReady(index, generation, std::move(frame));
+		},
+		Qt::QueuedConnection);
+	});
+}
+
+void Controller::OnFrameReady(int index, size_t generation, QImage&& image)
+{
+	if (generation != m_generation)
+		return;
+
+	m_cache[index] = std::move(image);
+	m_currentIndex = index;
+
+	TryProcessImagePair();
+}
+
+void Controller::TryProcessImagePair()
+{
+	if (m_gpuRunning)
+		return;
+
+	if (m_currentIndex + 1 >= m_loader->NumImages())
+		return;
+
+	if (m_cache[m_currentIndex].isNull() || m_cache[m_currentIndex + 1].isNull())
+		return;
+
+	auto conf = m_gpuProcessor->Process(MakeImageView(m_cache[m_currentIndex]), MakeImageView(m_cache[m_currentIndex + 1]));
+}
+
+void Controller::OnGpuResultReady(QImage&& confImage)
+{
+
 }

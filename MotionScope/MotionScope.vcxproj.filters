@@ -7,6 +7,12 @@
     <Filter Include="ImageLoader">
       <UniqueIdentifier>{5aa8518f-5a76-4436-bac5-1e03f664fede}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Controller">
+      <UniqueIdentifier>{1069954c-6514-4c63-8731-358f1d384c7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GpuProcessor">
+      <UniqueIdentifier>{900b98cd-0227-4e8a-bf52-3b10bfc041ec}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MainWindow\MainWindow.cpp">
@@ -16,15 +22,30 @@
     <ClCompile Include="ImageLoader\ImageLoader.cpp">
       <Filter>ImageLoader</Filter>
     </ClCompile>
+    <ClCompile Include="Controller\Controller.cpp">
+      <Filter>Controller</Filter>
+    </ClCompile>
+    <ClCompile Include="GpuProcessor\GpuWorker.cpp">
+      <Filter>GpuProcessor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="MainWindow\MainWindow.h">
       <Filter>MainWindow</Filter>
     </QtMoc>
+    <QtMoc Include="Controller\Controller.h">
+      <Filter>Controller</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImageLoader\ImageLoader.h">
       <Filter>ImageLoader</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\IMotionGpuProcessor.h">
+      <Filter>GpuProcessor</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\GpuWorker.h">
+      <Filter>GpuProcessor</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
