@@ -93,3 +93,15 @@ QLabel* MainWindow::CreateImagePlaceholder(const QString& text) {
     label->setScaledContents(false);
     return label;
 }
+
+void MainWindow::OpenFolder()
+{
+}
+
+void MainWindow::ShowFrame(int idx)
+{
+}
+
+void MainWindow::TogglePlay()
+{
+}

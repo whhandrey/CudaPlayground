@@ -4,16 +4,27 @@
     <Filter Include="MainWindow">
       <UniqueIdentifier>{fbfbf022-2694-4952-afb8-a869b5a77372}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ImageLoader">
+      <UniqueIdentifier>{5aa8518f-5a76-4436-bac5-1e03f664fede}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MainWindow\MainWindow.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ImageLoader\ImageLoader.cpp">
+      <Filter>ImageLoader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="MainWindow\MainWindow.h">
       <Filter>MainWindow</Filter>
     </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ImageLoader\ImageLoader.h">
+      <Filter>ImageLoader</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
