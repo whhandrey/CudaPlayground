@@ -1,26 +1,27 @@
 #pragma once
+#include "IMotionGpuProcessor.h"
 #include <thread>
 #include <queue>
 #include <condition_variable>
 #include <memory>
 #include <functional>
-#include "IMotionGpuProcessor.h"
+#include <QImage>
 
 namespace gpu {
-	namespace worker {
+	namespace motion {
 		struct Job {
-			int frameIndex;
+			size_t frameIndex;
 			size_t generation;
-			ImageViewRGBA8 m_prev;
-			ImageViewRGBA8 m_curr;
+			QImage m_prev;
+			QImage m_curr;
 		};
 
 		struct Result {
-			int frameIndex;
+			size_t frameIndex;
 			size_t generation;
-			ImageViewRGBA8 m_prev;
-			ImageViewRGBA8 m_curr;
-			ImageRGBA8 m_conf;
+			QImage m_prev;
+			QImage m_curr;
+			QImage m_conf;
 		};
 
 		using ProcessCallback = std::function<void(Result)>;

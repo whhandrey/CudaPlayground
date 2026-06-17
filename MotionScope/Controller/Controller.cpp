@@ -1,6 +1,6 @@
 #include "Controller.h"
 #include "../ImageLoader/ImageLoader.h"
-#include "../GpuProcessor/IMotionGpuProcessor.h"
+#include "../GpuProcessor/AsyncGpuWorker.h"
 #include <queue>
 #include <thread>
 #include <condition_variable>
@@ -84,20 +84,9 @@ namespace loader {
 	};
 }
 
-namespace {
-	ImageViewRGBA8 MakeImageView(const QImage& img) {
-		return ImageViewRGBA8 {
-			img.constBits(),
-			img.width(),
-			img.height(),
-			int(img.bytesPerLine())
-		};
-	}
-}
-
-Controller::Controller(GpuProcessor&& gpuProcessor)
+Controller::Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker)
 	: m_pool{ std::make_unique<loader::ThreadPool>() }
-	, m_gpuProcessor{ std::move(gpuProcessor) }
+	, m_gpuWorker{ std::move(gpuWorker) }
 {
 }
 
@@ -147,19 +136,23 @@ void Controller::OnFrameReady(int index, size_t generation, QImage&& image)
 
 void Controller::TryProcessImagePair()
 {
-	if (m_gpuRunning)
-		return;
-
 	if (m_currentIndex + 1 >= m_loader->NumImages())
 		return;
 
 	if (m_cache[m_currentIndex].isNull() || m_cache[m_currentIndex + 1].isNull())
 		return;
 
-	auto conf = m_gpuProcessor->Process(MakeImageView(m_cache[m_currentIndex]), MakeImageView(m_cache[m_currentIndex + 1]));
+	auto job = gpu::motion::Job {
+		m_currentIndex,
+		m_generation,
+		m_cache[m_currentIndex],
+		m_cache[m_currentIndex + 1]
+	};
+
+	m_gpuWorker->AddJob(job);
 }
 
-void Controller::OnGpuResultReady(QImage&& confImage)
+void Controller::OnGpuResultReady(const gpu::motion::Result& result)
 {
 
 }

@@ -1,7 +1,56 @@
 #include "AsyncGpuWorker.h"
 
+namespace {
+	ImageViewRGBA8 MakeImageView(const QImage& img) {
+		return ImageViewRGBA8{
+			img.constBits(),
+			img.width(),
+			img.height(),
+			int(img.bytesPerLine())
+		};
+	}
+
+	QImage ToQImage(ImageRGBA8&& image) {
+		if (image.width <= 0 || image.height <= 0) {
+			return {};
+		}
+
+		const int rowBytes = image.width * 4;
+		const int pitch = image.pitchBytes > 0 ? image.pitchBytes : rowBytes;
+
+		if (pitch < rowBytes) {
+			throw std::logic_error("ToQImage: invalid pitch");
+		}
+
+		const auto requiredSize = static_cast<std::size_t>(pitch) * image.height;
+
+		if (image.data.size() < requiredSize) {
+			throw std::logic_error("ToQImage: not enough data");
+		}
+
+		// Need to alloc on heap to transfer ownership
+		auto* buffer = new std::vector<unsigned char>(std::move(image.data));
+
+		auto cleanup = [](void* info) {
+			delete static_cast<std::vector<unsigned char>*>(info);
+		};
+
+		QImage qimg(
+			buffer->data(),
+			image.width,
+			image.height,
+			pitch,
+			QImage::Format_RGBA8888,
+			cleanup,
+			buffer
+		);
+
+		return qimg;
+	}
+}
+
 namespace gpu {
-	namespace worker {
+	namespace motion {
 		AsyncGpuWorker::AsyncGpuWorker(std::unique_ptr<IMotionGpuProcessor> processor, ProcessCallback callback)
 			: m_processor{ std::move(processor) }
 			, m_callback{ std::move(callback) }
@@ -41,10 +90,10 @@ namespace gpu {
 				}
 
 				try {
-					auto confImage = m_processor->Process(job.m_prev, job.m_curr);
+					auto confImage = m_processor->Process(MakeImageView(job.m_prev), MakeImageView(job.m_curr));
 
 					if (m_callback) {
-						m_callback({ job.frameIndex, job.generation, job.m_prev, job.m_curr, std::move(confImage) });
+						m_callback({ job.frameIndex, job.generation, job.m_prev, job.m_curr, ToQImage(std::move(confImage)) });
 					}
 				}
 				catch (const std::exception&) {
@@ -65,7 +114,7 @@ namespace gpu {
 				m_thread.join();
 			}
 
-			// TODO: clear queue?
+			// TODO: clear queue when move slider?
 		}
 	}
 }

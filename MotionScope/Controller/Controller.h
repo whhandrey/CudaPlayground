@@ -11,16 +11,17 @@ namespace image {
 }
 
 namespace gpu {
-	class IMotionGpuProcessor;
+	namespace motion {
+		struct Result;
+		class AsyncGpuWorker;
+	}
 }
-
-using GpuProcessor = std::unique_ptr<gpu::IMotionGpuProcessor>;
 
 class Controller : public QObject {
 	Q_OBJECT
 
 public:
-	Controller(GpuProcessor&& gpuProcessor);
+	Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker);
 	~Controller();
 
 	void SetFolder(const std::string& folderPath);
@@ -29,17 +30,16 @@ public:
 private:
 	void OnFrameReady(int index, size_t generation, QImage&& image);
 	void TryProcessImagePair();
-	void OnGpuResultReady(QImage&& confImage);
+	void OnGpuResultReady(const gpu::motion::Result& result);
 
 private:
 	std::unique_ptr<image::Loader> m_loader;
 	std::unique_ptr<loader::ThreadPool> m_pool;
 
-	GpuProcessor m_gpuProcessor;
+	std::unique_ptr<gpu::motion::AsyncGpuWorker> m_gpuWorker;
 
 	size_t m_generation = 0;
 	size_t m_currentIndex = 0;
 
 	std::vector<QImage> m_cache;
-	bool m_gpuRunning = false;
 };
