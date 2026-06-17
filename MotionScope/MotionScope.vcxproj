@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Controller\Controller.cpp" />
-    <ClCompile Include="GpuProcessor\GpuWorker.cpp" />
+    <ClCompile Include="GpuProcessor\AsyncGpuWorker.cpp" />
     <ClCompile Include="ImageLoader\ImageLoader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow\MainWindow.cpp" />
@@ -21,7 +21,7 @@
     <QtMoc Include="MainWindow\MainWindow.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GpuProcessor\GpuWorker.h" />
+    <ClInclude Include="GpuProcessor\AsyncGpuWorker.h" />
     <QtMoc Include="Controller\Controller.h" />
     <ClInclude Include="GpuProcessor\IMotionGpuProcessor.h" />
     <ClInclude Include="ImageLoader\ImageLoader.h" />

@@ -25,7 +25,7 @@
     <ClCompile Include="Controller\Controller.cpp">
       <Filter>Controller</Filter>
     </ClCompile>
-    <ClCompile Include="GpuProcessor\GpuWorker.cpp">
+    <ClCompile Include="GpuProcessor\AsyncGpuWorker.cpp">
       <Filter>GpuProcessor</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,7 +44,7 @@
     <ClInclude Include="GpuProcessor\IMotionGpuProcessor.h">
       <Filter>GpuProcessor</Filter>
     </ClInclude>
-    <ClInclude Include="GpuProcessor\GpuWorker.h">
+    <ClInclude Include="GpuProcessor\AsyncGpuWorker.h">
       <Filter>GpuProcessor</Filter>
     </ClInclude>
   </ItemGroup>
