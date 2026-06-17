@@ -66,7 +66,7 @@ namespace image {
 		}
 	}
 
-	QImage Loader::Load(int index) const {
+	QImage Loader::Load(size_t index) const {
 		if (index < 0 || index >= m_framePaths.size()) {
 			throw std::logic_error("Loader: invalid index");
 		}
@@ -79,8 +79,8 @@ namespace image {
 		return img.convertToFormat(QImage::Format_RGBA8888);
 	}
 
-	int Loader::NumImages() const
+	size_t Loader::NumImages() const
 	{
-		return static_cast<int>(m_framePaths.size());
+		return m_framePaths.size();
 	}
 }

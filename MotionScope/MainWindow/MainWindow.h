@@ -1,17 +1,22 @@
 #pragma once
 #include <QtWidgets/QMainWindow>
+#include <memory>
 
 class QLabel;
 class QSlider;
 class QPushButton;
 class QTimer;
 
+namespace GpuApp {
+    class Controller;
+}
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(std::unique_ptr<GpuApp::Controller> controller, QWidget *parent = nullptr);
     ~MainWindow();
 
 private:
@@ -22,7 +27,12 @@ private:
     void ShowFrame(int idx);
     void TogglePlay();
 
+private slots:
+    void ShowImages(QImage prev, QImage curr, QImage conf);
+
 private:
+    std::unique_ptr<GpuApp::Controller> m_controller;
+
     QLabel* m_prevImgLabel = nullptr;
     QLabel* m_currImgLabel = nullptr;
     QLabel* m_confImgLabel = nullptr;

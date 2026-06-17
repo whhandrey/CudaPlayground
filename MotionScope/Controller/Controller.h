@@ -17,29 +17,34 @@ namespace gpu {
 	}
 }
 
-class Controller : public QObject {
-	Q_OBJECT
+namespace GpuApp {
+	class Controller : public QObject {
+		Q_OBJECT
 
-public:
-	Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker);
-	~Controller();
+	public:
+		Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker);
+		~Controller();
 
-	void SetFolder(const std::string& folderPath);
-	void RequestFrame(int index);
+		void SetFolder(const std::string& folderPath);
+		void RequestFrame(int index);
 
-private:
-	void OnFrameReady(int index, size_t generation, QImage&& image);
-	void TryProcessImagePair();
-	void OnGpuResultReady(const gpu::motion::Result& result);
+	private:
+		void OnFrameReady(int index, size_t generation, QImage&& image);
+		void TryProcessImagePair();
+		void OnGpuResultReady(gpu::motion::Result result);
 
-private:
-	std::unique_ptr<image::Loader> m_loader;
-	std::unique_ptr<loader::ThreadPool> m_pool;
+	signals:
+		void ImagesReady(QImage prev, QImage curr, QImage conf);
 
-	std::unique_ptr<gpu::motion::AsyncGpuWorker> m_gpuWorker;
+	private:
+		std::unique_ptr<image::Loader> m_loader;
+		std::unique_ptr<loader::ThreadPool> m_pool;
 
-	size_t m_generation = 0;
-	size_t m_currentIndex = 0;
+		std::unique_ptr<gpu::motion::AsyncGpuWorker> m_gpuWorker;
 
-	std::vector<QImage> m_cache;
-};
+		size_t m_generation = 0;
+		size_t m_currentIndex = 0;
+
+		std::vector<QImage> m_cache;
+	};
+}

@@ -51,9 +51,8 @@ namespace {
 
 namespace gpu {
 	namespace motion {
-		AsyncGpuWorker::AsyncGpuWorker(std::unique_ptr<IMotionGpuProcessor> processor, ProcessCallback callback)
+		AsyncGpuWorker::AsyncGpuWorker(std::unique_ptr<IMotionGpuProcessor> processor)
 			: m_processor{ std::move(processor) }
-			, m_callback{ std::move(callback) }
 			, m_thread{ std::thread(&AsyncGpuWorker::Run, this) }
 		{
 		}
@@ -74,6 +73,10 @@ namespace gpu {
 			m_cv.notify_one();
 		}
 
+		void AsyncGpuWorker::SetCallback(ProcessCallback&& callback) {
+			m_callback = std::move(callback);
+		}
+
 		void AsyncGpuWorker::Run() {
 			while (true) {
 				Job job;
@@ -91,9 +94,16 @@ namespace gpu {
 
 				try {
 					auto confImage = m_processor->Process(MakeImageView(job.m_prev), MakeImageView(job.m_curr));
+					auto result = Result {
+						job.frameIndex,
+						job.generation,
+						job.m_prev,
+						job.m_curr,
+						ToQImage(std::move(confImage))
+					};
 
 					if (m_callback) {
-						m_callback({ job.frameIndex, job.generation, job.m_prev, job.m_curr, ToQImage(std::move(confImage)) });
+						m_callback(std::move(result));
 					}
 				}
 				catch (const std::exception&) {

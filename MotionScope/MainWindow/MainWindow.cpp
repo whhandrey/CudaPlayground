@@ -1,3 +1,4 @@
+#include "../Controller/Controller.h"
 #include "MainWindow.h"
 
 #include <QLabel>
@@ -7,9 +8,22 @@
 #include <QHBoxLayout>
 #include <QWidget>
 #include <QTimer>
+#include <QFileDialog>
+#include <QMessageBox>
 
-MainWindow::MainWindow(QWidget* parent)
+namespace {
+    QPixmap FitToLabel(const QImage& image, QSize labelSize) {
+        return QPixmap::fromImage(image).scaled(
+            labelSize,
+            Qt::KeepAspectRatio,
+            Qt::SmoothTransformation
+        );
+    }
+}
+
+MainWindow::MainWindow(std::unique_ptr<GpuApp::Controller> controller, QWidget* parent)
     : QMainWindow(parent)
+    , m_controller{ std::move(controller) }
 {
     setWindowTitle("Cuda motion scope");
 
@@ -68,6 +82,10 @@ MainWindow::MainWindow(QWidget* parent)
         });
     }
 
+    {
+        connect(m_controller.get(), &GpuApp::Controller::ImagesReady, this, &MainWindow::ShowImages);
+    }
+
     resize(1300, 650);
 }
 
@@ -96,6 +114,16 @@ QLabel* MainWindow::CreateImagePlaceholder(const QString& text) {
 
 void MainWindow::OpenFolder()
 {
+    const QString folderPath = QFileDialog::getExistingDirectory(this, "Open frames folder");
+    if (folderPath.isEmpty())
+        return;
+
+    try {
+        m_controller->SetFolder(folderPath.toStdString());
+    }
+    catch (const std::exception& e) {
+        QMessageBox::critical(this, "Open folder failed", QString::fromUtf8(e.what()));
+    }
 }
 
 void MainWindow::ShowFrame(int idx)
@@ -104,4 +132,11 @@ void MainWindow::ShowFrame(int idx)
 
 void MainWindow::TogglePlay()
 {
+}
+
+void MainWindow::ShowImages(QImage prev, QImage curr, QImage conf)
+{
+    m_prevImgLabel->setPixmap(FitToLabel(prev, m_prevImgLabel->size()));
+    m_currImgLabel->setPixmap(FitToLabel(curr, m_currImgLabel->size()));
+    m_confImgLabel->setPixmap(FitToLabel(conf, m_confImgLabel->size()));
 }

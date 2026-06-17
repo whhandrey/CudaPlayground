@@ -84,75 +84,94 @@ namespace loader {
 	};
 }
 
-Controller::Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker)
-	: m_pool{ std::make_unique<loader::ThreadPool>() }
-	, m_gpuWorker{ std::move(gpuWorker) }
-{
-}
+namespace GpuApp {
+	Controller::Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker)
+		: m_pool{ std::make_unique<loader::ThreadPool>() }
+		, m_gpuWorker{ std::move(gpuWorker) }
+	{
+		m_gpuWorker->SetCallback([this](gpu::motion::Result&& result) mutable {
+			QMetaObject::invokeMethod(
+				this, [this, res = std::move(result)]() mutable {
+					OnGpuResultReady(std::move(res));
+				},
+				Qt::QueuedConnection
+			);
+		});
+	}
 
-Controller::~Controller()
-{
-}
+	Controller::~Controller()
+	{
+	}
 
-void Controller::SetFolder(const std::string& folderPath)
-{
-	++m_generation;
+	void Controller::SetFolder(const std::string& folderPath)
+	{
+		++m_generation;
 
-	m_pool->Stop();
+		m_pool->Stop();
 
-	m_loader = std::make_unique<image::Loader>(folderPath);
-	m_pool = std::make_unique<loader::ThreadPool>();
+		m_loader = std::make_unique<image::Loader>(folderPath);
+		m_pool = std::make_unique<loader::ThreadPool>();
 
-	m_cache = std::vector<QImage>(m_loader->NumImages());
-}
+		m_cache = std::vector<QImage>(m_loader->NumImages());
 
-void Controller::RequestFrame(int index)
-{
-	const size_t generation = m_generation;
+		RequestFrame(0);
+		RequestFrame(1);
+	}
 
-	m_pool->AddTask([this, index, generation]() {
-		auto img = m_loader->Load(index);
+	void Controller::RequestFrame(int index)
+	{
+		const size_t generation = m_generation;
 
-		QMetaObject::invokeMethod(this, [this, index, generation, frame = std::move(img)]() mutable {
-			if (generation != m_generation)
-				return;
-			
-			OnFrameReady(index, generation, std::move(frame));
-		},
-		Qt::QueuedConnection);
-	});
-}
+		m_pool->AddTask([this, index, generation]() {
+			auto img = m_loader->Load(index);
 
-void Controller::OnFrameReady(int index, size_t generation, QImage&& image)
-{
-	if (generation != m_generation)
-		return;
+			QMetaObject::invokeMethod(this, [this, index, generation, frame = std::move(img)]() mutable {
+				if (generation != m_generation)
+					return;
 
-	m_cache[index] = std::move(image);
-	m_currentIndex = index;
+				OnFrameReady(index, generation, std::move(frame));
+			},
+			Qt::QueuedConnection);
+		});
+	}
 
-	TryProcessImagePair();
-}
+	void Controller::OnFrameReady(int index, size_t generation, QImage&& image)
+	{
+		if (generation != m_generation)
+			return;
 
-void Controller::TryProcessImagePair()
-{
-	if (m_currentIndex + 1 >= m_loader->NumImages())
-		return;
+		m_cache[index] = std::move(image);
+		m_currentIndex = index;
 
-	if (m_cache[m_currentIndex].isNull() || m_cache[m_currentIndex + 1].isNull())
-		return;
+		TryProcessImagePair();
+	}
 
-	auto job = gpu::motion::Job {
-		m_currentIndex,
-		m_generation,
-		m_cache[m_currentIndex],
-		m_cache[m_currentIndex + 1]
-	};
+	void Controller::TryProcessImagePair()
+	{
+		if (m_currentIndex + 1 >= m_loader->NumImages())
+			return;
 
-	m_gpuWorker->AddJob(job);
-}
+		if (m_cache[m_currentIndex].isNull() || m_cache[m_currentIndex + 1].isNull())
+			return;
 
-void Controller::OnGpuResultReady(const gpu::motion::Result& result)
-{
+		auto job = gpu::motion::Job{
+			m_currentIndex,
+			m_generation,
+			m_cache[m_currentIndex],
+			m_cache[m_currentIndex + 1]
+		};
 
+		m_gpuWorker->AddJob(job);
+	}
+
+	void Controller::OnGpuResultReady(gpu::motion::Result result)
+	{
+		if (result.generation != m_generation)
+			return;
+
+		if (result.frameIndex != m_currentIndex)
+			return;
+
+		emit ImagesReady(result.m_prev, result.m_curr, result.m_conf);
+	}
 }

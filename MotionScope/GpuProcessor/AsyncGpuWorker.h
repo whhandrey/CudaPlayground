@@ -24,11 +24,11 @@ namespace gpu {
 			QImage m_conf;
 		};
 
-		using ProcessCallback = std::function<void(Result)>;
+		using ProcessCallback = std::function<void(Result&&)>;
 
 		class AsyncGpuWorker {
 		public:
-			AsyncGpuWorker(std::unique_ptr<IMotionGpuProcessor> processor, ProcessCallback callback);
+			AsyncGpuWorker(std::unique_ptr<IMotionGpuProcessor> processor);
 			~AsyncGpuWorker();
 
 			AsyncGpuWorker(const AsyncGpuWorker&) = delete;
@@ -36,6 +36,7 @@ namespace gpu {
 
 		public:
 			void AddJob(const Job& job);
+			void SetCallback(ProcessCallback&& callback);
 
 		private:
 			void Run();
@@ -43,7 +44,7 @@ namespace gpu {
 
 		private:
 			std::unique_ptr<IMotionGpuProcessor> m_processor;
-			ProcessCallback m_callback;
+			ProcessCallback m_callback = nullptr;
 
 			bool m_stop = false;
 

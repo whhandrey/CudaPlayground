@@ -9,8 +9,8 @@ namespace image {
 		Loader(const std::string& folderPath);
 
 	public:
-		QImage Load(int index) const;
-		int NumImages() const;
+		QImage Load(size_t index) const;
+		size_t NumImages() const;
 
 	private:
 		const std::string m_folder;
