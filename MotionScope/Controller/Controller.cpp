@@ -113,6 +113,7 @@ namespace GpuApp {
 		m_pool = std::make_unique<loader::ThreadPool>();
 
 		m_cache = std::vector<QImage>(m_loader->NumImages());
+		m_currentIndex = 0;
 
 		RequestFrame(0);
 		RequestFrame(1);
@@ -141,8 +142,6 @@ namespace GpuApp {
 			return;
 
 		m_cache[index] = std::move(image);
-		m_currentIndex = index;
-
 		TryProcessImagePair();
 	}
 
