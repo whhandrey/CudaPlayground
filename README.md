@@ -1,5 +1,6 @@
-# CudaPlayground: project for experimenting with different cuda stuff and visualizing the results.
+# CudaPlayground
 
+Project for experimenting with different cuda stuff and visualizing the results.
 
 Uses third-party libs, vendored from https://github.com/nothings/stb
 
