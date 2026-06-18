@@ -2,10 +2,14 @@
 
 Project for experimenting with different cuda stuff and visualizing the results.
 
-Uses third-party libs, vendored from https://github.com/nothings/stb
+## Third-party libraries
+
+### stb
+
+Vendored from https://github.com/nothings/stb
 
 Used files:
- - stb_image.h
- - stb_image_write.h
+- stb_image.h
+- stb_image_write.h
 
-License: public domain / MIT-style, see LICENSE.
+stb is public domain / MIT-style licensed. See `ThirdParty/stb/LICENSE`.
