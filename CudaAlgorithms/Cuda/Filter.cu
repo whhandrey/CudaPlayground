@@ -293,41 +293,6 @@ __global__ void BilateralKernel(
         }
     }
 
-    //for (int dy = -filter_halfsize; dy <= filter_halfsize; ++dy) {
-    //    int y_idx = tileCenterY + dy;
-    //    const int ky = dy + filter_halfsize;
-
-    //    for (int dx = -filter_halfsize; dx <= filter_halfsize; ++dx) {
-    //        int x_idx = tileCenterX + dx;
-    //        const int kx = dx + filter_halfsize;
-
-    //        int4 sample = bilateralTile[x_idx + y_idx * tileWidth];
-    //        float spatialWeight = c_spatial2D[kx + ky * size1d];
-
-    //        // dr, dg, db
-    //        //int3 colorRange = { abs(center.x - sample.x), abs(center.y - sample.y), abs(center.z - sample.z) };
-    //        //float colorWeight = c_colorRangeLUT[colorRange.x] * c_colorRangeLUT[colorRange.y] * c_colorRangeLUT[colorRange.z];
-
-    //        //int centerY = (77 * center.x + 150 * center.y + 29 * center.z) >> 8;
-    //        //int sampleY = (77 * sample.x + 150 * sample.y + 29 * sample.z) >> 8;
-
-    //        //int dY = abs(centerY - sampleY);
-
-    //        //int dY = int(abs(center.w - sample.w));
-
-    //        int dY = abs(center.w - sample.w);
-    //        float colorWeight = __ldg(&colorRangeLUT[dY]);
-
-    //        float finalWeight = spatialWeight * colorWeight;
-
-    //        sum.x += float(sample.x) * finalWeight;
-    //        sum.y += float(sample.y) * finalWeight;
-    //        sum.z += float(sample.z) * finalWeight;
-
-    //        weightSum += finalWeight;
-    //    }
-    //}
-
     float invWeight = 1.0f / weightSum;
     sum = { sum.x * invWeight, sum.y * invWeight, sum.z * invWeight };
 
@@ -550,17 +515,17 @@ namespace cuda {
 }
 
 namespace filter {
-	ImageGPU<uchar4> GaussianBlur(const ImageGPU<uchar4>& input, int filter_halfsize, float sigma, ivec2 blockSize, cudaStream_t stream) {
+	ImageGPU<uchar4> GaussianBlur(const ImageGPU<uchar4>& input, int filter_halfsize, float sigma, vec2ui blockSize, cuda::KernelContext& ctx) {
         dim3 gridSize = DivUp(input.Dim(), blockSize);
 
         const auto weights_cpu = gauss::MakeNormGaussWeights(filter_halfsize, sigma);
-        cudaCheck(cudaMemcpyToSymbolAsync(c_weightsGauss, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, stream));
+        cudaCheck(cudaMemcpyToSymbolAsync(c_weightsGauss, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, ctx.m_stream));
 
         ImageGPU<float4> tmp(input.Dim());
         ImageGPU<uchar4> output(input.Dim());
 
-        cuda::TimedCall("GaussianBlurX+Y: " + util::BlockDimToString(blockSize), stream, [&]() {
-            GaussianBlurX<<<gridSize, vec2Todim3(blockSize), 0, stream>>> (
+        cuda::TimedCall("GaussianBlurX+Y: " + util::BlockDimToString(blockSize), ctx, [&]() {
+            GaussianBlurX<<<gridSize, vec2Todim3(blockSize), 0, ctx.m_stream>>> (
                 input.Data(),
                 input.Pitch(),
                 tmp.Data(),
@@ -570,7 +535,7 @@ namespace filter {
                 filter_halfsize
             );
 
-            GaussianBlurY<<<gridSize, vec2Todim3(blockSize), 0, stream>>> (
+            GaussianBlurY<<<gridSize, vec2Todim3(blockSize), 0, ctx.m_stream>>> (
                 tmp.Data(),
                 tmp.Pitch(),
                 output.Data(),
@@ -585,13 +550,13 @@ namespace filter {
 	}
 
     // this avoids intermediate write to global mem
-    ImageGPU<uchar4> GaussianBlurFusedV1(const ImageGPU<uchar4>& input, int filter_halfsize, float sigma, ivec2 blockSize, cudaStream_t stream) {
+    ImageGPU<uchar4> GaussianBlurFusedV1(const ImageGPU<uchar4>& input, int filter_halfsize, float sigma, vec2ui blockSize, cuda::KernelContext& ctx) {
         // TODO: test with diff sizes
         blockSize = { blockSize.x, unsigned int(blockSize.y + filter_halfsize * 2) }; // overlap in Y-dir
         dim3 gridSize = DivUp(input.Dim(), blockSize);
 
         const auto weights_cpu = gauss::MakeNormGaussWeights(filter_halfsize, sigma);
-        cudaCheck(cudaMemcpyToSymbolAsync(c_weightsGauss, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, stream));
+        cudaCheck(cudaMemcpyToSymbolAsync(c_weightsGauss, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, ctx.m_stream));
 
         ImageGPU<uchar4> output(input.Dim());
         const size_t sharedMemSize = blockSize.x * blockSize.y * sizeof(float4);
@@ -601,8 +566,8 @@ namespace filter {
         const int outputPerBlockY = blockSize.y - 2 * filter_halfsize;
         gridSize.y = (input.Dim().y + outputPerBlockY - 1) / outputPerBlockY;
 
-        cuda::TimedCall("GaussianBlurTileV1: " + util::BlockDimToString(blockSize), stream, [&]() {
-            GaussianBlurTile<<<gridSize, vec2Todim3(blockSize), sharedMemSize, stream>>> (
+        cuda::TimedCall("GaussianBlurTileV1: " + util::BlockDimToString(blockSize), ctx, [&]() {
+            GaussianBlurTile<<<gridSize, vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                 input.Data(),
                 input.Pitch(),
                 output.Data(),
@@ -616,21 +581,21 @@ namespace filter {
         return output;
     }
 
-    ImageGPU<uchar4> GaussianBlurFusedV2(const ImageGPU<uchar4>& input, int filter_halfsize, float sigma, ivec2 blockSize, cudaStream_t stream) {
+    ImageGPU<uchar4> GaussianBlurFusedV2(const ImageGPU<uchar4>& input, int filter_halfsize, float sigma, vec2ui blockSize, cuda::KernelContext& ctx) {
         // TODO: test with diff sizes
         const auto weights_cpu = gauss::MakeNormGaussWeights(filter_halfsize, sigma);
-        cudaCheck(cudaMemcpyToSymbolAsync(c_weightsGauss, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, stream));
+        cudaCheck(cudaMemcpyToSymbolAsync(c_weightsGauss, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, ctx.m_stream));
 
         ImageGPU<uchar4> output(input.Dim());
         const size_t sharedMemSize = blockSize.x * blockSize.y * sizeof(float4);
 
         // Correct grid size since useful input in vertical pass are only center w/o halo
         // So need to have more blocks
-        ivec2 outputBlock = { blockSize.x, blockSize.y - 2 * filter_halfsize };
+        vec2ui outputBlock = { blockSize.x, blockSize.y - 2 * filter_halfsize };
         dim3 gridSize = DivUp(input.Dim(), outputBlock);
 
-        cuda::TimedCall("GaussianBlurTileV2: " + util::BlockDimToString(blockSize), stream, [&]() {
-            GaussianBlurTile<<<gridSize, vec2Todim3(blockSize), sharedMemSize, stream>>> (
+        cuda::TimedCall("GaussianBlurTileV2: " + util::BlockDimToString(blockSize), ctx, [&]() {
+            GaussianBlurTile<<<gridSize, vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                 input.Data(),
                 input.Pitch(),
                 output.Data(),
@@ -644,15 +609,15 @@ namespace filter {
         return output;
     }
 
-    ImageGPU<uchar4> BilateralFilter(const ImageGPU<uchar4>& input, int filter_halfsize, float sigmaGauss, float sigmaColor, ivec2 blockSize, cudaStream_t stream) {
+    ImageGPU<uchar4> BilateralFilter(const ImageGPU<uchar4>& input, int filter_halfsize, float sigmaGauss, float sigmaColor, vec2ui blockSize, cuda::KernelContext& ctx) {
         dim3 gridSize = DivUp(input.Dim(), blockSize);
 
         // can use non-norm weights, don't matter
         const auto weights_cpu = gauss::Make2dGaussWeights(filter_halfsize, sigmaGauss);
-        cudaCheck(cudaMemcpyToSymbolAsync(c_spatial2D, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, stream));
+        cudaCheck(cudaMemcpyToSymbolAsync(c_spatial2D, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, ctx.m_stream));
 
         const auto range_color_lut = bilateral::RangeLUT(sigmaColor);
-        float* colorRangeLUT = common::AllocAndCopyCPU(range_color_lut, stream);
+        float* colorRangeLUT = common::AllocAndCopyCPU(range_color_lut, ctx.m_stream);
 
         ImageGPU<uchar4> output(input.Dim());
 
@@ -662,8 +627,8 @@ namespace filter {
         //const size_t tileStride = tileWidth;
         const size_t sharedMemSize = tileWidth * tileHeight * sizeof(int4);
 
-        cuda::TimedCall("BilateralKernel: " + util::BlockDimToString(blockSize), stream, [&]() {
-            BilateralKernel<<<gridSize, vec2Todim3(blockSize), sharedMemSize, stream>>> (
+        cuda::TimedCall("BilateralKernel: " + util::BlockDimToString(blockSize), ctx, [&]() {
+            BilateralKernel<<<gridSize, vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                 input.Data(),
                 input.Pitch(),
                 output.Data(),
@@ -675,21 +640,21 @@ namespace filter {
             );
         });
 
-        cudaFreeAsync(colorRangeLUT, stream);
+        cudaFreeAsync(colorRangeLUT, ctx.m_stream);
         return output;
     }
 
-    ImageGPU<uchar4> BilateralFilterT(const ImageGPU<uchar4>& input, float sigmaGauss, float sigmaColor, ivec2 blockSize, cudaStream_t stream, bool debugInfo) {
+    ImageGPU<uchar4> BilateralFilterT(const ImageGPU<uchar4>& input, float sigmaGauss, float sigmaColor, vec2ui blockSize, cuda::KernelContext& ctx, bool debugInfo) {
         dim3 gridSize = DivUp(input.Dim(), blockSize);
 
         constexpr int filter_halfsize = 5;
 
         // can use non-norm weights, don't matter
         const auto weights_cpu = gauss::Make2dGaussWeights(filter_halfsize, sigmaGauss);
-        cudaCheck(cudaMemcpyToSymbolAsync(c_spatial2D, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, stream));
+        cudaCheck(cudaMemcpyToSymbolAsync(c_spatial2D, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, ctx.m_stream));
 
         const auto range_color_lut = bilateral::RangeLUT(sigmaColor);
-        float* colorRangeLUT = common::AllocAndCopyCPU(range_color_lut, stream);
+        float* colorRangeLUT = common::AllocAndCopyCPU(range_color_lut, ctx.m_stream);
 
         ImageGPU<uchar4> output(input.Dim());
 
@@ -711,8 +676,8 @@ namespace filter {
 
         // Quadro T1000/T2000
         if (gpuArch == gpu::Arch::Turing) {
-            cuda::TimedCall("BilateralKernel_Uchar4: " + util::BlockDimToString(blockSize), stream, [&]() {
-                BilateralKernelT_Uchar<filter_halfsize><<<gridSize, vec2Todim3(blockSize), sharedMemSize, stream>>> (
+            cuda::TimedCall("BilateralKernel_Uchar4: " + util::BlockDimToString(blockSize), ctx, [&]() {
+                BilateralKernelT_Uchar<filter_halfsize><<<gridSize, vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                     input.Data(),
                     input.Pitch(),
                     output.Data(),
@@ -728,8 +693,8 @@ namespace filter {
         // This is opposite on Quadro.
         // Idk if this is better on rtx 2/3, tested on rtx 4050 and rtx 5060.
         else {
-            cuda::TimedCall("BilateralKernel_Int4: " + util::BlockDimToString(blockSize), stream, [&]() {
-                BilateralKernelT<filter_halfsize><<<gridSize, vec2Todim3(blockSize), sharedMemSize, stream>>> (
+            cuda::TimedCall("BilateralKernel_Int4: " + util::BlockDimToString(blockSize), ctx, [&]() {
+                BilateralKernelT<filter_halfsize><<<gridSize, vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                     input.Data(),
                     input.Pitch(),
                     output.Data(),
@@ -741,7 +706,7 @@ namespace filter {
             });
         }
 
-        cudaFreeAsync(colorRangeLUT, stream);
+        cudaFreeAsync(colorRangeLUT, ctx.m_stream);
         return output;
     }
 }

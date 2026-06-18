@@ -1,4 +1,5 @@
 #pragma once
+#include <Image/ImageTypes.h>
 #include <cuda_runtime.h>
 #include <sstream>
 #include <vector>
@@ -17,22 +18,12 @@ inline void checkCudaError(cudaError error, const char* file, const int line) {
 #define GpuStructAlignSize 16
 #define GpuStructAlign __align__(GpuStructAlignSize)
 
-struct ivec2 {
-	unsigned int x;
-	unsigned int y;
-};
-
-struct vec2 {
-	int x;
-	int y;
-};
-
 struct range {
 	int min;
 	int max;
 };
 
-inline dim3 DivUp(ivec2 dim, ivec2 blockSize) {
+inline dim3 DivUp(image::vec2ui dim, image::vec2ui blockSize) {
 	return {
 		(dim.x + blockSize.x - 1) / blockSize.x,
 		(dim.y + blockSize.y - 1) / blockSize.y,
@@ -40,7 +31,7 @@ inline dim3 DivUp(ivec2 dim, ivec2 blockSize) {
 	};
 }
 
-inline dim3 Div(ivec2 dim, ivec2 blockSize) {
+inline dim3 Div(image::vec2ui dim, image::vec2ui blockSize) {
 	return {
 		dim.x / blockSize.x,
 		dim.y / blockSize.y,
@@ -48,7 +39,7 @@ inline dim3 Div(ivec2 dim, ivec2 blockSize) {
 	};
 }
 
-inline dim3 vec2Todim3(ivec2 dim) {
+inline dim3 vec2Todim3(image::vec2ui dim) {
 	return { dim.x, dim.y, 1 };
 }
 
@@ -61,6 +52,12 @@ namespace common {
 		cudaCheck(cudaMemcpyAsync(vec_gpu, vec.data(), vec.size() * sizeof(T), cudaMemcpyHostToDevice, stream));
 
 		return vec_gpu;
+	}
+}
+
+namespace util {
+	inline std::string BlockDimToString(const image::vec2ui& blockDim) {
+		return "(" + std::to_string(blockDim.x) + ", " + std::to_string(blockDim.y) + ")";
 	}
 }
 

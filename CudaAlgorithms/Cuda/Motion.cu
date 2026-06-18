@@ -6,6 +6,10 @@
 #include <numeric>
 #include <cassert>
 
+using image::vec2i;
+using image::vec2ui;
+using image::vec4i;
+
 namespace {
     struct SadVector {
         int sad;
@@ -42,12 +46,12 @@ __global__ void BlockMatchingWarpKernel(
     size_t prevPitch,
     const uchar4* __restrict__ currFrame,
     size_t currPitch,
-    int2* __restrict__ motionImg,
+    vec2i* __restrict__ motionImg,
     size_t motionPitch,
     int width,
     int height,
-    int2 search_halfsize,
-    int2 macroBlockDim)
+    vec2i search_halfsize,
+    vec2i macroBlockDim)
 {
     extern __shared__ uchar4 tiles[];
 
@@ -162,8 +166,8 @@ __global__ void BlockMatchingWarpKernel(
             finalMin = MinSad(finalMin, sadTile[i]);
         }
 
-        int2* rowMotion = (int2*)((char*)motionImg + blockIdx.y * motionPitch);
-        rowMotion[blockIdx.x] = make_int2(finalMin.dx, finalMin.dy);
+        vec2i* rowMotion = (vec2i*)((char*)motionImg + blockIdx.y * motionPitch);
+        rowMotion[blockIdx.x] = { finalMin.dx, finalMin.dy };
     }
 }
 
@@ -172,12 +176,12 @@ __global__ void BlockMatchingSimpleKernel(
     size_t prevPitch,
     const uchar4* __restrict__ currFrame,
     size_t currPitch,
-    int4* __restrict__ motionImg,
+    vec4i* __restrict__ motionImg,
     size_t motionPitch,
     int width,
     int height,
-    int2 search_halfsize,
-    int2 macroBlockDim)
+    vec2i search_halfsize,
+    vec2i macroBlockDim)
 {
     extern __shared__ uchar4 tiles[];
 
@@ -290,10 +294,10 @@ __global__ void BlockMatchingSimpleKernel(
     }
 
     if (tid == 0) {
-        int4* rowMotion = (int4*)((char*)motionImg + blockIdx.y * motionPitch);
+        vec4i* rowMotion = (vec4i*)((char*)motionImg + blockIdx.y * motionPitch);
 
         // w is unused now
-        rowMotion[blockIdx.x] = make_int4(sadTile[0].dx, sadTile[0].dy, sadTile[0].sad, 0);
+        rowMotion[blockIdx.x] = { sadTile[0].dx, sadTile[0].dy, sadTile[0].sad, 0 };
     }
 }
 
@@ -308,7 +312,7 @@ __global__ void BlockMatchingSimpleKernel_T(
     size_t prevPitch,
     const uchar4* __restrict__ currFrame,
     size_t currPitch,
-    int4* __restrict__ motionImg,
+    vec4i* __restrict__ motionImg,
     size_t motionPitch,
     int width,
     int height)
@@ -419,7 +423,6 @@ __global__ void BlockMatchingSimpleKernel_T(
     __syncthreads();
 
     // this is still faster than reducing 64 values (for 8x8 cuda block) in one thread
-
     #pragma unroll 1
     for (int stride = blockSize / 2; stride > 0; stride /= 2) {
         if (tid < stride) {
@@ -433,10 +436,10 @@ __global__ void BlockMatchingSimpleKernel_T(
     }
 
     if (tid == 0) {
-        int4* rowMotion = (int4*)((char*)motionImg + blockIdx.y * motionPitch);
+        vec4i* rowMotion = (vec4i*)((char*)motionImg + blockIdx.y * motionPitch);
 
         // w is unused now
-        rowMotion[blockIdx.x] = make_int4(sadTile[0].dx, sadTile[0].dy, sadTile[0].sad, 0);
+        rowMotion[blockIdx.x] = { sadTile[0].dx, sadTile[0].dy, sadTile[0].sad, 0 };
     }
 }
 
@@ -447,7 +450,7 @@ __global__ void ShiftImageKernel(
     size_t outputPitch,
     int width,
     int height,
-    int2 shiftVector)
+    vec2i shiftVector)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -455,7 +458,7 @@ __global__ void ShiftImageKernel(
     if (x >= width || y >= height)
         return;
 
-    int2 shifted = { x - shiftVector.x, y - shiftVector.y };
+    vec2i shifted = { x - shiftVector.x, y - shiftVector.y };
     bool valid = (shifted.x >= 0 && shifted.x < width) && (shifted.y >= 0 && shifted.y < height);
 
     uchar4 out_sample = {};
@@ -471,12 +474,12 @@ __global__ void ShiftImageKernel(
 
 namespace motion {
     namespace shift {
-        ImageGPU<uchar4> ShiftImage(const ImageGPU<uchar4>& image, int2 shiftVector, cudaStream_t stream, ivec2 blockSize) {
+        ImageGPU<uchar4> ShiftImage(const ImageGPU<uchar4>& image, vec2i shiftVector, cuda::KernelContext& ctx, vec2ui blockSize) {
             dim3 gridSize = Div(image.Dim(), blockSize);
             ImageGPU<uchar4> output(image.Dim());
 
-            cuda::TimedCall("ShiftImageKernel: " + util::BlockDimToString(blockSize), stream, [&]() {
-                ShiftImageKernel<<<gridSize, vec2Todim3(blockSize), 0, stream>>> (
+            cuda::TimedCall("ShiftImageKernel: " + util::BlockDimToString(blockSize), ctx, [&]() {
+                ShiftImageKernel<<<gridSize, vec2Todim3(blockSize), 0, ctx.m_stream>>> (
                     image.Data(),
                     image.Pitch(),
                     output.Data(),
@@ -491,22 +494,22 @@ namespace motion {
         }
     }
 
-    ImageGPU<int4> BlockMatchingSimple(const ImageGPU<uchar4>& prevFrame, const ImageGPU<uchar4>& currFrame, ivec2 macroBlockSize, int2 search_halfsize, ivec2 cudaBlockDim, cudaStream_t stream) {
+    ImageGPU<vec4i> BlockMatchingSimple(const ImageGPU<uchar4>& prevFrame, const ImageGPU<uchar4>& currFrame, vec2ui macroBlockSize, vec2i search_halfsize, vec2ui cudaBlockDim, cuda::KernelContext& ctx) {
         dim3 gridSize = Div(prevFrame.Dim(), macroBlockSize);
 
-        ImageGPU<int4> output({ gridSize.x, gridSize.y });
+        ImageGPU<vec4i> output(vec2ui{ gridSize.x, gridSize.y });
 
         const size_t prevTileSize = (macroBlockSize.x * macroBlockSize.y) * sizeof(uchar4);
         const size_t currTileSize = (macroBlockSize.x + search_halfsize.x * 2) * (macroBlockSize.y + search_halfsize.y * 2) * sizeof(uchar4);
         const size_t sadTileSize = (cudaBlockDim.x * cudaBlockDim.y) * sizeof(SadVector);
 
         const size_t sharedMemSize = prevTileSize + currTileSize + sadTileSize;
-        ivec2 dim = prevFrame.Dim();
+        vec2ui dim = prevFrame.Dim();
 
-        int2 macroBlock = { int(macroBlockSize.x), int(macroBlockSize.y) };
+        vec2i macroBlock = { int(macroBlockSize.x), int(macroBlockSize.y) };
 
-        cuda::TimedCall("BlockMatchingSimpleKernel: " + util::BlockDimToString(cudaBlockDim), stream, [&]() {
-            BlockMatchingSimpleKernel<<<gridSize, vec2Todim3(cudaBlockDim), sharedMemSize, stream>>> (
+        cuda::TimedCall("BlockMatchingSimpleKernel: " + util::BlockDimToString(cudaBlockDim), ctx, [&]() {
+            BlockMatchingSimpleKernel<<<gridSize, vec2Todim3(cudaBlockDim), sharedMemSize, ctx.m_stream>>> (
                 prevFrame.Data(),
                 prevFrame.Pitch(),
                 currFrame.Data(),
@@ -523,30 +526,30 @@ namespace motion {
         return output;
     }
 
-    ImageGPU<int4> BlockMatchingSimpleT(const ImageGPU<uchar4>& prevFrame, const ImageGPU<uchar4>& currFrame, ivec2 /*macroBlockSize*/, int2 /*search_halfsize*/, ivec2 /*cudaBlockDim*/, cudaStream_t stream) {
+    ImageGPU<vec4i> BlockMatchingSimpleT(const ImageGPU<uchar4>& prevFrame, const ImageGPU<uchar4>& currFrame, vec2ui /*macroBlockSize*/, vec2i /*search_halfsize*/, vec2ui /*cudaBlockDim*/, cuda::KernelContext& ctx) {
         constexpr int macroBlockW = 16;
         constexpr int macroBlockH = 16;
 
         constexpr int search_halfsizeX = 3;
         constexpr int search_halfsizeY = 3;
 
-        constexpr ivec2 macroBlockSize = { macroBlockW, macroBlockH };
-        constexpr ivec2 cudaBlockDim = { 8, 8 };
-        constexpr int2 search_halfsize = { search_halfsizeX, search_halfsizeY };
+        constexpr vec2ui macroBlockSize = { macroBlockW, macroBlockH };
+        constexpr vec2ui cudaBlockDim = { 8, 8 };
+        constexpr vec2i search_halfsize = { search_halfsizeX, search_halfsizeY };
 
         dim3 gridSize = Div(prevFrame.Dim(), macroBlockSize);
 
-        ImageGPU<int4> output({ gridSize.x, gridSize.y });
+        ImageGPU<vec4i> output(vec2ui{ gridSize.x, gridSize.y });
 
         constexpr size_t prevTileSize = (macroBlockSize.x * macroBlockSize.y) * sizeof(uchar4);
         constexpr size_t currTileSize = (macroBlockSize.x + search_halfsize.x * 2) * (macroBlockSize.y + search_halfsize.y * 2) * sizeof(uchar4);
         constexpr size_t sadTileSize = (cudaBlockDim.x * cudaBlockDim.y) * sizeof(SadVector);
 
         constexpr size_t sharedMemSize = prevTileSize + currTileSize + sadTileSize;
-        ivec2 dim = prevFrame.Dim();
+        vec2ui dim = prevFrame.Dim();
 
-        cuda::TimedCall("BlockMatchingSimpleKernel_T: " + util::BlockDimToString(cudaBlockDim), stream, [&]() {
-            BlockMatchingSimpleKernel_T<macroBlockW, macroBlockH, search_halfsizeX, search_halfsizeY> <<<gridSize, vec2Todim3(cudaBlockDim), sharedMemSize, stream>>> (
+        cuda::TimedCall("BlockMatchingSimpleKernel_T: " + util::BlockDimToString(cudaBlockDim), ctx, [&]() {
+            BlockMatchingSimpleKernel_T<macroBlockW, macroBlockH, search_halfsizeX, search_halfsizeY> <<<gridSize, vec2Todim3(cudaBlockDim), sharedMemSize, ctx.m_stream>>> (
                 prevFrame.Data(),
                 prevFrame.Pitch(),
                 currFrame.Data(),
@@ -561,12 +564,12 @@ namespace motion {
         return output;
     }
 
-	ImageGPU<int2> BlockMatchingWarp(const ImageGPU<uchar4>& prevFrame, const ImageGPU<uchar4>& currFrame, ivec2 macroBlockSize, int2 search_halfsize, ivec2 cudaBlockDim, cudaStream_t stream) {
+	ImageGPU<vec2i> BlockMatchingWarp(const ImageGPU<uchar4>& prevFrame, const ImageGPU<uchar4>& currFrame, vec2ui macroBlockSize, vec2i search_halfsize, vec2ui cudaBlockDim, cuda::KernelContext& ctx) {
         assert((cudaBlockDim.x * cudaBlockDim.y) % 32 == 0);
         
         dim3 gridSize = Div(prevFrame.Dim(), macroBlockSize);
 
-        ImageGPU<int2> output({ gridSize.x, gridSize.y });
+        ImageGPU<vec2i> output(vec2ui{ gridSize.x, gridSize.y });
 
         const int warpSize = 32;
         const int numWarpsPerBlock = (cudaBlockDim.x * cudaBlockDim.y) / warpSize;
@@ -576,12 +579,12 @@ namespace motion {
         const size_t sadTileSize = numWarpsPerBlock * sizeof(SadVector);
 
         const size_t sharedMemSize = prevTileSize + currTileSize + sadTileSize;
-        ivec2 dim = prevFrame.Dim();
+        vec2ui dim = prevFrame.Dim();
 
-        int2 macroBlock = { int(macroBlockSize.x), int(macroBlockSize.y) };
+        vec2i macroBlock = { int(macroBlockSize.x), int(macroBlockSize.y) };
 
-        cuda::TimedCall("BlockMatchingKernel: " + util::BlockDimToString(cudaBlockDim), stream, [&]() {
-            BlockMatchingWarpKernel<<<gridSize, vec2Todim3(cudaBlockDim), sharedMemSize, stream>>> (
+        cuda::TimedCall("BlockMatchingKernel: " + util::BlockDimToString(cudaBlockDim), ctx, [&]() {
+            BlockMatchingWarpKernel<<<gridSize, vec2Todim3(cudaBlockDim), sharedMemSize, ctx.m_stream>>> (
                 prevFrame.Data(),
                 prevFrame.Pitch(),
                 currFrame.Data(),

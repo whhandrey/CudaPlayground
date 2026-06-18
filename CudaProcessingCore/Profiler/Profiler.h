@@ -1,8 +1,15 @@
 #pragma once
 #include <string>
-#include <vector>
-#include <map>
-#include "Common.h"
+
+namespace cuda {
+	namespace profiler {
+		class IProfiler {
+		public:
+			virtual ~ILogger() = default;
+			virtual void Log(const std::string& name, float ms) = 0;
+		};
+	}
+}
 
 namespace cuda {
 	class KernelLogger {
@@ -24,8 +31,4 @@ namespace cuda {
 	}
 }
 
-namespace util {
-	inline std::string BlockDimToString(const ivec2& blockDim) {
-		return "(" + std::to_string(blockDim.x) + ", " + std::to_string(blockDim.y) + ")";
-	}
-}
+

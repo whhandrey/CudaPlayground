@@ -5,7 +5,7 @@
 #include <numeric>
 #include <cassert>
 
-using uchar = unsigned char;
+using uchar_t = image::uchar1;
 
 struct SumCount {
     float sum;
@@ -14,7 +14,7 @@ struct SumCount {
 
 // Works for single channel, but can be extended
 __global__ void AvgReductionKernel(
-    const uchar* __restrict__ input,
+    const uchar_t* __restrict__ input,
     size_t inputPitch,
     float* __restrict__ output,
     size_t outputPitch,
@@ -31,7 +31,7 @@ __global__ void AvgReductionKernel(
     int ty = threadIdx.y;
 
     const int localIdx = tx + ty * blockDim.x;
-    const uchar* srcRow = (const uchar*)((const char*)input + y * inputPitch);
+    const uchar_t* srcRow = (const uchar_t*)((const char*)input + y * inputPitch);
 
     const bool valid = x < width && y < height;
     tileBlock[localIdx] = valid ? SumCount{ float(srcRow[x]), 1.0f } : SumCount{};
@@ -77,13 +77,13 @@ __global__ void AvgReductionKernel(
 
 namespace tile {
     namespace reduction {
-        ImageGPU<float> Avg(const ImageGPU<uchar4>& input, ivec2 tileSize) {
+        ImageGPU<float> Avg(const ImageGPU<uchar4>& input, image::vec2ui tileSize) {
             assert(tileSize.x == tileSize.y);
             assert((tileSize.x & (tileSize.x - 1)) == 0);
 
             dim3 gridSize = DivUp(input.Dim(), tileSize);
 
-            ImageGPU<float> output({ gridSize.x, gridSize.y });
+            ImageGPU<float> output(image::vec2ui{ gridSize.x, gridSize.y });
             return output;
         }
     }

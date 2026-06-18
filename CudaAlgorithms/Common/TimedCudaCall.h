@@ -1,24 +1,59 @@
 #pragma once
 #include "Common.h"
-#include "CudaTimer.h"
-#include "Logger.h"
-#include <functional>
-#include <map>
+#include "../Context/Context.h"
 
 namespace cuda {
+    class Timer {
+    public:
+        explicit Timer(cudaStream_t stream = 0)
+            : m_stream(stream)
+        {
+            cudaCheck(cudaEventCreate(&m_start));
+            cudaCheck(cudaEventCreate(&m_stop));
+
+            Begin();
+        }
+
+        ~Timer()
+        {
+            cudaCheck(cudaEventDestroy(m_start));
+            cudaCheck(cudaEventDestroy(m_stop));
+        }
+
+        Timer(const Timer&) = delete;
+        Timer& operator=(const Timer&) = delete;
+
+        inline float EndMs() {
+            cudaEventRecord(m_stop, m_stream);
+            cudaEventSynchronize(m_stop);
+
+            float ms = 0.0f;
+            cudaEventElapsedTime(&ms, m_start, m_stop);
+            return ms;
+        }
+
+    private:
+        inline void Begin() {
+            cudaEventRecord(m_start, m_stream);
+        }
+
+    private:
+        cudaEvent_t m_start{};
+        cudaEvent_t m_stop{};
+        cudaStream_t m_stream{};
+    };
+
 	template <class Fn>
-	void TimedCall(const std::string& name, cudaStream_t stream, Fn&& cudaKernel) {
+	void TimedCall(const std::string& name, cuda::KernelContext& ctx, Fn&& cudaKernel) {
 
 		{
-			CudaTimer timer(stream);
+			Timer timer(ctx.m_stream);
 			
 			cudaKernel();
 
-			Logger().Log(name, timer.EndMs());
-		}
-
-		if (cudaGetLastError() != cudaSuccess) {
-			Logger().Remove(name);
+            if (cudaGetLastError() == cudaSuccess) {
+                ctx.m_profiler->Profile(name, timer.EndMs());
+            }
 		}
 	}
 }
