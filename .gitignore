@@ -115,6 +115,3 @@ local.pri
 Thumbs.db
 .vscode/
 .idea/
-
-# Ignore stb lib for now
-Lib/stb
