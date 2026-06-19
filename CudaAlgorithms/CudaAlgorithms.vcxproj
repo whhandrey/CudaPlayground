@@ -19,16 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common\Common.cpp" />
+    <ClCompile Include="Cuda\KernelCommon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Common.h" />
-    <ClInclude Include="Common\TimedCudaCall.h" />
     <ClInclude Include="Common\TypesCheck.h" />
-    <ClInclude Include="Context\Context.h" />
-    <ClInclude Include="Context\Profiler.h" />
     <ClInclude Include="Cuda\Common.cuh" />
     <ClInclude Include="Cuda\Filter.cuh" />
+    <ClInclude Include="Cuda\KernelCommon.h" />
     <ClInclude Include="Cuda\Motion.cuh" />
     <ClInclude Include="Cuda\Reduction.cuh" />
     <ClInclude Include="DeviceImage\ImageGPU.h" />
@@ -37,6 +35,11 @@
     <CudaCompile Include="Cuda\Filter.cu" />
     <CudaCompile Include="Cuda\Motion.cu" />
     <CudaCompile Include="Cuda\Reduction.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CudaCommon\CudaCommon.vcxproj">
+      <Project>{cf70d966-aae0-4b46-86fc-353cbc927957}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -93,10 +96,10 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\AY\Code;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\AY\Code;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -132,7 +135,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ImgProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)ImgProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -151,7 +154,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ImgProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)ImgProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>

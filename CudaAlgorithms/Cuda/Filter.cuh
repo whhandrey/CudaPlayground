@@ -1,5 +1,5 @@
 #include "../DeviceImage/ImageGPU.h"
-#include "../Context/Context.h"
+#include <Cuda/Context.h>
 #include <Image/ImageTypes.h>
 
 namespace filter {

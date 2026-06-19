@@ -12,5 +12,8 @@
     <ClInclude Include="Image\ImageTypes.h">
       <Filter>Image</Filter>
     </ClInclude>
+    <ClInclude Include="Image\ImageView.h">
+      <Filter>Image</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

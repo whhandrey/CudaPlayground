@@ -1,5 +1,5 @@
 #include "../DeviceImage/ImageGPU.h"
-#include "../Context/Context.h"
+#include <Cuda/Context.h>
 
 namespace motion {
 	// simple version, no warp sync

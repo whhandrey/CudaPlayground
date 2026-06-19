@@ -1,6 +1,6 @@
 #pragma once
+#include "../Common/Common.h"
 #include <Image/Image.h>
-#include <Cuda/CudaCheck.h>
 
 template <class T>
 class ImageGPU {

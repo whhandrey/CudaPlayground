@@ -1,9 +1,10 @@
 #include "Reduction.cuh"
-#include "../Common/TimedCudaCall.h"
 #include <iostream>
 #include <algorithm>
 #include <numeric>
 #include <cassert>
+#include <Cuda/TimedCudaCall.h>
+#include <Cuda/MathUtils.h>
 
 using uchar_t = image::uchar1;
 
@@ -81,7 +82,7 @@ namespace tile {
             assert(tileSize.x == tileSize.y);
             assert((tileSize.x & (tileSize.x - 1)) == 0);
 
-            dim3 gridSize = DivUp(input.Dim(), tileSize);
+            dim3 gridSize = cuda::math::DivUp(input.Dim(), tileSize);
 
             ImageGPU<float> output(image::vec2ui{ gridSize.x, gridSize.y });
             return output;

@@ -1,9 +1,12 @@
 #include "Filter.cuh"
 #include "Common.cuh"
-#include "../Common/TimedCudaCall.h"
+#include "KernelCommon.h"
+#include "../Common/Common.h"
 #include <iostream>
 #include <algorithm>
 #include <numeric>
+#include <Cuda/TimedCudaCall.h>
+#include <Cuda/MathUtils.h>
 
 constexpr int MAX_FILTER_HALFSIZE = 10;
 constexpr int MAX_KERNEL_SIZE = 2 * MAX_FILTER_HALFSIZE + 1;
@@ -516,7 +519,7 @@ namespace cuda {
 
 namespace filter {
 	ImageGPU<uchar4> GaussianBlur(const ImageGPU<uchar4>& input, int filter_halfsize, float sigma, vec2ui blockSize, cuda::KernelContext& ctx) {
-        dim3 gridSize = DivUp(input.Dim(), blockSize);
+        dim3 gridSize = cuda::math::DivUp(input.Dim(), blockSize);
 
         const auto weights_cpu = gauss::MakeNormGaussWeights(filter_halfsize, sigma);
         cudaCheck(cudaMemcpyToSymbolAsync(c_weightsGauss, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, ctx.m_stream));
@@ -524,8 +527,8 @@ namespace filter {
         ImageGPU<float4> tmp(input.Dim());
         ImageGPU<uchar4> output(input.Dim());
 
-        cuda::TimedCall("GaussianBlurX+Y: " + util::BlockDimToString(blockSize), ctx, [&]() {
-            GaussianBlurX<<<gridSize, vec2Todim3(blockSize), 0, ctx.m_stream>>> (
+        cuda::TimedCall("GaussianBlurX+Y: " + cuda::util::BlockDimToString(blockSize), ctx, [&]() {
+            GaussianBlurX<<<gridSize, cuda::math::vec2Todim3(blockSize), 0, ctx.m_stream>>> (
                 input.Data(),
                 input.Pitch(),
                 tmp.Data(),
@@ -535,7 +538,7 @@ namespace filter {
                 filter_halfsize
             );
 
-            GaussianBlurY<<<gridSize, vec2Todim3(blockSize), 0, ctx.m_stream>>> (
+            GaussianBlurY<<<gridSize, cuda::math::vec2Todim3(blockSize), 0, ctx.m_stream>>> (
                 tmp.Data(),
                 tmp.Pitch(),
                 output.Data(),
@@ -553,7 +556,7 @@ namespace filter {
     ImageGPU<uchar4> GaussianBlurFusedV1(const ImageGPU<uchar4>& input, int filter_halfsize, float sigma, vec2ui blockSize, cuda::KernelContext& ctx) {
         // TODO: test with diff sizes
         blockSize = { blockSize.x, unsigned int(blockSize.y + filter_halfsize * 2) }; // overlap in Y-dir
-        dim3 gridSize = DivUp(input.Dim(), blockSize);
+        dim3 gridSize = cuda::math::DivUp(input.Dim(), blockSize);
 
         const auto weights_cpu = gauss::MakeNormGaussWeights(filter_halfsize, sigma);
         cudaCheck(cudaMemcpyToSymbolAsync(c_weightsGauss, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, ctx.m_stream));
@@ -566,8 +569,8 @@ namespace filter {
         const int outputPerBlockY = blockSize.y - 2 * filter_halfsize;
         gridSize.y = (input.Dim().y + outputPerBlockY - 1) / outputPerBlockY;
 
-        cuda::TimedCall("GaussianBlurTileV1: " + util::BlockDimToString(blockSize), ctx, [&]() {
-            GaussianBlurTile<<<gridSize, vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
+        cuda::TimedCall("GaussianBlurTileV1: " + cuda::util::BlockDimToString(blockSize), ctx, [&]() {
+            GaussianBlurTile<<<gridSize, cuda::math::vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                 input.Data(),
                 input.Pitch(),
                 output.Data(),
@@ -592,10 +595,10 @@ namespace filter {
         // Correct grid size since useful input in vertical pass are only center w/o halo
         // So need to have more blocks
         vec2ui outputBlock = { blockSize.x, blockSize.y - 2 * filter_halfsize };
-        dim3 gridSize = DivUp(input.Dim(), outputBlock);
+        dim3 gridSize = cuda::math::DivUp(input.Dim(), outputBlock);
 
-        cuda::TimedCall("GaussianBlurTileV2: " + util::BlockDimToString(blockSize), ctx, [&]() {
-            GaussianBlurTile<<<gridSize, vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
+        cuda::TimedCall("GaussianBlurTileV2: " + cuda::util::BlockDimToString(blockSize), ctx, [&]() {
+            GaussianBlurTile<<<gridSize, cuda::math::vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                 input.Data(),
                 input.Pitch(),
                 output.Data(),
@@ -610,7 +613,7 @@ namespace filter {
     }
 
     ImageGPU<uchar4> BilateralFilter(const ImageGPU<uchar4>& input, int filter_halfsize, float sigmaGauss, float sigmaColor, vec2ui blockSize, cuda::KernelContext& ctx) {
-        dim3 gridSize = DivUp(input.Dim(), blockSize);
+        dim3 gridSize = cuda::math::DivUp(input.Dim(), blockSize);
 
         // can use non-norm weights, don't matter
         const auto weights_cpu = gauss::Make2dGaussWeights(filter_halfsize, sigmaGauss);
@@ -627,8 +630,8 @@ namespace filter {
         //const size_t tileStride = tileWidth;
         const size_t sharedMemSize = tileWidth * tileHeight * sizeof(int4);
 
-        cuda::TimedCall("BilateralKernel: " + util::BlockDimToString(blockSize), ctx, [&]() {
-            BilateralKernel<<<gridSize, vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
+        cuda::TimedCall("BilateralKernel: " + cuda::util::BlockDimToString(blockSize), ctx, [&]() {
+            BilateralKernel<<<gridSize, cuda::math::vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                 input.Data(),
                 input.Pitch(),
                 output.Data(),
@@ -645,7 +648,7 @@ namespace filter {
     }
 
     ImageGPU<uchar4> BilateralFilterT(const ImageGPU<uchar4>& input, float sigmaGauss, float sigmaColor, vec2ui blockSize, cuda::KernelContext& ctx, bool debugInfo) {
-        dim3 gridSize = DivUp(input.Dim(), blockSize);
+        dim3 gridSize = cuda::math::DivUp(input.Dim(), blockSize);
 
         constexpr int filter_halfsize = 5;
 
@@ -661,23 +664,23 @@ namespace filter {
         const size_t tileWidth = blockSize.x + filter_halfsize * 2;
         const size_t tileHeight = blockSize.y + filter_halfsize * 2;
 
-        const auto gpuArch = gpu::DetectArch();
-        if (gpuArch == gpu::Arch::Unknown) {
+        const auto gpuArch = cuda::gpu::DetectArch();
+        if (gpuArch == cuda::gpu::Arch::Unknown) {
             throw std::logic_error("gpu::Arch is unknown");
         }
 
-        const size_t typeSize = (gpuArch == gpu::Arch::Turing) ? sizeof(uchar4) : sizeof(int4);
+        const size_t typeSize = (gpuArch == cuda::gpu::Arch::Turing) ? sizeof(uchar4) : sizeof(int4);
         const size_t sharedMemSize = tileWidth * tileHeight * typeSize;
 
         if (debugInfo) {
-            cuda::PrintOccupancyForBilateral<filter_halfsize>(vec2Todim3(blockSize), sharedMemSize);
+            cuda::PrintOccupancyForBilateral<filter_halfsize>(cuda::math::vec2Todim3(blockSize), sharedMemSize);
             std::cout << std::endl;
         }
 
         // Quadro T1000/T2000
-        if (gpuArch == gpu::Arch::Turing) {
-            cuda::TimedCall("BilateralKernel_Uchar4: " + util::BlockDimToString(blockSize), ctx, [&]() {
-                BilateralKernelT_Uchar<filter_halfsize><<<gridSize, vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
+        if (gpuArch == cuda::gpu::Arch::Turing) {
+            cuda::TimedCall("BilateralKernel_Uchar4: " + cuda::util::BlockDimToString(blockSize), ctx, [&]() {
+                BilateralKernelT_Uchar<filter_halfsize><<<gridSize, cuda::math::vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                     input.Data(),
                     input.Pitch(),
                     output.Data(),
@@ -693,8 +696,8 @@ namespace filter {
         // This is opposite on Quadro.
         // Idk if this is better on rtx 2/3, tested on rtx 4050 and rtx 5060.
         else {
-            cuda::TimedCall("BilateralKernel_Int4: " + util::BlockDimToString(blockSize), ctx, [&]() {
-                BilateralKernelT<filter_halfsize><<<gridSize, vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
+            cuda::TimedCall("BilateralKernel_Int4: " + cuda::util::BlockDimToString(blockSize), ctx, [&]() {
+                BilateralKernelT<filter_halfsize><<<gridSize, cuda::math::vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                     input.Data(),
                     input.Pitch(),
                     output.Data(),

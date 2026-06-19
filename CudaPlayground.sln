@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CudaProcessingCore", "CudaP
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MotionScope", "MotionScope\MotionScope.vcxproj", "{F7D4596C-E9E4-4854-A733-AC4B16D5E240}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CudaCommon", "CudaCommon\CudaCommon.vcxproj", "{CF70D966-AAE0-4B46-86FC-353CBC927957}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -61,6 +63,14 @@ Global
 		{F7D4596C-E9E4-4854-A733-AC4B16D5E240}.Release|x64.Build.0 = Release|x64
 		{F7D4596C-E9E4-4854-A733-AC4B16D5E240}.Release|x86.ActiveCfg = Release|x64
 		{F7D4596C-E9E4-4854-A733-AC4B16D5E240}.Release|x86.Build.0 = Release|x64
+		{CF70D966-AAE0-4B46-86FC-353CBC927957}.Debug|x64.ActiveCfg = Debug|x64
+		{CF70D966-AAE0-4B46-86FC-353CBC927957}.Debug|x64.Build.0 = Debug|x64
+		{CF70D966-AAE0-4B46-86FC-353CBC927957}.Debug|x86.ActiveCfg = Debug|Win32
+		{CF70D966-AAE0-4B46-86FC-353CBC927957}.Debug|x86.Build.0 = Debug|Win32
+		{CF70D966-AAE0-4B46-86FC-353CBC927957}.Release|x64.ActiveCfg = Release|x64
+		{CF70D966-AAE0-4B46-86FC-353CBC927957}.Release|x64.Build.0 = Release|x64
+		{CF70D966-AAE0-4B46-86FC-353CBC927957}.Release|x86.ActiveCfg = Release|Win32
+		{CF70D966-AAE0-4B46-86FC-353CBC927957}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

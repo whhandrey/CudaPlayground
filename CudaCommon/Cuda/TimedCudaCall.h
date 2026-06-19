@@ -1,6 +1,6 @@
 #pragma once
-#include "Common.h"
-#include "../Context/Context.h"
+#include "Context.h"
+#include "CudaCheck.h"
 
 namespace cuda {
     class Timer {
@@ -51,6 +51,7 @@ namespace cuda {
 			
 			cudaKernel();
 
+            // Ignore errors for now, needed to test different blockDim sizes which might be invalid in some cases.
             if (cudaGetLastError() == cudaSuccess) {
                 ctx.m_profiler->Profile(name, timer.EndMs());
             }

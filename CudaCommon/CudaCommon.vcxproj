@@ -18,27 +18,12 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="Profiler\Profiler.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
-      <Project>{b32cb206-5441-4209-a31a-17a3f5f7ff6d}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Image\ImageIO.h" />
-    <ClInclude Include="Image\ImageTransfer.h" />
-    <ClInclude Include="Profiler\Profiler.h" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{8206ebde-b52e-4822-af81-3628dd66e32b}</ProjectGuid>
-    <RootNamespace>CudaStuffTests</RootNamespace>
+    <ProjectGuid>{cf70d966-aae0-4b46-86fc-353cbc927957}</ProjectGuid>
+    <RootNamespace>CudaCommon</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>CudaBenchmark</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -55,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -97,6 +82,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -112,6 +100,9 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -120,14 +111,15 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)CudaAlgorithms;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include;$(SolutionDir)ImgProcCommon;C:\AY\Proj\Repo\CudaPlayground\ThirdParty</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ImgProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cudart.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -138,15 +130,28 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)CudaAlgorithms;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include;$(SolutionDir)ImgProcCommon;C:\AY\Proj\Repo\CudaPlayground\ThirdParty</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ImgProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cudart.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="Cuda\Context.h" />
+    <ClInclude Include="Cuda\CudaCheck.h" />
+    <ClInclude Include="Cuda\MathUtils.h" />
+    <ClInclude Include="Cuda\Profiler.h" />
+    <ClInclude Include="Cuda\TimedCudaCall.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ImgProcCommon\ImgProcCommon.vcxproj">
+      <Project>{3ead4a8c-e561-4b95-9d26-c8478b90f41c}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

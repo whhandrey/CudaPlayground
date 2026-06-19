@@ -7,23 +7,17 @@
     <Filter Include="Cuda">
       <UniqueIdentifier>{0f695aca-d4ff-4d19-8768-0c6043b673d1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Context">
-      <UniqueIdentifier>{60ab5c51-84d6-4d79-a2c8-beaa6314e55e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="DeviceImage">
       <UniqueIdentifier>{d6ac3d19-c010-4fd2-bf94-2209fa8080ac}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common\Common.cpp">
-      <Filter>Common</Filter>
+    <ClCompile Include="Cuda\KernelCommon.cpp">
+      <Filter>Cuda</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Common.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\TimedCudaCall.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Cuda\Common.cuh">
@@ -38,17 +32,14 @@
     <ClInclude Include="Cuda\Reduction.cuh">
       <Filter>Cuda</Filter>
     </ClInclude>
-    <ClInclude Include="Context\Context.h">
-      <Filter>Context</Filter>
-    </ClInclude>
-    <ClInclude Include="Context\Profiler.h">
-      <Filter>Context</Filter>
-    </ClInclude>
     <ClInclude Include="Common\TypesCheck.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="DeviceImage\ImageGPU.h">
       <Filter>DeviceImage</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\KernelCommon.h">
+      <Filter>Cuda</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

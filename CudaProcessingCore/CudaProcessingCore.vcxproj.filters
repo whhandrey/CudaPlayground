@@ -4,5 +4,27 @@
     <Filter Include="Profiler">
       <UniqueIdentifier>{20b066b3-989c-406d-a5b2-1f989a914967}</UniqueIdentifier>
     </Filter>
+    <Filter Include="DeviceImage">
+      <UniqueIdentifier>{e9364423-5626-4c67-87e3-8bb20b41d594}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GpuProcessor">
+      <UniqueIdentifier>{a20154ec-d9cb-45f0-9745-023b2f5fb7ec}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DeviceImage\ImageGPU.h">
+      <Filter>DeviceImage</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\IGpuProcessor.h">
+      <Filter>GpuProcessor</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\MotionProcessor.h">
+      <Filter>GpuProcessor</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="GpuProcessor\MotionProcessor.cpp">
+      <Filter>GpuProcessor</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

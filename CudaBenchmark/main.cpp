@@ -3,7 +3,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include <DeviceImage/ImageGPU.h>
-#include <Context/Context.h>
+#include <Cuda/Context.h>
 #include <Cuda/Motion.cuh>
 #include <Cuda/Filter.cuh>
 

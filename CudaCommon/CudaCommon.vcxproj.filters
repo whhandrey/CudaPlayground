@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Cuda">
+      <UniqueIdentifier>{d43448ba-b26b-4048-bdc3-a028eeb8bb90}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Cuda\Context.h">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\CudaCheck.h">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Profiler.h">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\TimedCudaCall.h">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\MathUtils.h">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
