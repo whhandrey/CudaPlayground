@@ -1,24 +1,32 @@
 #pragma once
 #include <Image/Image.h>
+#include <Image/ImageView.h>
 #include <Cuda/CudaCheck.h>
 
 template <class T>
 class ImageGPU {
 public:
+	ImageGPU() = default;
+
 	ImageGPU(image::vec2ui dim)
 		: m_dim(dim)
 	{
 		Create();
 	}
 
-	ImageGPU(const T* ptr, image::vec2ui dim, cudaStream_t stream)
-		: ImageGPU(dim)
+	ImageGPU(const image::ImageView<T>& img, cudaStream_t stream)
+		: ImageGPU(img.m_dim)
 	{
-		cudaCheck(cudaMemcpy2DAsync(m_ptr, m_pitch, ptr, dim.x * sizeof(T), dim.x * sizeof(T), dim.y, cudaMemcpyHostToDevice, stream));
+		Upload(img, stream);
+	}
+
+	ImageGPU(const T* ptr, image::vec2ui dim, cudaStream_t stream)
+		: ImageGPU<T>(image::ImageView<T>{ ptr, dim, dim.x * sizeof(T) }, stream)
+	{
 	}
 
 	ImageGPU(const image::Image<T>& img, cudaStream_t stream)
-		: ImageGPU<T>(img.Data(), img.Dim(), stream)
+		: ImageGPU<T>(image::ImageView<T>{ img.Data(), img.Dim(), img.Dim().x * sizeof(T) }, stream)
 	{
 	}
 
@@ -67,6 +75,14 @@ public:
 		return m_ptr;
 	}
 
+	void Upload(const image::ImageView<T>& img, cudaStream_t stream) {
+		if (m_dim.x != img.m_dim.x || m_dim.y != img.m_dim.y) {
+			throw std::logic_error("ImageGPU::Upload: trying to upload an image with wrong dim!");
+		}
+
+		cudaCheck(cudaMemcpy2DAsync(m_ptr, m_pitch, img.m_ptr, img.m_pitch, img.m_dim.x * sizeof(T), img.m_dim.y, cudaMemcpyHostToDevice, stream));
+	}
+
 	~ImageGPU() {
 		Destroy();
 	}
@@ -87,7 +103,7 @@ private:
 	}
 
 private:
-	image::vec2ui m_dim;
+	image::vec2ui m_dim = {};
 	size_t m_pitch = 0;
 	T* m_ptr = nullptr;
 };
