@@ -1,5 +1,6 @@
 #pragma once
 #include <cuda_runtime.h>
+#include <Image/ImageTypes.h>
 
 template <typename T>
 __device__ __forceinline__ T clamp(T val, T min_val, T max_val) {
@@ -11,11 +12,11 @@ __device__ __forceinline__ unsigned char floatToUchar(float x) {
     return static_cast<unsigned char>(x + 0.5f);
 }
 
-__device__ __forceinline__ uchar4 float4ToUchar4(float4 v) {
-    return make_uchar4(
+__device__ __forceinline__ image::vec4uc floatVecToUchar(image::vec4f v) {
+    return {
         floatToUchar(v.x),
         floatToUchar(v.y),
         floatToUchar(v.z),
         floatToUchar(v.w)
-    );
+    };
 }

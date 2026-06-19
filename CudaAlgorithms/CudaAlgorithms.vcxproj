@@ -25,11 +25,10 @@
     <ClInclude Include="Common\Common.h" />
     <ClInclude Include="Common\TypesCheck.h" />
     <ClInclude Include="Cuda\Common.cuh" />
-    <ClInclude Include="Cuda\Filter.cuh" />
+    <ClInclude Include="Cuda\Filter.h" />
     <ClInclude Include="Cuda\KernelCommon.h" />
-    <ClInclude Include="Cuda\Motion.cuh" />
+    <ClInclude Include="Cuda\Motion.h" />
     <ClInclude Include="Cuda\Reduction.cuh" />
-    <ClInclude Include="DeviceImage\ImageGPU.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\Filter.cu" />

@@ -7,9 +7,6 @@
     <Filter Include="Cuda">
       <UniqueIdentifier>{0f695aca-d4ff-4d19-8768-0c6043b673d1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="DeviceImage">
-      <UniqueIdentifier>{d6ac3d19-c010-4fd2-bf94-2209fa8080ac}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cuda\KernelCommon.cpp">
@@ -23,10 +20,10 @@
     <ClInclude Include="Cuda\Common.cuh">
       <Filter>Cuda</Filter>
     </ClInclude>
-    <ClInclude Include="Cuda\Filter.cuh">
+    <ClInclude Include="Cuda\Filter.h">
       <Filter>Cuda</Filter>
     </ClInclude>
-    <ClInclude Include="Cuda\Motion.cuh">
+    <ClInclude Include="Cuda\Motion.h">
       <Filter>Cuda</Filter>
     </ClInclude>
     <ClInclude Include="Cuda\Reduction.cuh">
@@ -34,9 +31,6 @@
     </ClInclude>
     <ClInclude Include="Common\TypesCheck.h">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="DeviceImage\ImageGPU.h">
-      <Filter>DeviceImage</Filter>
     </ClInclude>
     <ClInclude Include="Cuda\KernelCommon.h">
       <Filter>Cuda</Filter>
