@@ -35,11 +35,6 @@
     <CudaCompile Include="Cuda\Motion.cu" />
     <CudaCompile Include="Cuda\Reduction.cu" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\CudaCommon\CudaCommon.vcxproj">
-      <Project>{cf70d966-aae0-4b46-86fc-353cbc927957}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
