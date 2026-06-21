@@ -21,6 +21,11 @@ namespace image {
 		struct PixelTraits<uchar4> {
 			static constexpr int channels = 4;
 		};
+
+		template <>
+		struct PixelTraits<image::vec4uc> {
+			static constexpr int channels = 4;
+		};
 	}
 
 	namespace read {
@@ -35,6 +40,11 @@ namespace image {
 		template <>
 		inline uchar4 ReadPixel<uchar4>(const unsigned char* p) {
 			return uchar4{ p[0], p[1], p[2], p[3] };
+		}
+
+		template <>
+		inline image::vec4uc ReadPixel<image::vec4uc>(const unsigned char* p) {
+			return image::vec4uc{ p[0], p[1], p[2], p[3] };
 		}
 	}
 

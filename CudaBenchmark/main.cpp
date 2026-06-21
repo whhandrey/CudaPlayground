@@ -3,9 +3,10 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include <DeviceImage/ImageGPU.h>
+#include <Image/ImageView.h>
 #include <Cuda/Context.h>
-#include <Cuda/Motion.cuh>
-#include <Cuda/Filter.cuh>
+#include <Cuda/Motion.h>
+#include <Cuda/Filter.h>
 
 #include <Image/Image.h>
 #include <iostream>
@@ -170,12 +171,19 @@ int main() {
 
 	const std::string file = "C:\\AY\\Code\\ImgTest\\1.jpg";
 
-	image::Image<uchar4> img = image::LoadFromFile<uchar4>(file);
+	image::Image<image::vec4uc> img = image::LoadFromFile<image::vec4uc>(file);
 
-	ImageGPU<uchar4> prevFrame(img, stream);
-	ImageGPU<uchar4> currFrame(img, stream);
+	ImageGPU<image::vec4uc> prevFrame(img, stream);
+	ImageGPU<image::vec4uc> currFrame(img, stream);
+	ImageGPU<image::vec4uc> currFrameShifted(img.Dim());
+	ImageGPU<image::vec4i> output(img.Dim());
 
-	currFrame = motion::shift::ShiftImage(currFrame, { -3, 2 }, ctx);
+	image::GpuImageView<image::vec4uc> prevView{ prevFrame.Data(), prevFrame.Dim(), prevFrame.Pitch() };
+	image::GpuImageView<image::vec4uc> currView{ currFrame.Data(), currFrame.Dim(), currFrame.Pitch() };
+	image::GpuImageView<image::vec4uc> currShiftedView{ currFrameShifted.Data(), currFrameShifted.Dim(), currFrameShifted.Pitch() };
+	image::GpuImageView<image::vec4i> outView{ output.Data(), output.Dim(), output.Pitch() };
+
+	cuda::motion::shift::ShiftImage(currView, currShiftedView, { -3, 2 }, ctx);
 
 	PrintCudaDevice();
 	PrintSharedMemStats();
@@ -217,9 +225,18 @@ int main() {
 	};
 
 	{
-		for (int i = 0; i < warmUpRuns; ++i) {
-			const auto _ = motion::BlockMatchingSimpleT(prevFrame, currFrame, macroBlockDim, search_halfsize, { 16, 16 }, ctx);
+		{
+			const auto p = cuda::motion::BlockMatchingParams {
+				{ 16, 16 },
+				macroBlockDim,
+				search_halfsize
+			};
+
+			for (int i = 0; i < warmUpRuns; ++i) {
+				cuda::motion::BlockMatchingSimpleT(prevView, currView, outView, p, ctx);
+			}
 		}
+
 
 		cudaStreamSynchronize(stream);
 		profiler->Clear();
@@ -237,13 +254,28 @@ int main() {
 
 		{
 			// Perf test
-			for (int i = 0; i < runs; ++i) {
-				const auto _ = motion::BlockMatchingSimpleT(prevFrame, currFrame, {}, {}, {}, ctx);
+			{
+				const auto p = cuda::motion::BlockMatchingParams {
+					{ 8, 8 },
+					macroBlockDim,
+					search_halfsize
+				};
+
+				for (int i = 0; i < runs; ++i) {
+					cuda::motion::BlockMatchingSimpleT(prevView, currView, outView, p, ctx);
+				}
 			}
 
+
 			//for (const auto& blockDim : blockDims) {
+			//	const auto p = cuda::motion::BlockMatchingParams {
+			//		blockDim,
+			//		macroBlockDim,
+			//		search_halfsize
+			//	};
+
 			//	for (int i = 0; i < runs; ++i) {
-			//		const auto _ = motion::BlockMatchingSimple(prevFrame, currFrame, macroBlockDim, search_halfsize, blockDim, ctx);
+			//		cuda::motion::BlockMatchingSimpleT(prevView, currView, outView, p, ctx);
 			//	}
 			//}
 		}
@@ -252,13 +284,13 @@ int main() {
 	cudaCheck(cudaStreamSynchronize(stream));
 	print::PrintKernelStats(profiler->GetRuns());
 
-	const auto img_motion = motion::BlockMatchingWarp(prevFrame, currFrame, { 16, 16 }, { 3, 3 }, { 16, 16 }, ctx);
-	const auto img_motion_cpu = image::ImageGpuToCpu(img_motion, stream);
+	//const auto img_motion = motion::BlockMatchingWarp(prevFrame, currFrame, { 16, 16 }, { 3, 3 }, { 16, 16 }, ctx);
+	//const auto img_motion_cpu = image::ImageGpuToCpu(img_motion, stream);
 
-	const auto img_motion_s = motion::BlockMatchingSimple(prevFrame, currFrame, { 16, 16 }, { 3, 3 }, { 16, 16 }, ctx);
-	const auto img_motion_cpu_s = image::ImageGpuToCpu(img_motion_s, stream);
+	//const auto img_motion_s = motion::BlockMatchingSimple(prevFrame, currFrame, { 16, 16 }, { 3, 3 }, { 16, 16 }, ctx);
+	//const auto img_motion_cpu_s = image::ImageGpuToCpu(img_motion_s, stream);
 
-	cudaCheck(cudaStreamSynchronize(stream));
+	//cudaCheck(cudaStreamSynchronize(stream));
 
 	//{
 	//	const auto* begin1 = img_motion_cpu.Data();
