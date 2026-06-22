@@ -235,7 +235,7 @@ int main() {
 			};
 
 			for (int i = 0; i < warmUpRuns; ++i) {
-				cuda::motion::BlockMatchingWarp(prevView, currView, outView, p, ctx);
+				cuda::motion::BlockMatchingSimpleT(prevView, currView, outView, p, ctx);
 			}
 		}
 
@@ -256,30 +256,30 @@ int main() {
 
 		{
 			// Perf test
-			//{
-			//	const auto p = cuda::motion::BlockMatchingParams {
-			//		{ 8, 8 },
-			//		macroBlockDim,
-			//		search_halfsize
-			//	};
-
-			//	for (int i = 0; i < runs; ++i) {
-			//		cuda::motion::BlockMatchingSimpleT(prevView, currView, outView, p, ctx);
-			//	}
-			//}
-
-
-			for (const auto& blockDim : blockDims) {
+			{
 				const auto p = cuda::motion::BlockMatchingParams {
-					blockDim,
+					{ 8, 8 },
 					macroBlockDim,
 					search_halfsize
 				};
 
 				for (int i = 0; i < runs; ++i) {
-					cuda::motion::BlockMatchingWarp(prevView, currView, outView, p, ctx);
+					cuda::motion::BlockMatchingSimpleT(prevView, currView, outView, p, ctx);
 				}
 			}
+
+
+			//for (const auto& blockDim : blockDims) {
+			//	const auto p = cuda::motion::BlockMatchingParams {
+			//		blockDim,
+			//		macroBlockDim,
+			//		search_halfsize
+			//	};
+
+			//	for (int i = 0; i < runs; ++i) {
+			//		cuda::motion::BlockMatchingSimple(prevView, currView, outView, p, ctx);
+			//	}
+			//}
 		}
 	}
 

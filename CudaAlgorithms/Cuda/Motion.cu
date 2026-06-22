@@ -516,7 +516,13 @@ namespace cuda {
             const BlockMatchingParams& p,
             cuda::KernelContext& ctx)
         {
-            //PRINT_KERNEL_ATTRS(BlockMatchingSimpleKernel);
+            static bool print = true;
+            if (print)
+            {
+                PRINT_KERNEL_ATTRS(BlockMatchingSimpleKernel);
+                std::cout << std::endl;
+                print = false;
+            }
 
             dim3 gridSize = cuda::math::Div(prevFrame.m_dim, p.macroBlockDim);
 
@@ -550,7 +556,13 @@ namespace cuda {
             const BlockMatchingParams& /*p*/,
             cuda::KernelContext& ctx)
         {
-            //PRINT_KERNEL_ATTRS((BlockMatchingSimpleKernel_T<8, 8, 3, 3>));
+            static bool print = true;
+            if (print)
+            {
+                PRINT_KERNEL_ATTRS((BlockMatchingSimpleKernel_T<8, 8, 3, 3>));
+                std::cout << std::endl;
+                print = false;
+            }
 
             constexpr int macroBlockW = 16;
             constexpr int macroBlockH = 16;
