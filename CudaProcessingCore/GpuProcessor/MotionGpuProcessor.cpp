@@ -1,5 +1,5 @@
 #include "MotionGpuProcessor.h"
-#include <Cuda/Motion.cuh>
+#include <Cuda/Motion.h>
 #include <Cuda/MathUtils.h>
 
 namespace {

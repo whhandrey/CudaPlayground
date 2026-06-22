@@ -123,7 +123,9 @@ void PrintCudaDevice() {
 	cudaDeviceProp props{};
 	cudaCheck(cudaGetDeviceProperties(&props, device));
 
-	std::cout << "CUDA device: " << props.name << std::endl;
+	std::cout << "CUDA device: " << props.name << std::endl
+		<< "sm_" << props.major << props.minor
+		<< std::endl;
 }
 
 void PrintSharedMemStats() {
@@ -203,7 +205,7 @@ int main() {
 
 	const int runs = 2000;
 	const int runs_prof = 1;
-	const int warmUpRuns = 20;
+	const int warmUpRuns = 200;
 
 	const std::vector<image::vec2ui> blockDims {
 		{ 32, 8  },
@@ -233,7 +235,7 @@ int main() {
 			};
 
 			for (int i = 0; i < warmUpRuns; ++i) {
-				cuda::motion::BlockMatchingSimple(prevView, currView, outView, p, ctx);
+				cuda::motion::BlockMatchingWarp(prevView, currView, outView, p, ctx);
 			}
 		}
 
@@ -275,7 +277,7 @@ int main() {
 				};
 
 				for (int i = 0; i < runs; ++i) {
-					cuda::motion::BlockMatchingSimple(prevView, currView, outView, p, ctx);
+					cuda::motion::BlockMatchingWarp(prevView, currView, outView, p, ctx);
 				}
 			}
 		}

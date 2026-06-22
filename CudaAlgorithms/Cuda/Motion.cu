@@ -8,6 +8,19 @@
 #include <Cuda/TimedCudaCall.h>
 #include <Cuda/MathUtils.h>
 
+#define PRINT_KERNEL_ATTRS(kernelName)                                       \
+do {                                                                         \
+    cudaFuncAttributes attr{};                                               \
+    cudaCheck(cudaFuncGetAttributes(&attr, kernelName));                     \
+    std::cout << #kernelName                                                 \
+              << " binaryVersion=" << attr.binaryVersion                     \
+              << " ptxVersion=" << attr.ptxVersion                           \
+              << " numRegs=" << attr.numRegs                                 \
+              << " sharedSizeBytes=" << attr.sharedSizeBytes                 \
+              << " constSizeBytes=" << attr.constSizeBytes                   \
+              << '\n';                                                       \
+} while (0)
+
 namespace {
     struct SadVector {
         int sad;
@@ -49,7 +62,7 @@ __global__ void BlockMatchingWarpKernel(
     size_t prevPitch,
     const image::vec4uc* __restrict__ currFrame,
     size_t currPitch,
-    image::vec2i* __restrict__ motionImg,
+    image::vec4i* __restrict__ motionImg,
     size_t motionPitch,
     int width,
     int height,
@@ -169,8 +182,8 @@ __global__ void BlockMatchingWarpKernel(
             finalMin = MinSad(finalMin, sadTile[i]);
         }
 
-        image::vec2i* rowMotion = (image::vec2i*)((char*)motionImg + blockIdx.y * motionPitch);
-        rowMotion[blockIdx.x] = { finalMin.dx, finalMin.dy };
+        image::vec4i* rowMotion = (image::vec4i*)((char*)motionImg + blockIdx.y * motionPitch);
+        rowMotion[blockIdx.x] = { finalMin.dx, finalMin.dy, 0, 0 };
     }
 }
 
@@ -503,6 +516,8 @@ namespace cuda {
             const BlockMatchingParams& p,
             cuda::KernelContext& ctx)
         {
+            //PRINT_KERNEL_ATTRS(BlockMatchingSimpleKernel);
+
             dim3 gridSize = cuda::math::Div(prevFrame.m_dim, p.macroBlockDim);
 
             const size_t prevTileSize = (p.macroBlockDim.x * p.macroBlockDim.y) * sizeof(uchar4);
@@ -535,6 +550,8 @@ namespace cuda {
             const BlockMatchingParams& /*p*/,
             cuda::KernelContext& ctx)
         {
+            //PRINT_KERNEL_ATTRS((BlockMatchingSimpleKernel_T<8, 8, 3, 3>));
+
             constexpr int macroBlockW = 16;
             constexpr int macroBlockH = 16;
 
@@ -570,7 +587,7 @@ namespace cuda {
         void BlockMatchingWarp(
             const GpuImageView<image::vec4uc>& prevFrame,
             const GpuImageView<image::vec4uc>& currFrame,
-            GpuImageView<image::vec2i>& output,
+            GpuImageView<image::vec4i>& output,
             const BlockMatchingParams& p,
             cuda::KernelContext& ctx)
         {

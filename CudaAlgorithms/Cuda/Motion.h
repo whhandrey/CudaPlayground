@@ -36,7 +36,7 @@ namespace cuda {
 		void BlockMatchingWarp(
 			const GpuImageView<image::vec4uc>& prevFrame,
 			const GpuImageView<image::vec4uc>& currFrame,
-			GpuImageView<image::vec2i>& output,
+			GpuImageView<image::vec4i>& output,
 			const BlockMatchingParams& p,
 			cuda::KernelContext& ctx
 		);
