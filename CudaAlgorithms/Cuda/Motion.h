@@ -15,18 +15,18 @@ namespace cuda {
 
 		// simple version, no warp sync
 		void BlockMatchingSimple(
-			const GpuImageView<image::vec4uc>& prevFrame,
-			const GpuImageView<image::vec4uc>& currFrame,
-			GpuImageView<image::vec4i>& output,
+			const GpuImageView<uchar4>& prevFrame,
+			const GpuImageView<uchar4>& currFrame,
+			GpuImageView<int4>& output,
 			const BlockMatchingParams& p,
 			cuda::KernelContext& ctx
 		);
 
 		// Only supports blockDim = 8;8, search_halfsize = 3;3, macroBlockDim = 16;16
 		void BlockMatchingSimpleT(
-			const GpuImageView<image::vec4uc>& prevFrame,
-			const GpuImageView<image::vec4uc>& currFrame,
-			GpuImageView<image::vec4i>& output,
+			const GpuImageView<uchar4>& prevFrame,
+			const GpuImageView<uchar4>& currFrame,
+			GpuImageView<int4>& output,
 			const BlockMatchingParams& p,
 			cuda::KernelContext& ctx
 		);
@@ -34,17 +34,17 @@ namespace cuda {
 		// not improved now since this is very slow comp. to simple version
 
 		void BlockMatchingWarp(
-			const GpuImageView<image::vec4uc>& prevFrame,
-			const GpuImageView<image::vec4uc>& currFrame,
-			GpuImageView<image::vec4i>& output,
+			const GpuImageView<uchar4>& prevFrame,
+			const GpuImageView<uchar4>& currFrame,
+			GpuImageView<int4>& output,
 			const BlockMatchingParams& p,
 			cuda::KernelContext& ctx
 		);
 
 		namespace shift {
 			void ShiftImage(
-				const GpuImageView<image::vec4uc>& image,
-				GpuImageView<image::vec4uc>& output,
+				const GpuImageView<uchar4>& image,
+				GpuImageView<uchar4>& output,
 				image::vec2i shiftVector,
 				cuda::KernelContext& ctx,
 				image::vec2ui blockSize = { 16, 16 }

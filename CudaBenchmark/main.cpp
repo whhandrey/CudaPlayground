@@ -173,17 +173,17 @@ int main() {
 
 	const std::string file = "C:\\AY\\Code\\ImgTest\\1.jpg";
 
-	image::Image<image::vec4uc> img = image::LoadFromFile<image::vec4uc>(file);
+	image::Image<uchar4> img = image::LoadFromFile<uchar4>(file);
 
-	ImageGPU<image::vec4uc> prevFrame(img, stream);
-	ImageGPU<image::vec4uc> currFrame(img, stream);
-	ImageGPU<image::vec4uc> currFrameShifted(img.Dim());
-	ImageGPU<image::vec4i> output(img.Dim());
+	ImageGPU<uchar4> prevFrame(img, stream);
+	ImageGPU<uchar4> currFrame(img, stream);
+	ImageGPU<uchar4> currFrameShifted(img.Dim());
+	ImageGPU<int4> output(img.Dim());
 
-	image::GpuImageView<image::vec4uc> prevView{ prevFrame.Data(), prevFrame.Dim(), prevFrame.Pitch() };
-	image::GpuImageView<image::vec4uc> currView{ currFrame.Data(), currFrame.Dim(), currFrame.Pitch() };
-	image::GpuImageView<image::vec4uc> currShiftedView{ currFrameShifted.Data(), currFrameShifted.Dim(), currFrameShifted.Pitch() };
-	image::GpuImageView<image::vec4i> outView{ output.Data(), output.Dim(), output.Pitch() };
+	image::GpuImageView<uchar4> prevView{ prevFrame.Data(), prevFrame.Dim(), prevFrame.Pitch() };
+	image::GpuImageView<uchar4> currView{ currFrame.Data(), currFrame.Dim(), currFrame.Pitch() };
+	image::GpuImageView<uchar4> currShiftedView{ currFrameShifted.Data(), currFrameShifted.Dim(), currFrameShifted.Pitch() };
+	image::GpuImageView<int4> outView{ output.Data(), output.Dim(), output.Pitch() };
 
 	cuda::motion::shift::ShiftImage(currView, currShiftedView, { -3, 2 }, ctx);
 
@@ -235,7 +235,7 @@ int main() {
 			};
 
 			for (int i = 0; i < warmUpRuns; ++i) {
-				cuda::motion::BlockMatchingSimpleT(prevView, currView, outView, p, ctx);
+				cuda::motion::BlockMatchingSimple(prevView, currView, outView, p, ctx);
 			}
 		}
 
@@ -246,40 +246,46 @@ int main() {
 
 		//{
 		//	// Cuda profiler
+		//	const auto p = cuda::motion::BlockMatchingParams{
+		//		{ 8, 8 },
+		//		macroBlockDim,
+		//		search_halfsize
+		//	};
+
 		//	for (int i = 0; i < runs_prof; ++i) {
-		//		const auto _ = motion::BlockMatching(prevFrame, currFrame, macroBlockDim, search_halfsize, { 16, 16 }, stream);
+		//		cuda::motion::BlockMatchingSimple(prevView, currView, outView, p, ctx);
 		//	}
 
 		//	cudaStreamSynchronize(stream);
-		//	cuda::Logger().Clear();
+		//	profiler->Clear();
 		//}
 
 		{
 			// Perf test
-			{
-				const auto p = cuda::motion::BlockMatchingParams {
-					{ 8, 8 },
-					macroBlockDim,
-					search_halfsize
-				};
-
-				for (int i = 0; i < runs; ++i) {
-					cuda::motion::BlockMatchingSimpleT(prevView, currView, outView, p, ctx);
-				}
-			}
-
-
-			//for (const auto& blockDim : blockDims) {
+			//{
 			//	const auto p = cuda::motion::BlockMatchingParams {
-			//		blockDim,
+			//		{ 8, 8 },
 			//		macroBlockDim,
 			//		search_halfsize
 			//	};
 
 			//	for (int i = 0; i < runs; ++i) {
-			//		cuda::motion::BlockMatchingSimple(prevView, currView, outView, p, ctx);
+			//		cuda::motion::BlockMatchingSimpleT(prevView, currView, outView, p, ctx);
 			//	}
 			//}
+
+
+			for (const auto& blockDim : blockDims) {
+				const auto p = cuda::motion::BlockMatchingParams {
+					blockDim,
+					macroBlockDim,
+					search_halfsize
+				};
+
+				for (int i = 0; i < runs; ++i) {
+					cuda::motion::BlockMatchingSimple(prevView, currView, outView, p, ctx);
+				}
+			}
 		}
 	}
 

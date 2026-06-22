@@ -1,15 +1,15 @@
 #pragma once
 #include <Image/Image.h>
 #include <Image/ImageView.h>
+#include <cuda_runtime.h>
 
 namespace cuda_processing {
-	using image::vec4uc;
 	using image::Image;
 	using image::ImageView;
 
 	class IMotionGpuProcessor {
 	public:
 		virtual ~IMotionGpuProcessor() = default;
-		virtual Image<vec4uc> Process(const ImageView<vec4uc>& prev, const ImageView<vec4uc>& curr) = 0;
+		virtual Image<uchar4> Process(const ImageView<uchar4>& prev, const ImageView<uchar4>& curr) = 0;
 	};
 }

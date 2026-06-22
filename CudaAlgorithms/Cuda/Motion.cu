@@ -58,21 +58,21 @@ __device__ __forceinline__ int WarpReduceSum(int value) {
 }
 
 __global__ void BlockMatchingWarpKernel(
-    const image::vec4uc* __restrict__ prevFrame,
+    const uchar4* __restrict__ prevFrame,
     size_t prevPitch,
-    const image::vec4uc* __restrict__ currFrame,
+    const uchar4* __restrict__ currFrame,
     size_t currPitch,
-    image::vec4i* __restrict__ motionImg,
+    int4* __restrict__ motionImg,
     size_t motionPitch,
     int width,
     int height,
     image::vec2i search_halfsize,
     image::vec2i macroBlockDim)
 {
-    extern __shared__ image::vec4uc tiles[];
+    extern __shared__ uchar4 tiles[];
 
-    image::vec4uc* prevTile = tiles;
-    image::vec4uc* currTile = tiles + (macroBlockDim.x * macroBlockDim.y);
+    uchar4* prevTile = tiles;
+    uchar4* currTile = tiles + (macroBlockDim.x * macroBlockDim.y);
 
     int baseBlockX = blockIdx.x * macroBlockDim.x;
     int baseBlockY = blockIdx.y * macroBlockDim.y;
@@ -88,7 +88,7 @@ __global__ void BlockMatchingWarpKernel(
         int globalX = baseBlockX + localX;
         int globalY = baseBlockY + localY;
 
-        const image::vec4uc* rowPrev = (const image::vec4uc*)((const char*)prevFrame + globalY * prevPitch);
+        const uchar4* rowPrev = (const uchar4*)((const char*)prevFrame + globalY * prevPitch);
         prevTile[i] = rowPrev[globalX];
     }
 
@@ -114,7 +114,7 @@ __global__ void BlockMatchingWarpKernel(
         int globalX = baseBlockX + localX + dx_range.min;
         int globalY = baseBlockY + localY + dy_range.min;
 
-        const image::vec4uc* rowCurr = (const image::vec4uc*)((const char*)currFrame + globalY * currPitch);
+        const uchar4* rowCurr = (const uchar4*)((const char*)currFrame + globalY * currPitch);
         currTile[i] = rowCurr[globalX];
     }
 
@@ -182,27 +182,27 @@ __global__ void BlockMatchingWarpKernel(
             finalMin = MinSad(finalMin, sadTile[i]);
         }
 
-        image::vec4i* rowMotion = (image::vec4i*)((char*)motionImg + blockIdx.y * motionPitch);
+        int4* rowMotion = (int4*)((char*)motionImg + blockIdx.y * motionPitch);
         rowMotion[blockIdx.x] = { finalMin.dx, finalMin.dy, 0, 0 };
     }
 }
 
-__global__ void BlockMatchingSimpleKernel(
-    const image::vec4uc* __restrict__ prevFrame,
+__global__  void BlockMatchingSimpleKernel(
+    const uchar4* __restrict__ prevFrame,
     size_t prevPitch,
-    const image::vec4uc* __restrict__ currFrame,
+    const uchar4* __restrict__ currFrame,
     size_t currPitch,
-    image::vec4i* __restrict__ motionImg,
+    int4* __restrict__ motionImg,
     size_t motionPitch,
     int width,
     int height,
     image::vec2i search_halfsize,
     image::vec2i macroBlockDim)
 {
-    extern __shared__ image::vec4uc tiles[];
+    extern __shared__ uchar4 tiles[];
 
-    image::vec4uc* prevTile = tiles;
-    image::vec4uc* currTile = prevTile + (macroBlockDim.x * macroBlockDim.y);
+    uchar4* prevTile = tiles;
+    uchar4* currTile = prevTile + (macroBlockDim.x * macroBlockDim.y);
 
     int baseBlockX = blockIdx.x * macroBlockDim.x;
     int baseBlockY = blockIdx.y * macroBlockDim.y;
@@ -218,7 +218,7 @@ __global__ void BlockMatchingSimpleKernel(
         int globalX = baseBlockX + localX;
         int globalY = baseBlockY + localY;
 
-        const image::vec4uc* rowPrev = (const image::vec4uc*)((const char*)prevFrame + globalY * prevPitch);
+        const uchar4* rowPrev = (const uchar4*)((const char*)prevFrame + globalY * prevPitch);
         prevTile[i] = rowPrev[globalX];
     }
 
@@ -244,7 +244,7 @@ __global__ void BlockMatchingSimpleKernel(
         int globalX = baseBlockX + localX + dx_range.min;
         int globalY = baseBlockY + localY + dy_range.min;
 
-        const image::vec4uc* rowCurr = (const image::vec4uc*)((const char*)currFrame + globalY * currPitch);
+        const uchar4* rowCurr = (const uchar4*)((const char*)currFrame + globalY * currPitch);
         currTile[i] = rowCurr[globalX];
     }
 
@@ -264,22 +264,25 @@ __global__ void BlockMatchingSimpleKernel(
         int dx = (candidate % search_x) + dx_range.min;
         int dy = (candidate / search_x) + dy_range.min;
 
-        int sad = 0;
+        int sad = 0.0f;
         for (int i = 0; i < macroBlockDim.y; i++) {
-            image::vec4uc* prev = prevTile + (i * macroBlockDim.x);
-            image::vec4uc* curr = currTile + (i + currTileBaseY + dy) * currTileW;
+            uchar4* prev = prevTile + (i * macroBlockDim.x);
+            uchar4* curr = currTile + (i + currTileBaseY + dy) * currTileW;
 
             for (int j = 0; j < macroBlockDim.x; ++j) {
-                int3 prevSample = make_int3(prev[j].x, prev[j].y, prev[j].z);
-
                 const int currX = j + currTileBaseX + dx;
-                int3 currSample = make_int3(curr[currX].x, curr[currX].y, curr[currX].z);
+                sad += abs(int(prev[j].x) - int(curr[currX].x))
+                     + abs(int(prev[j].y) - int(curr[currX].y))
+                     + abs(int(prev[j].z) - int(curr[currX].z));
 
-                int diffR = abs(prevSample.x - currSample.x);
-                int diffG = abs(prevSample.y - currSample.y);
-                int diffB = abs(prevSample.z - currSample.z);
+                //const uchar4 p = prev[j];
+                //const uchar4 c = curr[currX];
 
-                sad += (diffR + diffB + diffG);
+                //const int diffR = abs(int(p.x) - int(c.x));
+                //const int diffG = abs(int(p.y) - int(c.y));
+                //const int diffB = abs(int(p.z) - int(c.z));
+
+                //sad += diffR + diffG + diffB;
             }
         }
 
@@ -310,7 +313,7 @@ __global__ void BlockMatchingSimpleKernel(
     }
 
     if (tid == 0) {
-        image::vec4i* rowMotion = (image::vec4i*)((char*)motionImg + blockIdx.y * motionPitch);
+        int4* rowMotion = (int4*)((char*)motionImg + blockIdx.y * motionPitch);
 
         // w is unused now
         rowMotion[blockIdx.x] = { sadTile[0].dx, sadTile[0].dy, sadTile[0].sad, 0 };
@@ -324,19 +327,19 @@ template <
     int search_halfsizeY
 >
 __global__ void BlockMatchingSimpleKernel_T(
-    const image::vec4uc* __restrict__ prevFrame,
+    const uchar4* __restrict__ prevFrame,
     size_t prevPitch,
-    const image::vec4uc* __restrict__ currFrame,
+    const uchar4* __restrict__ currFrame,
     size_t currPitch,
-    image::vec4i* __restrict__ motionImg,
+    int4* __restrict__ motionImg,
     size_t motionPitch,
     int width,
     int height)
 {
-    extern __shared__ image::vec4uc tiles[];
+    extern __shared__ uchar4 tiles[];
 
-    image::vec4uc* prevTile = tiles;
-    image::vec4uc* currTile = prevTile + (macroBlockW * macroBlockH);
+    uchar4* prevTile = tiles;
+    uchar4* currTile = prevTile + (macroBlockW * macroBlockH);
 
     int baseBlockX = blockIdx.x * macroBlockW;
     int baseBlockY = blockIdx.y * macroBlockH;
@@ -354,7 +357,7 @@ __global__ void BlockMatchingSimpleKernel_T(
         int globalX = baseBlockX + localX;
         int globalY = baseBlockY + localY;
 
-        const image::vec4uc* rowPrev = (const image::vec4uc*)((const char*)prevFrame + globalY * prevPitch);
+        const uchar4* rowPrev = (const uchar4*)((const char*)prevFrame + globalY * prevPitch);
         prevTile[i] = rowPrev[globalX];
     }
 
@@ -381,7 +384,7 @@ __global__ void BlockMatchingSimpleKernel_T(
         int globalX = baseBlockX + localX + dx_range.min;
         int globalY = baseBlockY + localY + dy_range.min;
 
-        const image::vec4uc* rowCurr = (const image::vec4uc
+        const uchar4* rowCurr = (const uchar4
             *)((const char*)currFrame + globalY * currPitch);
         currTile[i] = rowCurr[globalX];
     }
@@ -407,8 +410,8 @@ __global__ void BlockMatchingSimpleKernel_T(
         //#pragma unroll -> makes it worse actually, too much unrolls
         #pragma unroll 1
         for (int i = 0; i < macroBlockH; i++) {
-            image::vec4uc* prev = prevTile + (i * macroBlockW);
-            image::vec4uc* curr = currTile + (i + currTileBaseY + dy) * currTileW;
+            uchar4* prev = prevTile + (i * macroBlockW);
+            uchar4* curr = currTile + (i + currTileBaseY + dy) * currTileW;
 
             #pragma unroll
             for (int j = 0; j < macroBlockW; ++j) {
@@ -453,7 +456,7 @@ __global__ void BlockMatchingSimpleKernel_T(
     }
 
     if (tid == 0) {
-        image::vec4i* rowMotion = (image::vec4i*)((char*)motionImg + blockIdx.y * motionPitch);
+        int4* rowMotion = (int4*)((char*)motionImg + blockIdx.y * motionPitch);
 
         // w is unused now
         rowMotion[blockIdx.x] = { sadTile[0].dx, sadTile[0].dy, sadTile[0].sad, 0 };
@@ -461,9 +464,9 @@ __global__ void BlockMatchingSimpleKernel_T(
 }
 
 __global__ void ShiftImageKernel(
-    const image::vec4uc* __restrict__ image,
+    const uchar4* __restrict__ image,
     size_t imgPitch,
-    image::vec4uc* __restrict__ output,
+    uchar4* __restrict__ output,
     size_t outputPitch,
     int width,
     int height,
@@ -478,21 +481,21 @@ __global__ void ShiftImageKernel(
     image::vec2i shifted = { x - shiftVector.x, y - shiftVector.y };
     bool valid = (shifted.x >= 0 && shifted.x < width) && (shifted.y >= 0 && shifted.y < height);
 
-    image::vec4uc out_sample = {};
+    uchar4 out_sample = {};
 
     if (valid) {
-        const image::vec4uc* inputRow = (const image::vec4uc*)((const char*)image + shifted.y * imgPitch);
+        const uchar4* inputRow = (const uchar4*)((const char*)image + shifted.y * imgPitch);
         out_sample = inputRow[shifted.x];
     }
 
-    image::vec4uc* outputRow = (image::vec4uc*)((char*)output + y * outputPitch);
+    uchar4* outputRow = (uchar4*)((char*)output + y * outputPitch);
     outputRow[x] = out_sample;
 }
 
 namespace cuda {
     namespace motion {
         namespace shift {
-            void ShiftImage(const GpuImageView<image::vec4uc>& image, GpuImageView<image::vec4uc>& output, image::vec2i shiftVector, cuda::KernelContext& ctx, image::vec2ui blockSize) {
+            void ShiftImage(const GpuImageView<uchar4>& image, GpuImageView<uchar4>& output, image::vec2i shiftVector, cuda::KernelContext& ctx, image::vec2ui blockSize) {
                 dim3 gridSize = cuda::math::Div(image.m_dim, blockSize);
 
                 cuda::TimedCall("ShiftImageKernel: " + cuda::util::BlockDimToString(blockSize), ctx, [&]() {
@@ -510,9 +513,9 @@ namespace cuda {
         }
 
         void BlockMatchingSimple(
-            const GpuImageView<image::vec4uc>& prevFrame,
-            const GpuImageView<image::vec4uc>& currFrame,
-            GpuImageView<image::vec4i>& output,
+            const GpuImageView<uchar4>& prevFrame,
+            const GpuImageView<uchar4>& currFrame,
+            GpuImageView<int4>& output,
             const BlockMatchingParams& p,
             cuda::KernelContext& ctx)
         {
@@ -550,9 +553,9 @@ namespace cuda {
         }
 
         void BlockMatchingSimpleT(
-            const GpuImageView<image::vec4uc>& prevFrame,
-            const GpuImageView<image::vec4uc>& currFrame,
-            GpuImageView<image::vec4i>& output,
+            const GpuImageView<uchar4>& prevFrame,
+            const GpuImageView<uchar4>& currFrame,
+            GpuImageView<int4>& output,
             const BlockMatchingParams& /*p*/,
             cuda::KernelContext& ctx)
         {
@@ -597,9 +600,9 @@ namespace cuda {
         }
 
         void BlockMatchingWarp(
-            const GpuImageView<image::vec4uc>& prevFrame,
-            const GpuImageView<image::vec4uc>& currFrame,
-            GpuImageView<image::vec4i>& output,
+            const GpuImageView<uchar4>& prevFrame,
+            const GpuImageView<uchar4>& currFrame,
+            GpuImageView<int4>& output,
             const BlockMatchingParams& p,
             cuda::KernelContext& ctx)
         {
