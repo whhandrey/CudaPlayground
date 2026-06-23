@@ -16,13 +16,13 @@
 
 namespace cuda {
     namespace layout_check {
-        CHECK_SAME_LAYOUT4(uchar4, uchar4);
+        CHECK_SAME_LAYOUT4(image::vec4uc, uchar4);
 
         CHECK_SAME_LAYOUT(image::vec2ui, uint2);
         CHECK_SAME_LAYOUT(image::vec2i, int2);
 
         CHECK_SAME_LAYOUT4(image::vec4ui, uint4);
-        CHECK_SAME_LAYOUT4(int4, int4);
-        CHECK_SAME_LAYOUT4(float4, float4);
+        CHECK_SAME_LAYOUT4(image::vec4i, int4);
+        CHECK_SAME_LAYOUT4(image::vec4f, float4);
     }
 }
