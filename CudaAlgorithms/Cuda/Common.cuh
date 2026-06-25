@@ -20,3 +20,7 @@ __device__ __forceinline__ uchar4 floatVecToUchar(float4 v) {
         floatToUchar(v.w)
     };
 }
+
+__device__ __forceinline__ float saturate(float x) {
+    return clamp(x, 0.0f, 1.0f);
+}

@@ -32,16 +32,20 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\Filter.cu">
-      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">compute_75,sm_75;compute_89,sm_89;compute_120,sm_120</CodeGeneration>
-      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">compute_75,sm_75;compute_89,sm_89;compute_120,sm_120</CodeGeneration>
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </CodeGeneration>
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </CodeGeneration>
     </CudaCompile>
     <CudaCompile Include="Cuda\Motion.cu">
       <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
       <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
     </CudaCompile>
     <CudaCompile Include="Cuda\Reduction.cu">
-      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">compute_75,sm_75;compute_89,sm_89;compute_120,sm_120</CodeGeneration>
-      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">compute_75,sm_75;compute_89,sm_89;compute_120,sm_120</CodeGeneration>
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </CodeGeneration>
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </CodeGeneration>
     </CudaCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -146,7 +150,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_75,sm_75;compute_89,sm_89;compute_120,sm_120</CodeGeneration>
+      <CodeGeneration>compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
       <AdditionalOptions>-lineinfo %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
@@ -169,7 +173,7 @@
     </Link>
     <CudaCompile>
       <AdditionalOptions>-lineinfo %(AdditionalOptions)</AdditionalOptions>
-      <CodeGeneration>compute_75,sm_75;compute_89,sm_89;compute_120,sm_120</CodeGeneration>
+      <CodeGeneration>compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
     </CudaCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

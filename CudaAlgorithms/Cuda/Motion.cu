@@ -22,11 +22,20 @@ do {                                                                         \
 } while (0)
 
 namespace {
-    struct SadVector {
+    struct SadCandidate {
         int sad;
         int dx;
         int dy;
-        // TODO: maybe add padding 4 bytes?
+    };
+
+    struct SadTop2 {
+        SadCandidate best;
+        SadCandidate second;
+    };
+
+    struct SadStats {
+        SadTop2 top2;
+        unsigned long long sum;
     };
 
     struct ALIGN(8) range {
@@ -35,8 +44,60 @@ namespace {
     };
 }
 
-__device__ __forceinline__ SadVector MinSad(SadVector first, SadVector second) {
+__device__ __forceinline__ bool ValidCandidate(SadCandidate c) {
+    return c.sad != INT_MAX;
+}
+
+__device__ __forceinline__ SadCandidate MinSad(SadCandidate first, SadCandidate second) {
     return first.sad < second.sad ? first : second;
+}
+
+__device__ __forceinline__ SadCandidate EmptySadCand() {
+    return { INT_MAX, 0, 0 };
+}
+
+__device__ __forceinline__ SadTop2 EmptySadTop2() {
+    return { EmptySadCand(), EmptySadCand() };
+}
+
+__device__ __forceinline__ SadStats EmptySadStats() {
+    return {
+        EmptySadTop2(),
+        0
+    };
+}
+
+__device__ __forceinline__ void UpdateBestSad(SadStats& sadLocal, SadCandidate sadCand) {
+    if (sadCand.sad < sadLocal.top2.best.sad) {
+        sadLocal.top2.second = sadLocal.top2.best;
+        sadLocal.top2.best = sadCand;
+    }
+    else if (sadCand.sad < sadLocal.top2.second.sad) {
+        sadLocal.top2.second = sadCand;
+    }
+
+    sadLocal.sum += sadCand.sad;
+}
+
+__device__ __forceinline__ SadTop2 MergeSadTop2(SadTop2 first, SadTop2 second) {
+    if (!ValidCandidate(first.best)) {
+        return second;
+    }
+
+    if (!ValidCandidate(second.best)) {
+        return first;
+    }
+
+    bool firstSadLower = first.best.sad < second.best.sad;
+
+    SadTop2 winner = firstSadLower ? first : second;
+    SadTop2 notWinner = firstSadLower ? second : first;
+
+    SadTop2 output;
+    output.best = winner.best;
+    output.second = MinSad(winner.second, notWinner.best);
+
+    return output;
 }
 
 __device__ __forceinline__ int WarpReduceSum(int value) {
@@ -57,6 +118,7 @@ __device__ __forceinline__ int WarpReduceSum(int value) {
     return value;
 }
 
+// Not in use now cause this version is way slower than simple block matching
 __global__ void BlockMatchingWarpKernel(
     const uchar4* __restrict__ prevFrame,
     size_t prevPitch,
@@ -128,7 +190,7 @@ __global__ void BlockMatchingWarpKernel(
     int search_y = (dy_range.max - dy_range.min) + 1;
 
     const int allCandidates = search_x * search_y;
-    SadVector bestSad = { INT_MAX, 0, 0 };
+    SadCandidate bestSad = { INT_MAX, 0, 0 };
 
     const int warpSize = 32;
 
@@ -167,7 +229,7 @@ __global__ void BlockMatchingWarpKernel(
     }
 
     int fullTileSize = (macroBlockDim.x + search_halfsize.x * 2) * (macroBlockDim.y + search_halfsize.y * 2);
-    SadVector* sadTile = (SadVector*)(currTile + fullTileSize);
+    SadCandidate* sadTile = (SadCandidate*)(currTile + fullTileSize);
 
     if (laneId == 0) {
         sadTile[warpId] = bestSad;
@@ -176,7 +238,7 @@ __global__ void BlockMatchingWarpKernel(
     __syncthreads();
 
     if (tid == 0) {
-        SadVector finalMin = { INT_MAX, 0, 0 };
+        SadCandidate finalMin = { INT_MAX, 0, 0 };
 
         for (int i = 0; i < warpsPerBlock; ++i) {
             finalMin = MinSad(finalMin, sadTile[i]);
@@ -192,8 +254,10 @@ __global__  void BlockMatchingSimpleKernel(
     size_t prevPitch,
     const uchar4* __restrict__ currFrame,
     size_t currPitch,
-    int4* __restrict__ motionImg,
-    size_t motionPitch,
+    unsigned char* __restrict__ conf,
+    size_t confPitch,
+    int2* __restrict__ dxdyOutput,
+    size_t dxdyOutPitch,
     int width,
     int height,
     image::vec2i search_halfsize,
@@ -255,7 +319,8 @@ __global__  void BlockMatchingSimpleKernel(
 
     const int allCandidates = search_x * search_y;
 
-    SadVector bestSad = { INT_MAX, 0, 0 };
+    // collect full info now for testing
+    SadStats localStats = EmptySadStats();
 
     int currTileBaseX = abs(dx_range.min);
     int currTileBaseY = abs(dy_range.min);
@@ -271,10 +336,14 @@ __global__  void BlockMatchingSimpleKernel(
 
             for (int j = 0; j < macroBlockDim.x; ++j) {
                 const int currX = j + currTileBaseX + dx;
+
                 sad += abs(int(prev[j].x) - int(curr[currX].x))
                      + abs(int(prev[j].y) - int(curr[currX].y))
                      + abs(int(prev[j].z) - int(curr[currX].z));
 
+                // not a huge diff how you write this crap.
+                // does not matter. for blackwell and compute_120 now floats mean smth
+                // 
                 //const uchar4 p = prev[j];
                 //const uchar4 c = curr[currX];
 
@@ -286,38 +355,52 @@ __global__  void BlockMatchingSimpleKernel(
             }
         }
 
-        if (sad < bestSad.sad) {
-            bestSad = { sad, dx, dy };
-        }
+        UpdateBestSad(localStats, { sad, dx, dy });
     }
 
-    int fullTileSize = (macroBlockDim.x + search_halfsize.x * 2) * (macroBlockDim.y + search_halfsize.y * 2);
+    const int fullTileSize = (macroBlockDim.x + search_halfsize.x * 2) * (macroBlockDim.y + search_halfsize.y * 2);
 
-    SadVector* sadTile = (SadVector*)(currTile + fullTileSize);
+    SadStats* sadTile = (SadStats*)(currTile + fullTileSize);
 
     bool valid = tid < allCandidates;
-    sadTile[tid] = valid ? bestSad : SadVector{ INT_MAX, 0, 0 };
+    sadTile[tid] = valid ? localStats : EmptySadStats();
 
     __syncthreads();
 
-    // this is still faster than reducing 64 values (for 8x8 cuda block) in one thread
     for (int stride = blockSize / 2; stride > 0; stride /= 2) {
         if (tid < stride) {
-            SadVector curr = sadTile[tid];
-            SadVector next = sadTile[tid + stride];
+            SadStats curr = sadTile[tid];
+            SadStats next = sadTile[tid + stride];
 
-            sadTile[tid] = MinSad(curr, next);
+            SadTop2 out = MergeSadTop2(curr.top2, next.top2);
+            unsigned long long sum = curr.sum + next.sum;
+
+            sadTile[tid] = SadStats{ out, sum };
         }
 
         __syncthreads();
     }
 
     if (tid == 0) {
-        int4* rowMotion = (int4*)((char*)motionImg + blockIdx.y * motionPitch);
+        if (dxdyOutput) {
+            int2* rowDxDyVec = (int2*)((char*)dxdyOutput + blockIdx.y * dxdyOutPitch);
+            rowDxDyVec[blockIdx.x] = make_int2(sadTile[0].top2.best.dx, sadTile[0].top2.best.dy);
+        }
 
-        // w is unused now
-        rowMotion[blockIdx.x] = { sadTile[0].dx, sadTile[0].dy, sadTile[0].sad, 0 };
+        unsigned char* rowConf = (unsigned char*)((char*)conf + blockIdx.y * confPitch);
+
+        float avg_sad = sadTile[0].sum / float(allCandidates);
+        float min_sad = float(sadTile[0].top2.best.sad);
+
+        float conf = 0.0f;
+        if (avg_sad > 1e-10f) {
+            conf = 1.0f - min_sad / avg_sad;
+
+        }
+
+        rowConf[blockIdx.x] = unsigned char(saturate(conf) * 255.0f + 0.5f);
     }
+
 }
 
 template <
@@ -331,8 +414,10 @@ __global__ void BlockMatchingSimpleKernel_T(
     size_t prevPitch,
     const uchar4* __restrict__ currFrame,
     size_t currPitch,
-    int4* __restrict__ motionImg,
-    size_t motionPitch,
+    unsigned char* __restrict__ conf,
+    size_t confPitch,
+    int2* __restrict__ dxdyOutput,
+    size_t dxdyOutPitch,
     int width,
     int height)
 {
@@ -384,8 +469,7 @@ __global__ void BlockMatchingSimpleKernel_T(
         int globalX = baseBlockX + localX + dx_range.min;
         int globalY = baseBlockY + localY + dy_range.min;
 
-        const uchar4* rowCurr = (const uchar4
-            *)((const char*)currFrame + globalY * currPitch);
+        const uchar4* rowCurr = (const uchar4*)((const char*)currFrame + globalY * currPitch);
         currTile[i] = rowCurr[globalX];
     }
 
@@ -396,7 +480,8 @@ __global__ void BlockMatchingSimpleKernel_T(
 
     const int allCandidates = search_x * search_y;
 
-    SadVector bestSad = { INT_MAX, 0, 0 };
+    // collect full info now for testing
+    SadStats localStats = EmptySadStats();
 
     int currTileBaseX = abs(dx_range.min);
     int currTileBaseY = abs(dy_range.min);
@@ -428,17 +513,15 @@ __global__ void BlockMatchingSimpleKernel_T(
             }
         }
 
-        if (sad < bestSad.sad) {
-            bestSad = { sad, dx, dy };
-        }
+        UpdateBestSad(localStats, { sad, dx, dy });
     }
 
     constexpr int fullTileSize = (macroBlockW + search_halfsizeX * 2) * (macroBlockH + search_halfsizeY * 2);
 
-    SadVector* sadTile = (SadVector*)(currTile + fullTileSize);
+    SadStats* sadTile = (SadStats*)(currTile + fullTileSize);
 
     bool valid = tid < allCandidates;
-    sadTile[tid] = valid ? bestSad : SadVector{ INT_MAX, 0, 0 };
+    sadTile[tid] = valid ? localStats : EmptySadStats();
 
     __syncthreads();
 
@@ -446,20 +529,36 @@ __global__ void BlockMatchingSimpleKernel_T(
     #pragma unroll 1
     for (int stride = blockSize / 2; stride > 0; stride /= 2) {
         if (tid < stride) {
-            SadVector curr = sadTile[tid];
-            SadVector next = sadTile[tid + stride];
+            SadStats curr = sadTile[tid];
+            SadStats next = sadTile[tid + stride];
 
-            sadTile[tid] = MinSad(curr, next);
+            SadTop2 out = MergeSadTop2(curr.top2, next.top2);
+            unsigned long long sum = curr.sum + next.sum;
+
+            sadTile[tid] = SadStats{ out, sum };
         }
 
         __syncthreads();
     }
 
     if (tid == 0) {
-        int4* rowMotion = (int4*)((char*)motionImg + blockIdx.y * motionPitch);
+        if (dxdyOutput) {
+            int2* rowDxDyVec = (int2*)((char*)dxdyOutput + blockIdx.y * dxdyOutPitch);
+            rowDxDyVec[blockIdx.x] = make_int2(sadTile[0].top2.best.dx, sadTile[0].top2.best.dy);
+        }
 
-        // w is unused now
-        rowMotion[blockIdx.x] = { sadTile[0].dx, sadTile[0].dy, sadTile[0].sad, 0 };
+        unsigned char* rowConf = (unsigned char*)((char*)conf + blockIdx.y * confPitch);
+
+        float avg_sad = sadTile[0].sum / float(allCandidates);
+        float min_sad = float(sadTile[0].top2.best.sad);
+
+        float conf = 0.0f;
+        if (avg_sad > 1e-10f) {
+            conf = 1.0f - min_sad / avg_sad;
+
+        }
+        
+        rowConf[blockIdx.x] = unsigned char(saturate(conf) * 255.0f + 0.5f);
     }
 }
 
@@ -515,23 +614,24 @@ namespace cuda {
         void BlockMatchingSimple(
             const GpuImageView<uchar4>& prevFrame,
             const GpuImageView<uchar4>& currFrame,
-            GpuImageView<int4>& output,
+            GpuImageView<unsigned char>& confOut,
+            GpuImageView<int2>& dxdyOut,
             const BlockMatchingParams& p,
             cuda::KernelContext& ctx)
         {
-            static bool print = true;
-            if (print)
-            {
-                PRINT_KERNEL_ATTRS(BlockMatchingSimpleKernel);
-                std::cout << std::endl;
-                print = false;
-            }
+            //static bool print = true;
+            //if (print)
+            //{
+            //    PRINT_KERNEL_ATTRS(BlockMatchingSimpleKernel);
+            //    std::cout << std::endl;
+            //    print = false;
+            //}
 
             dim3 gridSize = cuda::math::Div(prevFrame.m_dim, p.macroBlockDim);
 
             const size_t prevTileSize = (p.macroBlockDim.x * p.macroBlockDim.y) * sizeof(uchar4);
             const size_t currTileSize = (p.macroBlockDim.x + p.search_halfsize.x * 2) * (p.macroBlockDim.y + p.search_halfsize.y * 2) * sizeof(uchar4);
-            const size_t sadTileSize = (p.blockDim.x * p.blockDim.y) * sizeof(SadVector);
+            const size_t sadTileSize = (p.blockDim.x * p.blockDim.y) * sizeof(SadStats);
 
             const size_t sharedMemSize = prevTileSize + currTileSize + sadTileSize;
             image::vec2i macroBlockInt = { int(p.macroBlockDim.x), int(p.macroBlockDim.y) };
@@ -542,8 +642,10 @@ namespace cuda {
                     prevFrame.m_pitch,
                     currFrame.m_ptr,
                     currFrame.m_pitch,
-                    output.m_ptr,
-                    output.m_pitch,
+                    confOut.m_ptr,
+                    confOut.m_pitch,
+                    dxdyOut.m_ptr,
+                    dxdyOut.m_pitch,
                     prevFrame.m_dim.x,
                     prevFrame.m_dim.y,
                     p.search_halfsize,
@@ -555,17 +657,18 @@ namespace cuda {
         void BlockMatchingSimpleT(
             const GpuImageView<uchar4>& prevFrame,
             const GpuImageView<uchar4>& currFrame,
-            GpuImageView<int4>& output,
+            GpuImageView<unsigned char>& confOut,
+            GpuImageView<int2>& dxdyOut,
             const BlockMatchingParams& /*p*/,
             cuda::KernelContext& ctx)
         {
-            static bool print = true;
-            if (print)
-            {
-                PRINT_KERNEL_ATTRS((BlockMatchingSimpleKernel_T<8, 8, 3, 3>));
-                std::cout << std::endl;
-                print = false;
-            }
+            //static bool print = true;
+            //if (print)
+            //{
+            //    PRINT_KERNEL_ATTRS((BlockMatchingSimpleKernel_T<8, 8, 3, 3>));
+            //    std::cout << std::endl;
+            //    print = false;
+            //}
 
             constexpr int macroBlockW = 16;
             constexpr int macroBlockH = 16;
@@ -581,7 +684,7 @@ namespace cuda {
 
             constexpr size_t prevTileSize = (macroBlockSize.x * macroBlockSize.y) * sizeof(uchar4);
             constexpr size_t currTileSize = (macroBlockSize.x + search_halfsize.x * 2) * (macroBlockSize.y + search_halfsize.y * 2) * sizeof(uchar4);
-            constexpr size_t sadTileSize = (cudaBlockDim.x * cudaBlockDim.y) * sizeof(SadVector);
+            constexpr size_t sadTileSize = (cudaBlockDim.x * cudaBlockDim.y) * sizeof(SadStats);
 
             constexpr size_t sharedMemSize = prevTileSize + currTileSize + sadTileSize;
 
@@ -591,8 +694,10 @@ namespace cuda {
                     prevFrame.m_pitch,
                     currFrame.m_ptr,
                     currFrame.m_pitch,
-                    output.m_ptr,
-                    output.m_pitch,
+                    confOut.m_ptr,
+                    confOut.m_pitch,
+                    dxdyOut.m_ptr,
+                    dxdyOut.m_pitch,
                     prevFrame.m_dim.x,
                     prevFrame.m_dim.y
                 );
@@ -615,7 +720,7 @@ namespace cuda {
 
             const size_t prevTileSize = (p.macroBlockDim.x * p.macroBlockDim.y) * sizeof(uchar4);
             const size_t currTileSize = (p.macroBlockDim.x + p.search_halfsize.x * 2) * (p.macroBlockDim.y + p.search_halfsize.y * 2) * sizeof(uchar4);
-            const size_t sadTileSize = numWarpsPerBlock * sizeof(SadVector);
+            const size_t sadTileSize = numWarpsPerBlock * sizeof(SadCandidate);
 
             const size_t sharedMemSize = prevTileSize + currTileSize + sadTileSize;
             image::vec2i macroBlockInt = { int(p.macroBlockDim.x), int(p.macroBlockDim.y) };
