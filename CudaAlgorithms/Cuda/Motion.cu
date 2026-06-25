@@ -395,10 +395,13 @@ __global__  void BlockMatchingSimpleKernel(
         float conf = 0.0f;
         if (avg_sad > 1e-10f) {
             conf = 1.0f - min_sad / avg_sad;
-
         }
 
-        rowConf[blockIdx.x] = unsigned char(saturate(conf) * 255.0f + 0.5f);
+        unsigned char confOut = unsigned char(saturate(conf) * 255.0f + 0.5f);
+        int motion = abs(sadTile[0].top2.best.dx) + abs(sadTile[0].top2.best.dy);
+        
+        bool moved = confOut > 80 && motion > 3;
+        rowConf[blockIdx.x] = moved ? 255 : 0;
     }
 
 }
