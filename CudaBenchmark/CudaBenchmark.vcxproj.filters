@@ -21,8 +21,5 @@
     <ClInclude Include="Image\ImageIO.h">
       <Filter>Image</Filter>
     </ClInclude>
-    <ClInclude Include="Image\ImageTransfer.h">
-      <Filter>Image</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

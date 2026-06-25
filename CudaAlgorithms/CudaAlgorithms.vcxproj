@@ -31,9 +31,22 @@
     <ClInclude Include="Cuda\Reduction.cuh" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="Cuda\Filter.cu" />
-    <CudaCompile Include="Cuda\Motion.cu" />
-    <CudaCompile Include="Cuda\Reduction.cu" />
+    <CudaCompile Include="Cuda\Filter.cu">
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </CodeGeneration>
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </CodeGeneration>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Motion.cu">
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Reduction.cu">
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </CodeGeneration>
+      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </CodeGeneration>
+    </CudaCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -137,8 +150,13 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_120,sm_120;compute_89,sm_89;compute_75,sm_75</CodeGeneration>
+      <CodeGeneration>compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
+      <AdditionalOptions>-lineinfo %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
+    <Lib>
+      <AdditionalDependencies>cudart.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -159,8 +177,12 @@
     </Link>
     <CudaCompile>
       <AdditionalOptions>-lineinfo %(AdditionalOptions)</AdditionalOptions>
-      <CodeGeneration>compute_120,sm_120;compute_89,sm_89;compute_75,sm_75</CodeGeneration>
+      <CodeGeneration>compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
     </CudaCompile>
+    <Lib>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

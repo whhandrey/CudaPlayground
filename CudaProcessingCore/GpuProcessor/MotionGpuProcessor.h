@@ -1,24 +1,26 @@
 #pragma once
+#include <Cuda/Context.h>
+#include <Cuda/Motion.h>
 #include "IMotionGpuProcessor.h"
 #include "../DeviceImage/ImageGPU.h"
 
-namespace cuda_processing {
-	using image::vec4i;
-
+namespace cuda {
 	class MotionGpuProcessor : public IMotionGpuProcessor {
 	public:
-		Image<vec4uc> Process(const ImageView<vec4uc>& prev, const ImageView<vec4uc>& curr) override;
+		MotionGpuProcessor();
+		~MotionGpuProcessor();
+
+		Image<unsigned char> Process(const ImageView<image::vec4uc>& prev, const ImageView<image::vec4uc>& curr) override;
 
 	private:
 		void AllocMem(image::vec2ui dim);
 
 	private:
-		const image::vec2ui m_blockDim = { 8, 8 };
-		const image::vec2ui m_macroBlockDim = { 16, 16 };
-		const image::vec2i m_search_halfsize = { 3, 3 };
+		cuda::KernelContext m_ctx;
+		const cuda::motion::BlockMatchingParams m_params;
 
-		ImageGPU<vec4uc> m_prev;
-		ImageGPU<vec4uc> m_curr;
-		ImageGPU<vec4i> m_vecAndConf;
+		ImageGPU<uchar4> m_prev;
+		ImageGPU<uchar4> m_curr;
+		ImageGPU<unsigned char> m_conf;
 	};
 }

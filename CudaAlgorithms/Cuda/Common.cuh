@@ -12,11 +12,15 @@ __device__ __forceinline__ unsigned char floatToUchar(float x) {
     return static_cast<unsigned char>(x + 0.5f);
 }
 
-__device__ __forceinline__ image::vec4uc floatVecToUchar(image::vec4f v) {
+__device__ __forceinline__ uchar4 floatVecToUchar(float4 v) {
     return {
         floatToUchar(v.x),
         floatToUchar(v.y),
         floatToUchar(v.z),
         floatToUchar(v.w)
     };
+}
+
+__device__ __forceinline__ float saturate(float x) {
+    return clamp(x, 0.0f, 1.0f);
 }

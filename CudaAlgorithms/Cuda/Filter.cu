@@ -84,9 +84,9 @@ namespace bilateral {
 }
 
 __global__ void GaussianBlurX(
-    const image::vec4uc* src,
+    const uchar4* src,
     size_t srcPitch,
-    image::vec4f* dst,
+    float4* dst,
     size_t dstPitch,
     int width,
     int height,
@@ -98,28 +98,28 @@ __global__ void GaussianBlurX(
     if (x >= width || y >= height)
         return;
 
-    image::vec4f sum = {};
+    float4 sum = {};
 
-    const image::vec4uc* srcRow = (const image::vec4uc*)((const char*)src + y * srcPitch);
+    const uchar4* srcRow = (const uchar4*)((const char*)src + y * srcPitch);
     for (int dx = -filter_halfsize; dx <= filter_halfsize; ++dx) {
         int idx = clamp(x + dx, 0, width - 1);
 
-        image::vec4uc p = srcRow[idx];
-        image::vec4f sample = { float(p.x), float(p.y), float(p.z), 0.0f };
+        uchar4 p = srcRow[idx];
+        float4 sample = { float(p.x), float(p.y), float(p.z), 0.0f };
 
         sum.x += (sample.x * c_weightsGauss[abs(dx)]);
         sum.y += (sample.y * c_weightsGauss[abs(dx)]);
         sum.z += (sample.z * c_weightsGauss[abs(dx)]);
     }
 
-    image::vec4f* dstRow = (image::vec4f*)((char*)dst + y * dstPitch);
+    float4* dstRow = (float4*)((char*)dst + y * dstPitch);
     dstRow[x] = { sum.x, sum.y, sum.z, float(srcRow[x].w) };
 }
 
 __global__ void GaussianBlurY(
-    const image::vec4f* src,
+    const float4* src,
     size_t srcPitch,
-    image::vec4uc* dst,
+    uchar4* dst,
     size_t dstPitch,
     int width,
     int height,
@@ -131,38 +131,38 @@ __global__ void GaussianBlurY(
     if (x >= width || y >= height)
         return;
 
-    image::vec4f sum = {};
+    float4 sum = {};
 
     for (int dy = -filter_halfsize; dy <= filter_halfsize; ++dy) {
         int colIdx = clamp(y + dy, 0, height - 1);
-        const image::vec4f* srcRow = (const image::vec4f*)((const char*)src + colIdx * srcPitch);
+        const float4* srcRow = (const float4*)((const char*)src + colIdx * srcPitch);
 
-        image::vec4f sample = srcRow[x];
+        float4 sample = srcRow[x];
 
         sum.x += (sample.x * c_weightsGauss[abs(dy)]);
         sum.y += (sample.y * c_weightsGauss[abs(dy)]);
         sum.z += (sample.z * c_weightsGauss[abs(dy)]);
     }
 
-    const image::vec4f* srcRow = (const image::vec4f*)((const char*)src + y * srcPitch);
-    image::vec4uc* dstRow = (image::vec4uc*)((char*)dst + y * dstPitch);
+    const float4* srcRow = (const float4*)((const char*)src + y * srcPitch);
+    uchar4* dstRow = (uchar4*)((char*)dst + y * dstPitch);
 
-    image::vec4uc output = floatVecToUchar(sum);
+    uchar4 output = floatVecToUchar(sum);
     output.w = unsigned char(srcRow[x].w + 0.5f);
 
     dstRow[x] = output;
 }
 
 __global__ void GaussianBlurTile(
-    const image::vec4uc* src,
+    const uchar4* src,
     size_t srcPitch,
-    image::vec4uc* dst,
+    uchar4* dst,
     size_t dstPitch,
     int width,
     int height,
     int filter_halfsize)
 {
-    extern __shared__ image::vec4f tile[];
+    extern __shared__ float4 tile[];
 
     int gx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -172,14 +172,14 @@ __global__ void GaussianBlurTile(
 
     // loadY is clamped no need to check
     if (gx < width) {
-        image::vec4f sum = {};
-        const image::vec4uc* srcRow = (const image::vec4uc*)((const char*)src + loadY * srcPitch);
+        float4 sum = {};
+        const uchar4* srcRow = (const uchar4*)((const char*)src + loadY * srcPitch);
 
         for (int dx = -filter_halfsize; dx <= filter_halfsize; ++dx) {
             int x_idx{ clamp(gx + dx, 0, width - 1) };
 
-            image::vec4uc p = srcRow[x_idx];
-            image::vec4f sample = { float(p.x), float(p.y), float(p.z), 0.0f };
+            uchar4 p = srcRow[x_idx];
+            float4 sample = { float(p.x), float(p.y), float(p.z), 0.0f };
 
             sum.x += (sample.x * c_weightsGauss[abs(dx)]);
             sum.y += (sample.y * c_weightsGauss[abs(dx)]);
@@ -199,12 +199,12 @@ __global__ void GaussianBlurTile(
     // and here we deliberately filter only center samples excl. halo.
     // gy < height has to be checked cause global coords should be in sync with local coords.
     if (inCenter && gx < width && gy < height) {
-        image::vec4f sum = {};
+        float4 sum = {};
 
         for (int dy = -filter_halfsize; dy <= filter_halfsize; ++dy) {
             int flat_index = threadIdx.x + (threadIdx.y + dy) * blockDim.x;
 
-            image::vec4f sample = tile[flat_index];
+            float4 sample = tile[flat_index];
 
             sum.x += (sample.x * c_weightsGauss[abs(dy)]);
             sum.y += (sample.y * c_weightsGauss[abs(dy)]);
@@ -213,25 +213,25 @@ __global__ void GaussianBlurTile(
 
         int flat_index = threadIdx.x + threadIdx.y * blockDim.x;
 
-        image::vec4uc result = floatVecToUchar(sum);
+        uchar4 result = floatVecToUchar(sum);
         result.w = tile[flat_index].w;
 
-        image::vec4uc* dstRow = (image::vec4uc*)((char*)dst + gy * dstPitch);
+        uchar4* dstRow = (uchar4*)((char*)dst + gy * dstPitch);
         dstRow[gx] = result;
     }
 }
 
 __global__ void BilateralKernel(
-    const image::vec4uc* __restrict__ src,
+    const uchar4* __restrict__ src,
     size_t srcPitch,
-    image::vec4uc* __restrict__ dst,
+    uchar4* __restrict__ dst,
     size_t dstPitch,
     int width,
     int height,
     int filter_halfsize,
     const float* __restrict__ colorRangeLUT)
 {
-    extern __shared__ image::vec4i bilateralTile[];
+    extern __shared__ int4 bilateralTile[];
 
     int gx = blockIdx.x * blockDim.x + threadIdx.x;
     int gy = blockIdx.y * blockDim.y + threadIdx.y;
@@ -251,8 +251,8 @@ __global__ void BilateralKernel(
         int srcX = clamp(int(blockIdx.x * blockDim.x) + tileX - filter_halfsize, 0, width - 1);
         int srcY = clamp(int(blockIdx.y * blockDim.y) + tileY - filter_halfsize, 0, height - 1);
 
-        const image::vec4uc* row = (const image::vec4uc*)((const char*)src + srcY * srcPitch);
-        image::vec4uc p = row[srcX];
+        const uchar4* row = (const uchar4*)((const char*)src + srcY * srcPitch);
+        uchar4 p = row[srcX];
 
         int lumaPart = (77 * p.x + 150 * p.y + 29 * p.z) >> 8;
         bilateralTile[i] = { p.x, p.y, p.z, lumaPart };
@@ -264,14 +264,14 @@ __global__ void BilateralKernel(
         return;
     }
 
-    image::vec4f sum = {};
+    float4 sum = {};
     float weightSum = 0.0f;
 
     int tileCenterX = threadIdx.x + filter_halfsize;
     int tileCenterY = threadIdx.y + filter_halfsize;
 
     //const int size1d = filter_halfsize * 2 + 1;
-    image::vec4i center = bilateralTile[tileCenterX + tileCenterY * tileWidth];
+    int4 center = bilateralTile[tileCenterX + tileCenterY * tileWidth];
 
     const int K = filter_halfsize * 2 + 1;
     for (int ky = 0; ky < K; ++ky) {
@@ -279,7 +279,7 @@ __global__ void BilateralKernel(
         int spatialBase = ky * K;
 
         for (int kx = 0; kx < K; ++kx) {
-            image::vec4i sample = bilateralTile[rowBase + kx];
+            int4 sample = bilateralTile[rowBase + kx];
 
             float spatialWeight = c_spatial2D[spatialBase + kx];
 
@@ -299,26 +299,26 @@ __global__ void BilateralKernel(
     float invWeight = 1.0f / weightSum;
     sum = { sum.x * invWeight, sum.y * invWeight, sum.z * invWeight };
 
-    const image::vec4uc* row = (const image::vec4uc*)((const char*)src + gy * srcPitch);
+    const uchar4* row = (const uchar4*)((const char*)src + gy * srcPitch);
 
-    image::vec4uc out = floatVecToUchar(sum);
+    uchar4 out = floatVecToUchar(sum);
     out.w = row[gx].w;
 
-    image::vec4uc* dstRow = (image::vec4uc*)((char*)dst + gy * dstPitch);
+    uchar4* dstRow = (uchar4*)((char*)dst + gy * dstPitch);
     dstRow[gx] = out;
 }
 
 template <int R>
 __global__ void BilateralKernelT(
-    const image::vec4uc* __restrict__ src,
+    const uchar4* __restrict__ src,
     size_t srcPitch,
-    image::vec4uc* __restrict__ dst,
+    uchar4* __restrict__ dst,
     size_t dstPitch,
     int width,
     int height,
     const float* __restrict__ colorRangeLUT)
 {
-    extern __shared__ image::vec4i bilateralTile[];
+    extern __shared__ int4 bilateralTile[];
 
     const int tileWidth = blockDim.x + 2 * R;
     const int tileHeight = blockDim.y + 2 * R;
@@ -338,8 +338,8 @@ __global__ void BilateralKernelT(
         int srcX = clamp(int(blockIdx.x * blockDim.x) + tileX - R, 0, width - 1);
         int srcY = clamp(int(blockIdx.y * blockDim.y) + tileY - R, 0, height - 1);
 
-        const image::vec4uc* row = (const image::vec4uc*)((const char*)src + srcY * srcPitch);
-        image::vec4uc p = row[srcX];
+        const uchar4* row = (const uchar4*)((const char*)src + srcY * srcPitch);
+        uchar4 p = row[srcX];
 
         int lumaPart = (77 * p.x + 150 * p.y + 29 * p.z) >> 8;
         bilateralTile[i] = { p.x, p.y, p.z, lumaPart };
@@ -351,13 +351,13 @@ __global__ void BilateralKernelT(
         return;
     }
 
-    image::vec4f sum = {};
+    float4 sum = {};
     float weightSum = 0.0f;
 
     int tileCenterX = threadIdx.x + R;
     int tileCenterY = threadIdx.y + R;
 
-    image::vec4i center = bilateralTile[tileCenterX + tileCenterY * tileWidth];
+    int4 center = bilateralTile[tileCenterX + tileCenterY * tileWidth];
     constexpr int K = 2 * R + 1;
 
     #pragma unroll
@@ -367,7 +367,7 @@ __global__ void BilateralKernelT(
 
         #pragma unroll
         for (int kx = 0; kx < K; ++kx) {
-            image::vec4i sample = bilateralTile[rowBase + kx];
+            int4 sample = bilateralTile[rowBase + kx];
 
             float spatialWeight = c_spatial2D[spatialBase + kx];
 
@@ -387,26 +387,26 @@ __global__ void BilateralKernelT(
     float invWeight = 1.0f / weightSum;
     sum = { sum.x * invWeight, sum.y * invWeight, sum.z * invWeight };
 
-    const image::vec4uc* row = (const image::vec4uc*)((const char*)src + gy * srcPitch);
+    const uchar4* row = (const uchar4*)((const char*)src + gy * srcPitch);
 
-    image::vec4uc out = floatVecToUchar(sum);
+    uchar4 out = floatVecToUchar(sum);
     out.w = row[gx].w;
 
-    image::vec4uc* dstRow = (image::vec4uc*)((char*)dst + gy * dstPitch);
+    uchar4* dstRow = (uchar4*)((char*)dst + gy * dstPitch);
     dstRow[gx] = out;
 }
 
 template <int R>
 __global__ void BilateralKernelT_Uchar(
-    const image::vec4uc* __restrict__ src,
+    const uchar4* __restrict__ src,
     size_t srcPitch,
-    image::vec4uc* __restrict__ dst,
+    uchar4* __restrict__ dst,
     size_t dstPitch,
     int width,
     int height,
     const float* __restrict__ colorRangeLUT)
 {
-    extern __shared__ image::vec4uc bilatTile[];
+    extern __shared__ uchar4 bilatTile[];
 
     const int tileWidth = blockDim.x + 2 * R;
     const int tileHeight = blockDim.y + 2 * R;
@@ -426,8 +426,8 @@ __global__ void BilateralKernelT_Uchar(
         int srcX = clamp(int(blockIdx.x * blockDim.x) + tileX - R, 0, width - 1);
         int srcY = clamp(int(blockIdx.y * blockDim.y) + tileY - R, 0, height - 1);
 
-        const image::vec4uc* row = (const image::vec4uc*)((const char*)src + srcY * srcPitch);
-        image::vec4uc p = row[srcX];
+        const uchar4* row = (const uchar4*)((const char*)src + srcY * srcPitch);
+        uchar4 p = row[srcX];
 
         unsigned char lumaPart = unsigned char((77 * p.x + 150 * p.y + 29 * p.z) >> 8);
         bilatTile[i] = { p.x, p.y, p.z, lumaPart };
@@ -439,13 +439,13 @@ __global__ void BilateralKernelT_Uchar(
         return;
     }
 
-    image::vec4f sum = {};
+    float4 sum = {};
     float weightSum = 0.0f;
 
     int tileCenterX = threadIdx.x + R;
     int tileCenterY = threadIdx.y + R;
 
-    image::vec4uc center = bilatTile[tileCenterX + tileCenterY * tileWidth];
+    uchar4 center = bilatTile[tileCenterX + tileCenterY * tileWidth];
     constexpr int K = 2 * R + 1;
 
     #pragma unroll
@@ -455,7 +455,7 @@ __global__ void BilateralKernelT_Uchar(
 
         #pragma unroll
         for (int kx = 0; kx < K; ++kx) {
-            image::vec4uc sample = bilatTile[rowBase + kx];
+            uchar4 sample = bilatTile[rowBase + kx];
 
             float spatialWeight = c_spatial2D[spatialBase + kx];
 
@@ -475,12 +475,12 @@ __global__ void BilateralKernelT_Uchar(
     float invWeight = 1.0f / weightSum;
     sum = { sum.x * invWeight, sum.y * invWeight, sum.z * invWeight };
 
-    const image::vec4uc* row = (const image::vec4uc*)((const char*)src + gy * srcPitch);
+    const uchar4* row = (const uchar4*)((const char*)src + gy * srcPitch);
 
-    image::vec4uc out = floatVecToUchar(sum);
+    uchar4 out = floatVecToUchar(sum);
     out.w = row[gx].w;
 
-    image::vec4uc* dstRow = (image::vec4uc*)((char*)dst + gy * dstPitch);
+    uchar4* dstRow = (uchar4*)((char*)dst + gy * dstPitch);
     dstRow[gx] = out;
 }
 
@@ -520,9 +520,9 @@ namespace cuda {
 namespace cuda {
     namespace filter {
         void GaussianBlur(
-            const image::GpuImageView<image::vec4uc>& input,
-            image::GpuImageView<image::vec4f>& tmp_buffer,
-            image::GpuImageView<image::vec4uc>& output,
+            const image::GpuImageView<uchar4>& input,
+            image::GpuImageView<float4>& tmp_buffer,
+            image::GpuImageView<uchar4>& output,
             const GaussianBlurParams& p,
             cuda::KernelContext& ctx)
         {
@@ -556,8 +556,8 @@ namespace cuda {
 
         // this avoids intermediate write to global mem
         void GaussianBlurFusedV1(
-            const image::GpuImageView<image::vec4uc>& input,
-            image::GpuImageView<image::vec4uc>& output,
+            const image::GpuImageView<uchar4>& input,
+            image::GpuImageView<uchar4>& output,
             const GaussianBlurParams& p,
             cuda::KernelContext& ctx)
         {
@@ -588,8 +588,8 @@ namespace cuda {
         }
 
         void GaussianBlurFusedV2(
-            const image::GpuImageView<image::vec4uc>& input,
-            image::GpuImageView<image::vec4uc>& output,
+            const image::GpuImageView<uchar4>& input,
+            image::GpuImageView<uchar4>& output,
             const GaussianBlurParams& p,
             cuda::KernelContext& ctx)
         {
@@ -617,8 +617,8 @@ namespace cuda {
         }
 
         void BilateralFilter(
-            const image::GpuImageView<image::vec4uc>& input,
-            image::GpuImageView<image::vec4uc>& output,
+            const image::GpuImageView<uchar4>& input,
+            image::GpuImageView<uchar4>& output,
             const BilateralParams& p,
             cuda::KernelContext& ctx)
         {
@@ -653,8 +653,8 @@ namespace cuda {
         }
 
         void BilateralFilterT(
-            const image::GpuImageView<image::vec4uc>& input,
-            image::GpuImageView<image::vec4uc>& output,
+            const image::GpuImageView<uchar4>& input,
+            image::GpuImageView<uchar4>& output,
             const BilateralParams& p,
             cuda::KernelContext& ctx,
             bool debugInfo)

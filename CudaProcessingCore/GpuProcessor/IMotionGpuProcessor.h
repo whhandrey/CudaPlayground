@@ -2,14 +2,17 @@
 #include <Image/Image.h>
 #include <Image/ImageView.h>
 
-namespace cuda_processing {
-	using image::vec4uc;
+namespace cuda {
 	using image::Image;
 	using image::ImageView;
 
 	class IMotionGpuProcessor {
 	public:
+		using Ptr = std::unique_ptr<IMotionGpuProcessor>;
+
 		virtual ~IMotionGpuProcessor() = default;
-		virtual Image<vec4uc> Process(const ImageView<vec4uc>& prev, const ImageView<vec4uc>& curr) = 0;
+		virtual Image<unsigned char> Process(const ImageView<image::vec4uc>& prev, const ImageView<image::vec4uc>& curr) = 0;
+
+		static Ptr Create();
 	};
 }

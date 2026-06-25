@@ -18,39 +18,39 @@ namespace cuda {
 		};
 
 		void GaussianBlur(
-			const image::GpuImageView<image::vec4uc>& input,
-			image::GpuImageView<image::vec4f>& tmp_buffer,
-			image::GpuImageView<image::vec4uc>& output,
+			const image::GpuImageView<uchar4>& input,
+			image::GpuImageView<float4>& tmp_buffer,
+			image::GpuImageView<uchar4>& output,
 			const GaussianBlurParams& p,
 			cuda::KernelContext& ctx
 		);
 
 		// convention: blockDim = { x, y + 2 * filter_halfsize }, useful output = { x, y }
 		void GaussianBlurFusedV1(
-			const image::GpuImageView<image::vec4uc>& input,
-			image::GpuImageView<image::vec4uc>& output,
+			const image::GpuImageView<uchar4>& input,
+			image::GpuImageView<uchar4>& output,
 			const GaussianBlurParams& p,
 			cuda::KernelContext& ctx
 		);
 
 		// convention: blockDim = { x, y }, useful output = { x, y - 2 * filter_halfsize }
 		void GaussianBlurFusedV2(
-			const image::GpuImageView<image::vec4uc>& input,
-			image::GpuImageView<image::vec4uc>& output,
+			const image::GpuImageView<uchar4>& input,
+			image::GpuImageView<uchar4>& output,
 			const GaussianBlurParams& p,
 			cuda::KernelContext& ctx
 		);
 
 		void BilateralFilter(
-			const image::GpuImageView<image::vec4uc>& input,
-			image::GpuImageView<image::vec4uc>& output,
+			const image::GpuImageView<uchar4>& input,
+			image::GpuImageView<uchar4>& output,
 			const BilateralParams& p,
 			cuda::KernelContext& ctx
 		);
 
 		void BilateralFilterT(
-			const image::GpuImageView<image::vec4uc>& input,
-			image::GpuImageView<image::vec4uc>& output,
+			const image::GpuImageView<uchar4>& input,
+			image::GpuImageView<uchar4>& output,
 			const BilateralParams& p,
 			cuda::KernelContext& ctx,
 			bool debugInfo = false

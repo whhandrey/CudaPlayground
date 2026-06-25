@@ -21,6 +21,9 @@
     <ClInclude Include="GpuProcessor\MotionGpuProcessor.h">
       <Filter>GpuProcessor</Filter>
     </ClInclude>
+    <ClInclude Include="DeviceImage\ImageTransfer.h">
+      <Filter>DeviceImage</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GpuProcessor\MotionGpuProcessor.cpp">

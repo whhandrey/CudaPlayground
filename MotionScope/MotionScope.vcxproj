@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Controller\Controller.cpp" />
-    <ClCompile Include="GpuProcessor\AsyncGpuWorker.cpp" />
+    <ClCompile Include="GpuWorker\AsyncGpuWorker.cpp" />
     <ClCompile Include="ImageLoader\ImageLoader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow\MainWindow.cpp" />
@@ -21,10 +21,17 @@
     <QtMoc Include="MainWindow\MainWindow.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GpuProcessor\AsyncGpuWorker.h" />
     <QtMoc Include="Controller\Controller.h" />
-    <ClInclude Include="GpuProcessor\IMotionGpuProcessor.h" />
+    <ClInclude Include="GpuWorker\AsyncGpuWorker.h" />
     <ClInclude Include="ImageLoader\ImageLoader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CudaProcessingCore\CudaProcessingCore.vcxproj">
+      <Project>{f791e435-a3fa-4565-8242-844df6a21391}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\ImgProcCommon\ImgProcCommon.vcxproj">
+      <Project>{3ead4a8c-e561-4b95-9d26-c8478b90f41c}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F7D4596C-E9E4-4854-A733-AC4B16D5E240}</ProjectGuid>
@@ -82,11 +89,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)CudaProcessingCore;$(SolutionDir)ImgProcCommon;</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)CudaProcessingCore;$(SolutionDir)ImgProcCommon;</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">

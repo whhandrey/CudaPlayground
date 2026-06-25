@@ -1,6 +1,6 @@
 #include "Controller.h"
 #include "../ImageLoader/ImageLoader.h"
-#include "../GpuProcessor/AsyncGpuWorker.h"
+#include "../GpuWorker/AsyncGpuWorker.h"
 #include <queue>
 #include <thread>
 #include <condition_variable>
@@ -153,7 +153,7 @@ namespace GpuApp {
 		if (m_cache[m_currentIndex].isNull() || m_cache[m_currentIndex + 1].isNull())
 			return;
 
-		auto job = gpu::motion::Job{
+		auto job = gpu::motion::Job {
 			m_currentIndex,
 			m_generation,
 			m_cache[m_currentIndex],

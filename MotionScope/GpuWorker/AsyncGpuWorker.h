@@ -1,11 +1,11 @@
 #pragma once
-#include "IMotionGpuProcessor.h"
 #include <thread>
 #include <queue>
 #include <condition_variable>
 #include <memory>
 #include <functional>
 #include <QImage>
+#include <GpuProcessor/IMotionGpuProcessor.h>
 
 namespace gpu {
 	namespace motion {
@@ -28,7 +28,7 @@ namespace gpu {
 
 		class AsyncGpuWorker {
 		public:
-			AsyncGpuWorker(std::unique_ptr<IMotionGpuProcessor> processor);
+			AsyncGpuWorker(std::unique_ptr<cuda::IMotionGpuProcessor> processor);
 			~AsyncGpuWorker();
 
 			AsyncGpuWorker(const AsyncGpuWorker&) = delete;
@@ -43,7 +43,7 @@ namespace gpu {
 			void Stop();
 
 		private:
-			std::unique_ptr<IMotionGpuProcessor> m_processor;
+			std::unique_ptr<cuda::IMotionGpuProcessor> m_processor;
 			ProcessCallback m_callback = nullptr;
 
 			bool m_stop = false;
