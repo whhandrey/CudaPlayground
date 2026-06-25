@@ -153,6 +153,10 @@
       <CodeGeneration>compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
       <AdditionalOptions>-lineinfo %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
+    <Lib>
+      <AdditionalDependencies>cudart.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -175,6 +179,10 @@
       <AdditionalOptions>-lineinfo %(AdditionalOptions)</AdditionalOptions>
       <CodeGeneration>compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
     </CudaCompile>
+    <Lib>
+      <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

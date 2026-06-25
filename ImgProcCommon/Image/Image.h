@@ -4,7 +4,7 @@
 
 namespace image {
 	template <class T>
-	class Image {
+	struct Image {
 	public:
 		Image(vec2ui dim)
 			: m_dim(dim)
@@ -18,14 +18,12 @@ namespace image {
 			memcpy(m_data.data(), ptr, dim.x * dim.y * sizeof(T));
 		}
 
-		Image(const Image&) = delete;
-		Image& operator=(const Image&) = delete;
-
-		Image(Image&&) noexcept = default;
-		Image& operator=(Image&&) noexcept = default;
-
 		vec2ui Dim() const {
 			return m_dim;
+		}
+
+		size_t Pitch() {
+			return m_dim.x * sizeof(T);
 		}
 
 		const T* Data() const {
@@ -36,7 +34,7 @@ namespace image {
 			return m_data.data();
 		}
 
-	private:
+	public:
 		vec2ui m_dim;
 		std::vector<T> m_data;
 	};

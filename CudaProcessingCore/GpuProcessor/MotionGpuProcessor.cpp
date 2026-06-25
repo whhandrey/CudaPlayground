@@ -99,7 +99,7 @@ namespace cuda {
 		m_conf = ImageGPU<unsigned char>(image::vec2ui{ output_dim.x, output_dim.y });
 	}
 
-	IMotionGpuProcessor::Ptr Create() {
+	IMotionGpuProcessor::Ptr IMotionGpuProcessor::Create() {
 		return std::make_unique<MotionGpuProcessor>();
 	}
 }

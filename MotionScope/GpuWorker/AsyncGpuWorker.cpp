@@ -3,25 +3,19 @@
 
 namespace {
 	QImage ToQImage(image::Image<unsigned char>&& img) {
-		if (image.width <= 0 || image.height <= 0) {
+		if (img.Dim().x <= 0 || img.Dim().y <= 0) {
 			return {};
 		}
 
-		const int rowBytes = image.width * 4;
-		const int pitch = image.pitchBytes > 0 ? image.pitchBytes : rowBytes;
+		const unsigned int rowBytes = img.Dim().x * sizeof(unsigned char);
+		const size_t pitch = img.Pitch();
 
 		if (pitch < rowBytes) {
 			throw std::logic_error("ToQImage: invalid pitch");
 		}
 
-		const auto requiredSize = static_cast<std::size_t>(pitch) * image.height;
-
-		if (image.data.size() < requiredSize) {
-			throw std::logic_error("ToQImage: not enough data");
-		}
-
 		// Need to alloc on heap to transfer ownership
-		auto* buffer = new std::vector<unsigned char>(std::move(image.data));
+		auto* buffer = new std::vector<unsigned char>(std::move(img.m_data));
 
 		auto cleanup = [](void* info) {
 			delete static_cast<std::vector<unsigned char>*>(info);
@@ -29,15 +23,29 @@ namespace {
 
 		QImage qimg(
 			buffer->data(),
-			image.width,
-			image.height,
+			img.Dim().x,
+			img.Dim().y,
 			pitch,
-			QImage::Format_RGBA8888,
+			QImage::Format_Grayscale8,
 			cleanup,
 			buffer
 		);
 
 		return qimg;
+	}
+
+	image::ImageView<image::vec4uc> MakeImageView(const QImage& img) {
+		if (img.format() != QImage::Format_RGBA8888) {
+			throw std::logic_error("AsyncGpuWorker::MakeImageView: invalid input image, expected RGBA8888 format");
+		}
+
+		const image::vec4uc* ptr = reinterpret_cast<const image::vec4uc*>(img.constBits());
+
+		assert(reinterpret_cast<std::uintptr_t>(ptr) % alignof(image::vec4uc) == 0);
+		assert(img.bytesPerLine() % alignof(image::vec4uc) == 0);
+
+		image::vec2ui dim = { static_cast<unsigned int>(img.width()), static_cast<unsigned int>(img.height()) };
+		return image::ImageView<image::vec4uc> { ptr, dim, static_cast<size_t>(img.bytesPerLine()) };
 	}
 }
 
@@ -98,8 +106,8 @@ namespace gpu {
 						m_callback(std::move(result));
 					}
 				}
-				catch (const std::exception&) {
-					// TODO: later
+				catch (const std::exception& /*ex*/) {
+					// m_exceptionMgr->Report(ex);
 				}
 			}
 		}

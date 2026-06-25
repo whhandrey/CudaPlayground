@@ -10,7 +10,7 @@
     <Filter Include="Controller">
       <UniqueIdentifier>{1069954c-6514-4c63-8731-358f1d384c7f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="GpuProcessor">
+    <Filter Include="GpuWorker">
       <UniqueIdentifier>{900b98cd-0227-4e8a-bf52-3b10bfc041ec}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -25,8 +25,8 @@
     <ClCompile Include="Controller\Controller.cpp">
       <Filter>Controller</Filter>
     </ClCompile>
-    <ClCompile Include="GpuProcessor\AsyncGpuWorker.cpp">
-      <Filter>GpuProcessor</Filter>
+    <ClCompile Include="GpuWorker\AsyncGpuWorker.cpp">
+      <Filter>GpuWorker</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -41,8 +41,8 @@
     <ClInclude Include="ImageLoader\ImageLoader.h">
       <Filter>ImageLoader</Filter>
     </ClInclude>
-    <ClInclude Include="GpuProcessor\AsyncGpuWorker.h">
-      <Filter>GpuProcessor</Filter>
+    <ClInclude Include="GpuWorker\AsyncGpuWorker.h">
+      <Filter>GpuWorker</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

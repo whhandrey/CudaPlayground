@@ -5,7 +5,7 @@
 #include <memory>
 #include <functional>
 #include <QImage>
-#include <GpuProcessor/MotionGpuProcessor.h>
+#include <GpuProcessor/IMotionGpuProcessor.h>
 
 namespace gpu {
 	namespace motion {

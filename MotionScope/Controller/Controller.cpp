@@ -1,6 +1,6 @@
 #include "Controller.h"
 #include "../ImageLoader/ImageLoader.h"
-#include "../GpuProcessor/AsyncGpuWorker.h"
+#include "../GpuWorker/AsyncGpuWorker.h"
 #include <queue>
 #include <thread>
 #include <condition_variable>

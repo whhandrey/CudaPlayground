@@ -711,7 +711,7 @@ namespace cuda {
             const BlockMatchingParams& p,
             cuda::KernelContext& ctx)
         {
-            assert((cudaBlockDim.x * cudaBlockDim.y) % 32 == 0);
+            assert((p.blockDim.x * p.blockDim.y) % 32 == 0);
 
             dim3 gridSize = cuda::math::Div(prevFrame.m_dim, p.macroBlockDim);
 
