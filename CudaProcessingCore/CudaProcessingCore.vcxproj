@@ -142,6 +142,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DeviceImage\ImageGPU.h" />
+    <ClInclude Include="DeviceImage\ImageTransfer.h" />
     <ClInclude Include="GpuProcessor\IMotionGpuProcessor.h" />
     <ClInclude Include="GpuProcessor\MotionGpuProcessor.h" />
   </ItemGroup>

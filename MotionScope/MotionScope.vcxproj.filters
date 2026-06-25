@@ -41,9 +41,6 @@
     <ClInclude Include="ImageLoader\ImageLoader.h">
       <Filter>ImageLoader</Filter>
     </ClInclude>
-    <ClInclude Include="GpuProcessor\IMotionGpuProcessor.h">
-      <Filter>GpuProcessor</Filter>
-    </ClInclude>
     <ClInclude Include="GpuProcessor\AsyncGpuWorker.h">
       <Filter>GpuProcessor</Filter>
     </ClInclude>

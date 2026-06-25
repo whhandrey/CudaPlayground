@@ -1,16 +1,8 @@
 #include "AsyncGpuWorker.h"
+#include <Image/Image.h>
 
 namespace {
-	ImageViewRGBA8 MakeImageView(const QImage& img) {
-		return ImageViewRGBA8{
-			img.constBits(),
-			img.width(),
-			img.height(),
-			int(img.bytesPerLine())
-		};
-	}
-
-	QImage ToQImage(ImageRGBA8&& image) {
+	QImage ToQImage(image::Image<unsigned char>&& img) {
 		if (image.width <= 0 || image.height <= 0) {
 			return {};
 		}
@@ -51,7 +43,7 @@ namespace {
 
 namespace gpu {
 	namespace motion {
-		AsyncGpuWorker::AsyncGpuWorker(std::unique_ptr<IMotionGpuProcessor> processor)
+		AsyncGpuWorker::AsyncGpuWorker(std::unique_ptr<cuda::IMotionGpuProcessor> processor)
 			: m_processor{ std::move(processor) }
 			, m_thread{ std::thread(&AsyncGpuWorker::Run, this) }
 		{

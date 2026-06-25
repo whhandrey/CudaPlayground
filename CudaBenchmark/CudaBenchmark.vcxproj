@@ -29,7 +29,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Image\ImageIO.h" />
-    <ClInclude Include="Image\ImageTransfer.h" />
     <ClInclude Include="Profiler\Profiler.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

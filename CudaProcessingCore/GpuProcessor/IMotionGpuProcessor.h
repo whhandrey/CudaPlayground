@@ -1,15 +1,18 @@
 #pragma once
 #include <Image/Image.h>
 #include <Image/ImageView.h>
-#include <cuda_runtime.h>
 
-namespace cuda_processing {
+namespace cuda {
 	using image::Image;
 	using image::ImageView;
 
 	class IMotionGpuProcessor {
 	public:
+		using Ptr = std::unique_ptr<IMotionGpuProcessor>;
+
 		virtual ~IMotionGpuProcessor() = default;
-		virtual Image<uchar4> Process(const ImageView<uchar4>& prev, const ImageView<uchar4>& curr) = 0;
+		virtual Image<unsigned char> Process(const ImageView<image::vec4uc>& prev, const ImageView<image::vec4uc>& curr) = 0;
+
+		static Ptr Create();
 	};
 }

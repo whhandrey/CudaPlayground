@@ -75,12 +75,19 @@ public:
 		return m_ptr;
 	}
 
-	void Upload(const image::ImageView<T>& img, cudaStream_t stream) {
+	template <class SrcSample>
+	void UploadCompatible(const image::ImageView<SrcSample>& img, cudaStream_t stream) {
+		static_assert(sizeof(T) == sizeof(SrcSample), "Source and destination pixel sizes must match for raw upload");
+
 		if (m_dim.x != img.m_dim.x || m_dim.y != img.m_dim.y) {
 			throw std::logic_error("ImageGPU::Upload: trying to upload an image with wrong dim!");
 		}
 
-		cudaCheck(cudaMemcpy2DAsync(m_ptr, m_pitch, img.m_ptr, img.m_pitch, img.m_dim.x * sizeof(T), img.m_dim.y, cudaMemcpyHostToDevice, stream));
+		cudaCheck(cudaMemcpy2DAsync(m_ptr, m_pitch, img.m_ptr, img.m_pitch, img.m_dim.x * sizeof(SrcSample), img.m_dim.y, cudaMemcpyHostToDevice, stream));
+	}
+
+	void Upload(const image::ImageView<T>& img, cudaStream_t stream) {
+		UploadCompatible<T>(img, stream);
 	}
 
 	~ImageGPU() {

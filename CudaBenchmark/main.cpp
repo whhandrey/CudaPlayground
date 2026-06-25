@@ -3,6 +3,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include <DeviceImage/ImageGPU.h>
+#include <DeviceImage/ImageTransfer.h>
 #include <Image/ImageView.h>
 #include <Cuda/Context.h>
 #include <Cuda/Motion.h>
@@ -19,7 +20,6 @@
 
 #include "Profiler/Profiler.h"
 #include "Image/ImageIO.h"
-#include "Image/ImageTransfer.h"
 
 namespace stats {
 	struct KernelRunStats {
@@ -178,12 +178,14 @@ int main() {
 	ImageGPU<uchar4> prevFrame(img, stream);
 	ImageGPU<uchar4> currFrame(img, stream);
 	ImageGPU<uchar4> currFrameShifted(img.Dim());
-	ImageGPU<int4> output(img.Dim());
+	ImageGPU<unsigned char> output(img.Dim());
 
 	image::GpuImageView<uchar4> prevView{ prevFrame.Data(), prevFrame.Dim(), prevFrame.Pitch() };
 	image::GpuImageView<uchar4> currView{ currFrame.Data(), currFrame.Dim(), currFrame.Pitch() };
 	image::GpuImageView<uchar4> currShiftedView{ currFrameShifted.Data(), currFrameShifted.Dim(), currFrameShifted.Pitch() };
-	image::GpuImageView<int4> outView{ output.Data(), output.Dim(), output.Pitch() };
+	image::GpuImageView<unsigned char> outView{ output.Data(), output.Dim(), output.Pitch() };
+
+	image::GpuImageView<int2> dxdyView{ nullptr, {}, 0 };
 
 	cuda::motion::shift::ShiftImage(currView, currShiftedView, { -3, 2 }, ctx);
 
@@ -235,7 +237,7 @@ int main() {
 			};
 
 			for (int i = 0; i < warmUpRuns; ++i) {
-				cuda::motion::BlockMatchingSimple(prevView, currView, outView, p, ctx);
+				cuda::motion::BlockMatchingSimple(prevView, currView, outView,dxdyView, p, ctx);
 			}
 		}
 
@@ -283,7 +285,7 @@ int main() {
 				};
 
 				for (int i = 0; i < runs; ++i) {
-					cuda::motion::BlockMatchingSimple(prevView, currView, outView, p, ctx);
+					cuda::motion::BlockMatchingSimple(prevView, currView, outView, dxdyView, p, ctx);
 				}
 			}
 		}

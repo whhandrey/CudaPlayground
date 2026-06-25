@@ -1,7 +1,7 @@
 #pragma once
 #include <Image/Image.h>
-#include <DeviceImage/ImageGPU.h>
 #include <cuda_runtime.h>
+#include "ImageGPU.h"
 
 namespace image {
 	template <class T>

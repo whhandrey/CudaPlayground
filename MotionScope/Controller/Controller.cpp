@@ -153,7 +153,7 @@ namespace GpuApp {
 		if (m_cache[m_currentIndex].isNull() || m_cache[m_currentIndex + 1].isNull())
 			return;
 
-		auto job = gpu::motion::Job{
+		auto job = gpu::motion::Job {
 			m_currentIndex,
 			m_generation,
 			m_cache[m_currentIndex],
