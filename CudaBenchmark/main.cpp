@@ -6,8 +6,9 @@
 #include <DeviceImage/ImageTransfer.h>
 #include <Image/ImageView.h>
 #include <Cuda/Context.h>
-#include <Cuda/Motion.h>
 #include <Cuda/Filter.h>
+#include <Cuda/Motion/BlockMatching.h>
+#include <Cuda/Transform/Shift.h>
 
 #include <Image/Image.h>
 #include <iostream>
@@ -187,7 +188,7 @@ int main() {
 
 	image::GpuImageView<int2> dxdyView{ nullptr, {}, 0 };
 
-	cuda::motion::shift::ShiftImage(currView, currShiftedView, { -3, 2 }, ctx);
+	cuda::transform::ShiftImage(currView, currShiftedView, { -3, 2 }, ctx);
 
 	PrintCudaDevice();
 	PrintSharedMemStats();
@@ -237,7 +238,7 @@ int main() {
 			};
 
 			for (int i = 0; i < warmUpRuns; ++i) {
-				cuda::motion::BlockMatchingSimple(prevView, currView, outView,dxdyView, p, ctx);
+				cuda::motion::BlockMatching(prevView, currView, outView,dxdyView, p, ctx);
 			}
 		}
 
@@ -285,7 +286,7 @@ int main() {
 				};
 
 				for (int i = 0; i < runs; ++i) {
-					cuda::motion::BlockMatchingSimple(prevView, currView, outView, dxdyView, p, ctx);
+					cuda::motion::BlockMatching(prevView, currView, outView, dxdyView, p, ctx);
 				}
 			}
 		}

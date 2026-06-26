@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cuda\KernelCommon.cpp" />
+    <ClCompile Include="Cuda\Motion\BlockMatchingParams.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Common.h" />
@@ -27,8 +28,12 @@
     <ClInclude Include="Cuda\Common.cuh" />
     <ClInclude Include="Cuda\Filter.h" />
     <ClInclude Include="Cuda\KernelCommon.h" />
-    <ClInclude Include="Cuda\Motion.h" />
+    <ClInclude Include="Cuda\Motion\BlockMatching.h" />
+    <ClInclude Include="Cuda\Motion\BlockMatchingCommon.cuh" />
+    <ClInclude Include="Cuda\Motion\BlockMatchingParams.h" />
+    <ClInclude Include="Cuda\Motion\BlockMatchingWarp.h" />
     <ClInclude Include="Cuda\Reduction.cuh" />
+    <ClInclude Include="Cuda\Transform\Shift.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\Filter.cu">
@@ -37,16 +42,15 @@
       <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </CodeGeneration>
     </CudaCompile>
-    <CudaCompile Include="Cuda\Motion.cu">
-      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
-      <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
-    </CudaCompile>
+    <CudaCompile Include="Cuda\Motion\BlockMatching.cu" />
+    <CudaCompile Include="Cuda\Motion\BlockMatchingWarp.cu" />
     <CudaCompile Include="Cuda\Reduction.cu">
       <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </CodeGeneration>
       <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </CodeGeneration>
     </CudaCompile>
+    <CudaCompile Include="Cuda\Transform\Shift.cu" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

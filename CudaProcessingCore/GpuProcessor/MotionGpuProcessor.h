@@ -1,6 +1,6 @@
 #pragma once
 #include <Cuda/Context.h>
-#include <Cuda/Motion.h>
+#include <Cuda/Motion/BlockMatching.h>
 #include "IMotionGpuProcessor.h"
 #include "../DeviceImage/ImageGPU.h"
 

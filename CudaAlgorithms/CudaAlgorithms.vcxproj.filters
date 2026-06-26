@@ -7,10 +7,19 @@
     <Filter Include="Cuda">
       <UniqueIdentifier>{0f695aca-d4ff-4d19-8768-0c6043b673d1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Cuda\Motion">
+      <UniqueIdentifier>{2e913636-0d3a-4f32-98e1-c3b193279142}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Cuda\Transform">
+      <UniqueIdentifier>{2d45e5eb-513c-43c1-8842-d5c8a6dd695f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cuda\KernelCommon.cpp">
       <Filter>Cuda</Filter>
+    </ClCompile>
+    <ClCompile Include="Cuda\Motion\BlockMatchingParams.cpp">
+      <Filter>Cuda\Motion</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -23,9 +32,6 @@
     <ClInclude Include="Cuda\Filter.h">
       <Filter>Cuda</Filter>
     </ClInclude>
-    <ClInclude Include="Cuda\Motion.h">
-      <Filter>Cuda</Filter>
-    </ClInclude>
     <ClInclude Include="Cuda\Reduction.cuh">
       <Filter>Cuda</Filter>
     </ClInclude>
@@ -35,16 +41,37 @@
     <ClInclude Include="Cuda\KernelCommon.h">
       <Filter>Cuda</Filter>
     </ClInclude>
+    <ClInclude Include="Cuda\Motion\BlockMatching.h">
+      <Filter>Cuda\Motion</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Motion\BlockMatchingParams.h">
+      <Filter>Cuda\Motion</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Motion\BlockMatchingWarp.h">
+      <Filter>Cuda\Motion</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Motion\BlockMatchingCommon.cuh">
+      <Filter>Cuda\Motion</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Transform\Shift.h">
+      <Filter>Cuda\Transform</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\Filter.cu">
       <Filter>Cuda</Filter>
     </CudaCompile>
-    <CudaCompile Include="Cuda\Motion.cu">
-      <Filter>Cuda</Filter>
-    </CudaCompile>
     <CudaCompile Include="Cuda\Reduction.cu">
       <Filter>Cuda</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Motion\BlockMatching.cu">
+      <Filter>Cuda\Motion</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Motion\BlockMatchingWarp.cu">
+      <Filter>Cuda\Motion</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Transform\Shift.cu">
+      <Filter>Cuda\Transform</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

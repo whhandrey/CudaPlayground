@@ -70,7 +70,7 @@ namespace cuda {
 		auto outView = MakeImageView(m_conf);
 		auto dxdyView = MakeEmptyImageView<int2>();
 
-		cuda::motion::BlockMatchingSimple(
+		cuda::motion::BlockMatching(
 			MakeImageView(m_prev),
 			MakeImageView(m_curr),
 			outView,
@@ -95,8 +95,7 @@ namespace cuda {
 		m_prev = ImageGPU<uchar4>(dim);
 		m_curr = ImageGPU<uchar4>(dim);
 
-		auto output_dim = cuda::math::Div(dim, m_params.macroBlockDim);
-		m_conf = ImageGPU<unsigned char>(image::vec2ui{ output_dim.x, output_dim.y });
+		m_conf = ImageGPU<unsigned char>(cuda::motion::MotionOutputDim(dim, m_params.macroBlockDim));
 	}
 
 	IMotionGpuProcessor::Ptr IMotionGpuProcessor::Create() {
