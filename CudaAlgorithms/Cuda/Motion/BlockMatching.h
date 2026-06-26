@@ -8,25 +8,23 @@ namespace cuda {
 	namespace motion {
 		using image::GpuImageView;
 
+		struct BlockMatchStats {
+			image::vec2i bestDxDy;
+			image::vec2i secondDxDy;
+
+			int bestSad;
+			int secondSad;
+
+			int zeroSad;
+			unsigned long sumSad;
+		};
+
 		// simple version, no warp sync
 		void BlockMatching(
 			const GpuImageView<uchar4>& prevFrame,
 			const GpuImageView<uchar4>& currFrame,
-			GpuImageView<unsigned char>& confOut,
-			GpuImageView<int2>& dxdyOut,
+			GpuImageView<BlockMatchStats>& statsOut,
 			const BlockMatchingParams& p,
-			cuda::KernelContext& ctx
-		);
-
-		// Only supports blockDim = 8;8, search_halfsize = 3;3, macroBlockDim = 16;16
-		// Params are not used yet, maybe will be extended templated version
-		// TODO: make dispatcher
-		void BlockMatchingSimpleT(
-			const GpuImageView<uchar4>& prevFrame,
-			const GpuImageView<uchar4>& currFrame,
-			GpuImageView<unsigned char>& confOut,
-			GpuImageView<int2>& dxdyOut,
-			const BlockMatchingParams& /*p*/,
 			cuda::KernelContext& ctx
 		);
 	}

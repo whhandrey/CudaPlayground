@@ -179,14 +179,12 @@ int main() {
 	ImageGPU<uchar4> prevFrame(img, stream);
 	ImageGPU<uchar4> currFrame(img, stream);
 	ImageGPU<uchar4> currFrameShifted(img.Dim());
-	ImageGPU<unsigned char> output(img.Dim());
+	ImageGPU<cuda::motion::BlockMatchStats> output(img.Dim());
 
 	image::GpuImageView<uchar4> prevView{ prevFrame.Data(), prevFrame.Dim(), prevFrame.Pitch() };
 	image::GpuImageView<uchar4> currView{ currFrame.Data(), currFrame.Dim(), currFrame.Pitch() };
 	image::GpuImageView<uchar4> currShiftedView{ currFrameShifted.Data(), currFrameShifted.Dim(), currFrameShifted.Pitch() };
-	image::GpuImageView<unsigned char> outView{ output.Data(), output.Dim(), output.Pitch() };
-
-	image::GpuImageView<int2> dxdyView{ nullptr, {}, 0 };
+	image::GpuImageView<cuda::motion::BlockMatchStats> outView{ output.Data(), output.Dim(), output.Pitch() };
 
 	cuda::transform::ShiftImage(currView, currShiftedView, { -3, 2 }, ctx);
 
@@ -238,7 +236,7 @@ int main() {
 			};
 
 			for (int i = 0; i < warmUpRuns; ++i) {
-				cuda::motion::BlockMatching(prevView, currView, outView,dxdyView, p, ctx);
+				cuda::motion::BlockMatching(prevView, currView, outView, p, ctx);
 			}
 		}
 
@@ -286,7 +284,7 @@ int main() {
 				};
 
 				for (int i = 0; i < runs; ++i) {
-					cuda::motion::BlockMatching(prevView, currView, outView, dxdyView, p, ctx);
+					cuda::motion::BlockMatching(prevView, currView, outView, p, ctx);
 				}
 			}
 		}

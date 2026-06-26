@@ -74,7 +74,6 @@ namespace cuda {
 			MakeImageView(m_prev),
 			MakeImageView(m_curr),
 			outView,
-			dxdyView,
 			m_params,
 			m_ctx
 		);

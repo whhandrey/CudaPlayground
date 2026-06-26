@@ -12,6 +12,8 @@
 #include <Cuda/TimedCudaCall.h>
 #include <Cuda/MathUtils.h>
 
+using cuda::motion::BlockMatchStats;
+
 #define PRINT_KERNEL_ATTRS(kernelName)                                       \
 do {                                                                         \
     cudaFuncAttributes attr{};                                               \
@@ -33,7 +35,9 @@ namespace {
 
     struct SadStats {
         SadTop2 top2;
-        unsigned long long sum;
+
+        unsigned long sumSad;
+        int zeroSad;
     };
 }
 
@@ -50,10 +54,7 @@ __device__ __forceinline__ SadTop2 EmptySadTop2() {
 }
 
 __device__ __forceinline__ SadStats EmptySadStats() {
-    return {
-        EmptySadTop2(),
-        0
-    };
+    return { EmptySadTop2(), 0, 0 };
 }
 
 __device__ __forceinline__ void UpdateBestSad(SadStats& sadLocal, SadCandidate sadCand) {
@@ -65,7 +66,10 @@ __device__ __forceinline__ void UpdateBestSad(SadStats& sadLocal, SadCandidate s
         sadLocal.top2.second = sadCand;
     }
 
-    sadLocal.sum += sadCand.sad;
+    sadLocal.sumSad += sadCand.sad;
+    if (sadCand.dx == 0 && sadCand.dy == 0) {
+        sadLocal.zeroSad = sadCand.sad;
+    }
 }
 
 __device__ __forceinline__ SadTop2 MergeSadTop2(SadTop2 first, SadTop2 second) {
@@ -89,15 +93,13 @@ __device__ __forceinline__ SadTop2 MergeSadTop2(SadTop2 first, SadTop2 second) {
     return output;
 }
 
-__global__  void BlockMatchingGenericKernel(
+__global__  void BlockMatchingKernel(
     const uchar4* __restrict__ prevFrame,
     size_t prevPitch,
     const uchar4* __restrict__ currFrame,
     size_t currPitch,
-    unsigned char* __restrict__ conf,
-    size_t confPitch,
-    int2* __restrict__ dxdyOutput,
-    size_t dxdyOutPitch,
+    BlockMatchStats* __restrict__ statsOut,
+    size_t statsOutPitch,
     int width,
     int height,
     image::vec2i search_halfsize,
@@ -180,18 +182,6 @@ __global__  void BlockMatchingGenericKernel(
                 sad += abs(int(prev[j].x) - int(curr[currX].x))
                      + abs(int(prev[j].y) - int(curr[currX].y))
                      + abs(int(prev[j].z) - int(curr[currX].z));
-
-                // not a huge diff how you write this crap.
-                // does not matter. for blackwell and compute_120 now floats mean smth
-                // 
-                //const uchar4 p = prev[j];
-                //const uchar4 c = curr[currX];
-
-                //const int diffR = abs(int(p.x) - int(c.x));
-                //const int diffG = abs(int(p.y) - int(c.y));
-                //const int diffB = abs(int(p.z) - int(c.z));
-
-                //sad += diffR + diffG + diffB;
             }
         }
 
@@ -213,37 +203,32 @@ __global__  void BlockMatchingGenericKernel(
             SadStats next = sadTile[tid + stride];
 
             SadTop2 out = MergeSadTop2(curr.top2, next.top2);
-            unsigned long long sum = curr.sum + next.sum;
 
-            sadTile[tid] = SadStats{ out, sum };
+            unsigned long sumSad = curr.sumSad + next.sumSad;
+            int zeroSad = curr.zeroSad + next.zeroSad;
+
+            sadTile[tid] = SadStats{ out, sumSad, zeroSad };
         }
 
         __syncthreads();
     }
 
     if (tid == 0) {
-        if (dxdyOutput) {
-            int2* rowDxDyVec = (int2*)((char*)dxdyOutput + blockIdx.y * dxdyOutPitch);
-            rowDxDyVec[blockIdx.x] = make_int2(sadTile[0].top2.best.dx, sadTile[0].top2.best.dy);
-        }
+        BlockMatchStats* rowStats = (BlockMatchStats*)((char*)statsOut + blockIdx.y * statsOutPitch);
 
-        unsigned char* rowConf = (unsigned char*)((char*)conf + blockIdx.y * confPitch);
+        BlockMatchStats out {
+            { sadTile[0].top2.best.dx, sadTile[0].top2.best.dy },
+            { sadTile[0].top2.second.dx, sadTile[0].top2.second.dy },
 
-        float avg_sad = sadTile[0].sum / float(allCandidates);
-        float min_sad = float(sadTile[0].top2.best.sad);
+            sadTile[0].top2.best.sad,
+            sadTile[0].top2.second.sad,
 
-        float conf = 0.0f;
-        if (avg_sad > 1e-10f) {
-            conf = 1.0f - min_sad / avg_sad;
-        }
+            sadTile[0].zeroSad,
+            sadTile[0].sumSad
+        };
 
-        unsigned char confOut = unsigned char(saturate(conf) * 255.0f + 0.5f);
-        int motion = abs(sadTile[0].top2.best.dx) + abs(sadTile[0].top2.best.dy);
-        
-        bool moved = confOut > 80 && motion > 3;
-        rowConf[blockIdx.x] = moved ? 255 : 0;
+        rowStats[blockIdx.x] = out;
     }
-
 }
 
 template <
@@ -257,10 +242,8 @@ __global__ void BlockMatchingKernelT(
     size_t prevPitch,
     const uchar4* __restrict__ currFrame,
     size_t currPitch,
-    unsigned char* __restrict__ conf,
-    size_t confPitch,
-    int2* __restrict__ dxdyOutput,
-    size_t dxdyOutPitch,
+    BlockMatchStats* __restrict__ statsOut,
+    size_t statsOutPitch,
     int width,
     int height)
 {
@@ -359,7 +342,7 @@ __global__ void BlockMatchingKernelT(
         UpdateBestSad(localStats, { sad, dx, dy });
     }
 
-    constexpr int fullTileSize = (macroBlockW + search_halfsizeX * 2) * (macroBlockH + search_halfsizeY * 2);
+    const int fullTileSize = (macroBlockW + search_halfsizeX * 2) * (macroBlockH + search_halfsizeY * 2);
 
     SadStats* sadTile = (SadStats*)(currTile + fullTileSize);
 
@@ -368,7 +351,6 @@ __global__ void BlockMatchingKernelT(
 
     __syncthreads();
 
-    // this is still faster than reducing 64 values (for 8x8 cuda block) in one thread
     #pragma unroll 1
     for (int stride = blockSize / 2; stride > 0; stride /= 2) {
         if (tid < stride) {
@@ -376,44 +358,43 @@ __global__ void BlockMatchingKernelT(
             SadStats next = sadTile[tid + stride];
 
             SadTop2 out = MergeSadTop2(curr.top2, next.top2);
-            unsigned long long sum = curr.sum + next.sum;
 
-            sadTile[tid] = SadStats{ out, sum };
+            unsigned long sumSad = curr.sumSad + next.sumSad;
+            int zeroSad = curr.zeroSad + next.zeroSad;
+
+            sadTile[tid] = SadStats{ out, sumSad, zeroSad };
         }
 
         __syncthreads();
     }
 
     if (tid == 0) {
-        if (dxdyOutput) {
-            int2* rowDxDyVec = (int2*)((char*)dxdyOutput + blockIdx.y * dxdyOutPitch);
-            rowDxDyVec[blockIdx.x] = make_int2(sadTile[0].top2.best.dx, sadTile[0].top2.best.dy);
-        }
+        BlockMatchStats* rowStats = (BlockMatchStats*)((char*)statsOut + blockIdx.y * statsOutPitch);
 
-        unsigned char* rowConf = (unsigned char*)((char*)conf + blockIdx.y * confPitch);
+        BlockMatchStats out{
+            { sadTile[0].top2.best.dx, sadTile[0].top2.best.dy },
+            { sadTile[0].top2.second.dx, sadTile[0].top2.second.dy },
 
-        float avg_sad = sadTile[0].sum / float(allCandidates);
-        float min_sad = float(sadTile[0].top2.best.sad);
+            sadTile[0].top2.best.sad,
+            sadTile[0].top2.second.sad,
 
-        float conf = 0.0f;
-        if (avg_sad > 1e-10f) {
-            conf = 1.0f - min_sad / avg_sad;
+            sadTile[0].zeroSad,
+            sadTile[0].sumSad
+        };
 
-        }
-        
-        rowConf[blockIdx.x] = unsigned char(saturate(conf) * 255.0f + 0.5f);
+        rowStats[blockIdx.x] = out;
     }
 }
 
 namespace detail {
     using image::GpuImageView;
     using cuda::motion::BlockMatchingParams;
+    using cuda::motion::BlockMatchStats;
 
     void BlockMatching(
         const GpuImageView<uchar4>& prevFrame,
         const GpuImageView<uchar4>& currFrame,
-        GpuImageView<unsigned char>& confOut,
-        GpuImageView<int2>& dxdyOut,
+        GpuImageView<BlockMatchStats>& statsOut,
         const BlockMatchingParams& p,
         cuda::KernelContext& ctx)
     {
@@ -435,15 +416,13 @@ namespace detail {
         image::vec2i macroBlockInt = { int(p.macroBlockDim.x), int(p.macroBlockDim.y) };
 
         cuda::TimedCall("BlockMatchingGenericKernel: " + cuda::util::BlockDimToString(p.blockDim), ctx, [&]() {
-            BlockMatchingGenericKernel << <gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.m_stream >> > (
+            BlockMatchingKernel <<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.m_stream>>> (
                 prevFrame.m_ptr,
                 prevFrame.m_pitch,
                 currFrame.m_ptr,
                 currFrame.m_pitch,
-                confOut.m_ptr,
-                confOut.m_pitch,
-                dxdyOut.m_ptr,
-                dxdyOut.m_pitch,
+                statsOut.m_ptr,
+                statsOut.m_pitch,
                 prevFrame.m_dim.x,
                 prevFrame.m_dim.y,
                 p.search_halfsize,
@@ -463,8 +442,7 @@ namespace detail {
     void BlockMatchingT(
         const GpuImageView<uchar4>& prevFrame,
         const GpuImageView<uchar4>& currFrame,
-        GpuImageView<unsigned char>& confOut,
-        GpuImageView<int2>& dxdyOut,
+        GpuImageView<BlockMatchStats>& statsOut,
         cuda::KernelContext& ctx)
     {
         //static bool print = true;
@@ -488,15 +466,13 @@ namespace detail {
         constexpr size_t sharedMemSize = prevTileSize + currTileSize + sadTileSize;
 
         cuda::TimedCall("BlockMatchingKernelT: " + cuda::util::BlockDimToString(cudaBlockDim), ctx, [&]() {
-            BlockMatchingKernelT<macroBlockW, macroBlockH, search_halfsizeX, search_halfsizeY> << <gridSize, cuda::math::vec2Todim3(cudaBlockDim), sharedMemSize, ctx.m_stream >> > (
+            BlockMatchingKernelT<macroBlockW, macroBlockH, search_halfsizeX, search_halfsizeY> <<<gridSize, cuda::math::vec2Todim3(cudaBlockDim), sharedMemSize, ctx.m_stream>>> (
                 prevFrame.m_ptr,
                 prevFrame.m_pitch,
                 currFrame.m_ptr,
                 currFrame.m_pitch,
-                confOut.m_ptr,
-                confOut.m_pitch,
-                dxdyOut.m_ptr,
-                dxdyOut.m_pitch,
+                statsOut.m_ptr,
+                statsOut.m_pitch,
                 prevFrame.m_dim.x,
                 prevFrame.m_dim.y
             );
@@ -520,8 +496,7 @@ namespace cuda {
         void BlockMatching(
             const GpuImageView<uchar4>& prevFrame,
             const GpuImageView<uchar4>& currFrame,
-            GpuImageView<unsigned char>& confOut,
-            GpuImageView<int2>& dxdyOut,
+            GpuImageView<BlockMatchStats>& statsOut,
             const BlockMatchingParams& p,
             cuda::KernelContext& ctx)
         {
@@ -536,22 +511,22 @@ namespace cuda {
             };
 
             if (EqParams(p, supportedTemplP[0])) {
-                detail::BlockMatchingT<8, 8, 16, 16, 3, 3>(prevFrame, currFrame, confOut, dxdyOut, ctx);
+                detail::BlockMatchingT<8, 8, 16, 16, 3, 3>(prevFrame, currFrame, statsOut, ctx);
             }
             else if (EqParams(p, supportedTemplP[1])) {
-                detail::BlockMatchingT<8, 8, 16, 16, 4, 4>(prevFrame, currFrame, confOut, dxdyOut, ctx);
+                detail::BlockMatchingT<8, 8, 16, 16, 4, 4>(prevFrame, currFrame, statsOut, ctx);
             }
             else if (EqParams(p, supportedTemplP[2])) {
-                detail::BlockMatchingT<8, 8, 16, 16, 5, 5>(prevFrame, currFrame, confOut, dxdyOut, ctx);
+                detail::BlockMatchingT<8, 8, 16, 16, 5, 5>(prevFrame, currFrame, statsOut, ctx);
             }
             else if (EqParams(p, supportedTemplP[3])) {
-                detail::BlockMatchingT<8, 8, 16, 16, 6, 6>(prevFrame, currFrame, confOut, dxdyOut, ctx);
+                detail::BlockMatchingT<8, 8, 16, 16, 6, 6>(prevFrame, currFrame, statsOut, ctx);
             }
             else if (EqParams(p, supportedTemplP[4])) {
-                detail::BlockMatchingT<16, 16, 16, 16, 3, 3>(prevFrame, currFrame, confOut, dxdyOut, ctx);
+                detail::BlockMatchingT<16, 16, 16, 16, 3, 3>(prevFrame, currFrame, statsOut, ctx);
             }
             else {
-                detail::BlockMatching(prevFrame, currFrame, confOut, dxdyOut, p, ctx);
+                detail::BlockMatching(prevFrame, currFrame, statsOut, p, ctx);
             }
         }
     }
