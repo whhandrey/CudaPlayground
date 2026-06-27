@@ -4,7 +4,7 @@
 
 namespace cuda::image_view {
 	template <class T>
-	image::GpuImageView<T> MakeImageView(const ImageGPU<T>& img) {
+	image::GpuImageView<T> MakeImageView(ImageGPU<T>& img) {
 		return { img.Data(), img.Dim(), img.Pitch() };
 	}
 

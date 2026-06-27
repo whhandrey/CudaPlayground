@@ -145,9 +145,10 @@
     <ClInclude Include="DeviceImage\ImageTransfer.h" />
     <ClInclude Include="GpuProcessor\GpuImageView.h" />
     <ClInclude Include="GpuProcessor\IMotionViewProcessor.h" />
-    <ClInclude Include="GpuProcessor\IMotionViewRenderer.h" />
     <ClInclude Include="GpuProcessor\State\IMotionGpuPipelineState.h" />
     <ClInclude Include="GpuProcessor\State\MotionGpuPipelineState.h" />
+    <ClInclude Include="GpuProcessor\ViewRenderer\IMotionViewRenderer.h" />
+    <ClInclude Include="GpuProcessor\ViewRenderer\ViewType.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
@@ -155,10 +156,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GpuProcessor\IMotionViewRenderer.cpp" />
     <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp" />
-    <ClCompile Include="GpuProcessor\MotionViewRenderer.cpp" />
     <ClCompile Include="GpuProcessor\State\MotionGpuPipelineState.cpp" />
+    <ClCompile Include="GpuProcessor\ViewRenderer\MotionViewRenderer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -13,6 +13,9 @@
     <Filter Include="GpuProcessor\State">
       <UniqueIdentifier>{3ae3f02f-cf9e-4e7a-bdb4-b22b3f7f63d5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GpuProcessor\ViewRenderer">
+      <UniqueIdentifier>{0be6b97f-e5a0-4998-a059-37b9c49b6cee}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DeviceImage\ImageGPU.h">
@@ -21,32 +24,34 @@
     <ClInclude Include="DeviceImage\ImageTransfer.h">
       <Filter>DeviceImage</Filter>
     </ClInclude>
-    <ClInclude Include="GpuProcessor\IMotionViewProcessor.h">
-      <Filter>GpuProcessor</Filter>
-    </ClInclude>
     <ClInclude Include="GpuProcessor\State\MotionGpuPipelineState.h">
       <Filter>GpuProcessor\State</Filter>
     </ClInclude>
     <ClInclude Include="GpuProcessor\State\IMotionGpuPipelineState.h">
       <Filter>GpuProcessor\State</Filter>
     </ClInclude>
-    <ClInclude Include="GpuProcessor\IMotionViewRenderer.h">
+    <ClInclude Include="GpuProcessor\GpuImageView.h">
       <Filter>GpuProcessor</Filter>
     </ClInclude>
-    <ClInclude Include="GpuProcessor\GpuImageView.h">
+    <ClInclude Include="GpuProcessor\ViewRenderer\IMotionViewRenderer.h">
+      <Filter>GpuProcessor\ViewRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\ViewRenderer\ViewType.h">
+      <Filter>GpuProcessor\ViewRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\IMotionViewProcessor.h">
       <Filter>GpuProcessor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp">
-      <Filter>GpuProcessor</Filter>
-    </ClCompile>
     <ClCompile Include="GpuProcessor\State\MotionGpuPipelineState.cpp">
       <Filter>GpuProcessor\State</Filter>
     </ClCompile>
-    <ClCompile Include="GpuProcessor\MotionViewRenderer.cpp">
+    <ClCompile Include="GpuProcessor\ViewRenderer\MotionViewRenderer.cpp">
+      <Filter>GpuProcessor\ViewRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp">
       <Filter>GpuProcessor</Filter>
     </ClCompile>
-    <ClCompile Include="GpuProcessor\IMotionViewRenderer.cpp" />
   </ItemGroup>
 </Project>

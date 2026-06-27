@@ -1,5 +1,5 @@
 #include "IMotionViewRenderer.h"
-#include "State/IMotionGpuPipelineState.h"
+#include "../State/IMotionGpuPipelineState.h"
 #include <Cuda/Context.h>
 
 namespace cuda::motion::render {
@@ -27,6 +27,14 @@ namespace cuda::motion::render {
 	}
 
 	IMotionViewRenderer::Ptr IMotionViewRenderer::Create(ViewType type) {
-
+		switch (type)
+		{
+		case cuda::motion::render::ViewType::ConfidenceMap:
+			break;
+		case cuda::motion::render::ViewType::VisualizationMap:
+			break;
+		default:
+			break;
+		}
 	}
 }

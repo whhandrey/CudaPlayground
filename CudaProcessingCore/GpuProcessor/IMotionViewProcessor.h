@@ -1,15 +1,13 @@
 #pragma once
 #include <Image/Image.h>
 #include <Image/ImageView.h>
+#include "ViewRenderer/ViewType.h"
 #include <memory>
+#include <map>
 
 namespace cuda::motion {
 	using image::Image;
 	using image::ImageView;
-
-	namespace render {
-		enum class ViewType;
-	}
 
 	class IMotionViewProcessor {
 	public:
@@ -18,10 +16,10 @@ namespace cuda::motion {
 
 		virtual ~IMotionViewProcessor() = default;
 
-		virtual std::vector<ImageCpuU4> RenderViews(
+		virtual std::map<render::ViewType, ImageCpuU4> RenderViews(
 			const ImageView<image::vec4uc>& prev,
 			const ImageView<image::vec4uc>& curr,
-			const std::vector<render::ViewType> types) = 0;
+			const std::vector<render::ViewType>& types) = 0;
 
 		static Ptr Create();
 	};

@@ -2,7 +2,9 @@
 #include <Image/Image.h>
 
 namespace {
-	QImage ToQImage(image::Image<unsigned char>&& img) {
+	using cuda::motion::render::ViewType;
+
+	QImage ToQImage(image::Image<image::vec4uc>&& img) {
 		if (img.Dim().x <= 0 || img.Dim().y <= 0) {
 			return {};
 		}
@@ -26,12 +28,22 @@ namespace {
 			img.Dim().x,
 			img.Dim().y,
 			pitch,
-			QImage::Format_Grayscale8,
+			QImage::Format_RGBA8888,
 			cleanup,
 			buffer
 		);
 
 		return qimg;
+	}
+
+	std::map<ViewType, QImage> ToQImages(std::map<ViewType, image::Image<image::vec4uc>>&& views) {
+		std::map<ViewType, QImage> output;
+
+		for (auto&& img : views) {
+			output.emplace(ToQImage(std::move(img.second)));
+		}
+
+		return output;
 	}
 
 	image::ImageView<image::vec4uc> MakeImageView(const QImage& img) {
@@ -51,7 +63,7 @@ namespace {
 
 namespace gpu {
 	namespace motion {
-		AsyncGpuWorker::AsyncGpuWorker(std::unique_ptr<cuda::IMotionGpuProcessor> processor)
+		AsyncGpuWorker::AsyncGpuWorker(std::unique_ptr<cuda::motion::IMotionViewProcessor> processor)
 			: m_processor{ std::move(processor) }
 			, m_thread{ std::thread(&AsyncGpuWorker::Run, this) }
 		{
@@ -93,13 +105,18 @@ namespace gpu {
 				}
 
 				try {
-					auto confImage = m_processor->Process(MakeImageView(job.m_prev), MakeImageView(job.m_curr));
+					auto views = m_processor->RenderViews(
+						MakeImageView(job.m_prev),
+						MakeImageView(job.m_curr),
+						{}
+					);
+
 					auto result = Result {
 						job.frameIndex,
 						job.generation,
 						job.m_prev,
 						job.m_curr,
-						ToQImage(std::move(confImage))
+						ToQImages(std::move(views))
 					};
 
 					if (m_callback) {

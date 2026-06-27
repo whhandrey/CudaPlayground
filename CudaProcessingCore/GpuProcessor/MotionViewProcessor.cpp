@@ -1,6 +1,6 @@
 #include "IMotionViewProcessor.h"
 #include "State/MotionGpuPipelineState.h"
-#include "IMotionViewRenderer.h"
+#include "ViewRenderer/IMotionViewRenderer.h"
 #include "GpuImageView.h"
 
 #include <Cuda/MathUtils.h>
@@ -36,10 +36,10 @@ namespace cuda::motion {
 		~MotionGpuPipeline();
 
 	public:
-		std::vector<ImageCpuU4> RenderViews(
+		std::map<render::ViewType, ImageCpuU4> RenderViews(
 			const ImageView<image::vec4uc>& prev,
 			const ImageView<image::vec4uc>& curr,
-			const std::vector<render::ViewType> types) override;
+			const std::vector<render::ViewType>& types) override;
 
 	private:
 		void AllocMem(image::vec2ui dim);
@@ -91,14 +91,14 @@ namespace cuda::motion {
 		);
 	}
 
-	std::vector<Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
+	std::map<render::ViewType, Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
 		const ImageView<image::vec4uc>& prev,
 		const ImageView<image::vec4uc>& curr,
-		const std::vector<render::ViewType> types)
+		const std::vector<render::ViewType>& types)
 	{
 		Analyze(prev, curr);
 
-
+		return {};
 	}
 
 	void MotionGpuPipeline::AllocMem(image::vec2ui dim) {

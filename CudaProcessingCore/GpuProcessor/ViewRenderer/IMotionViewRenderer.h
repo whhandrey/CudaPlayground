@@ -1,12 +1,8 @@
 #pragma once
+#include "ViewType.h"
 #include <memory>
 
 namespace cuda::motion::render {
-	enum class ViewType {
-		ConfidenceMap,
-		VisualizationMap
-	};
-
 	class IMotionViewRenderer {
 	public:
 		using Ptr = std::unique_ptr<IMotionViewRenderer>;

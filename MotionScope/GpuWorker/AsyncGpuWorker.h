@@ -4,11 +4,14 @@
 #include <condition_variable>
 #include <memory>
 #include <functional>
+#include <map>
 #include <QImage>
-#include <GpuProcessor/IMotionGpuProcessor.h>
+#include <GpuProcessor/IMotionViewProcessor.h>
 
 namespace gpu {
 	namespace motion {
+		using cuda::motion::render::ViewType;
+
 		struct Job {
 			size_t frameIndex;
 			size_t generation;
@@ -21,14 +24,14 @@ namespace gpu {
 			size_t generation;
 			QImage m_prev;
 			QImage m_curr;
-			QImage m_conf;
+			std::map<ViewType, QImage> m_views;
 		};
 
 		using ProcessCallback = std::function<void(Result&&)>;
 
 		class AsyncGpuWorker {
 		public:
-			AsyncGpuWorker(std::unique_ptr<cuda::IMotionGpuProcessor> processor);
+			AsyncGpuWorker(std::unique_ptr<cuda::motion::IMotionViewProcessor> processor);
 			~AsyncGpuWorker();
 
 			AsyncGpuWorker(const AsyncGpuWorker&) = delete;
@@ -43,7 +46,7 @@ namespace gpu {
 			void Stop();
 
 		private:
-			std::unique_ptr<cuda::IMotionGpuProcessor> m_processor;
+			std::unique_ptr<cuda::motion::IMotionViewProcessor> m_processor;
 			ProcessCallback m_callback = nullptr;
 
 			bool m_stop = false;
