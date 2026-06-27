@@ -10,27 +10,43 @@
     <Filter Include="GpuProcessor">
       <UniqueIdentifier>{a20154ec-d9cb-45f0-9745-023b2f5fb7ec}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GpuProcessor\State">
+      <UniqueIdentifier>{3ae3f02f-cf9e-4e7a-bdb4-b22b3f7f63d5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DeviceImage\ImageGPU.h">
       <Filter>DeviceImage</Filter>
     </ClInclude>
-    <ClInclude Include="GpuProcessor\IMotionGpuProcessor.h">
-      <Filter>GpuProcessor</Filter>
-    </ClInclude>
-    <ClInclude Include="GpuProcessor\MotionGpuProcessor.h">
-      <Filter>GpuProcessor</Filter>
-    </ClInclude>
     <ClInclude Include="DeviceImage\ImageTransfer.h">
       <Filter>DeviceImage</Filter>
     </ClInclude>
-    <ClInclude Include="GpuProcessor\IMotionStatsCollector.h">
+    <ClInclude Include="GpuProcessor\IMotionViewProcessor.h">
+      <Filter>GpuProcessor</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\State\MotionGpuPipelineState.h">
+      <Filter>GpuProcessor\State</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\State\IMotionGpuPipelineState.h">
+      <Filter>GpuProcessor\State</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\IMotionViewRenderer.h">
+      <Filter>GpuProcessor</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\GpuImageView.h">
       <Filter>GpuProcessor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GpuProcessor\MotionGpuProcessor.cpp">
+    <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp">
       <Filter>GpuProcessor</Filter>
     </ClCompile>
+    <ClCompile Include="GpuProcessor\State\MotionGpuPipelineState.cpp">
+      <Filter>GpuProcessor\State</Filter>
+    </ClCompile>
+    <ClCompile Include="GpuProcessor\MotionViewRenderer.cpp">
+      <Filter>GpuProcessor</Filter>
+    </ClCompile>
+    <ClCompile Include="GpuProcessor\IMotionViewRenderer.cpp" />
   </ItemGroup>
 </Project>
