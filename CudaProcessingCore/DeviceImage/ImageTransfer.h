@@ -2,7 +2,6 @@
 #include <Image/Image.h>
 #include <Image/ImageView.h>
 #include <cuda_runtime.h>
-#include "ImageGPU.h"
 #include "GpuImageView.h"
 
 namespace cuda::transfer {
