@@ -72,7 +72,7 @@ namespace cuda::motion {
 
 	void MotionGpuPipeline::Analyze(const ImageView<image::vec4uc>& prev, const ImageView<image::vec4uc>& curr) {
 		if (!EqDim(prev.m_dim, curr.m_dim)) {
-			throw std::logic_error("MotionGpuProcessor::Process: prev.dim != curr.dim");
+			throw std::logic_error("MotionGpuPipeline::Analyze: prev.dim != curr.dim");
 		}
 
 		AllocMem(prev.m_dim);
