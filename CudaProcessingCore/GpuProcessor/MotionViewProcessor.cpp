@@ -1,10 +1,10 @@
 #include "IMotionViewProcessor.h"
 #include "State/MotionGpuPipelineState.h"
 #include "ViewRenderer/IMotionViewRenderer.h"
-#include "GpuImageView.h"
+#include "../DeviceImage/GpuImageView.h"
+#include "../DeviceImage/ImageTransfer.h"
 
 #include <Cuda/MathUtils.h>
-#include "../DeviceImage/ImageTransfer.h"
 
 namespace {
 	bool EqDim(image::vec2ui dim1, image::vec2ui dim2) {
@@ -27,6 +27,12 @@ namespace {
 			search_halfsize
 		};
 	}
+
+	template <class T>
+	struct IndexedGpuFrame {
+		int index = -1;
+		ImageGPU<T> img;
+	};
 }
 
 namespace cuda::motion {
@@ -36,22 +42,22 @@ namespace cuda::motion {
 		~MotionGpuPipeline();
 
 	public:
-		std::map<render::ViewType, ImageCpuU4> RenderViews(
-			const ImageView<image::vec4uc>& prev,
-			const ImageView<image::vec4uc>& curr,
+		std::map<render::ViewType, Image<image::vec4uc>> RenderViews(
+			const IndexedCpuFrame<image::vec4uc>& prev,
+			const IndexedCpuFrame<image::vec4uc>& curr,
 			const std::vector<render::ViewType>& types) override;
 
 	private:
 		void AllocMem(image::vec2ui dim);
-		void Analyze(const ImageView<image::vec4uc>& prev, const ImageView<image::vec4uc>& curr);
+		void Analyze(const IndexedCpuFrame<image::vec4uc>& prev, const IndexedCpuFrame<image::vec4uc>& curr);
 
 	private:
 		cuda::KernelContext m_ctx;
 		state::MotionGpuPipelineState m_state;
 		const BlockMatchingParams m_params;
 
-		ImageGPU<uchar4> m_prev;
-		ImageGPU<uchar4> m_curr;
+		IndexedGpuFrame<uchar4> m_prev;
+		IndexedGpuFrame<uchar4> m_curr;
 		ImageGPU<BlockMatchStats> m_stats;
 	};
 }
@@ -70,21 +76,28 @@ namespace cuda::motion {
 		cudaCheck(cudaStreamDestroy(m_ctx.m_stream));
 	}
 
-	void MotionGpuPipeline::Analyze(const ImageView<image::vec4uc>& prev, const ImageView<image::vec4uc>& curr) {
-		if (!EqDim(prev.m_dim, curr.m_dim)) {
+	void MotionGpuPipeline::Analyze(const IndexedCpuFrame<image::vec4uc>& prev, const IndexedCpuFrame<image::vec4uc>& curr) {
+		if (!EqDim(prev.img.m_dim, curr.img.m_dim)) {
 			throw std::logic_error("MotionGpuPipeline::Analyze: prev.dim != curr.dim");
 		}
 
-		AllocMem(prev.m_dim);
+		if (m_prev.index == prev.index && m_curr.index == curr.index) {
+			return;
+		}
 
-		m_prev.UploadCompatible(prev, m_ctx.m_stream);
-		m_curr.UploadCompatible(curr, m_ctx.m_stream);
+		AllocMem(prev.img.m_dim);
+
+		m_prev.index = prev.index;
+		m_curr.index = curr.index;
+
+		m_prev.img.UploadCompatible(prev.img, m_ctx.m_stream);
+		m_curr.img.UploadCompatible(curr.img, m_ctx.m_stream);
 
 		auto outView = image_view::MakeImageView(m_stats);
 
 		cuda::motion::BlockMatching(
-			image_view::MakeImageView(m_prev),
-			image_view::MakeImageView(m_curr),
+			image_view::MakeImageView(m_prev.img),
+			image_view::MakeImageView(m_curr.img),
 			outView,
 			m_params,
 			m_ctx
@@ -92,29 +105,40 @@ namespace cuda::motion {
 	}
 
 	std::map<render::ViewType, Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
-		const ImageView<image::vec4uc>& prev,
-		const ImageView<image::vec4uc>& curr,
+		const IndexedCpuFrame<image::vec4uc>& prev,
+		const IndexedCpuFrame<image::vec4uc>& curr,
 		const std::vector<render::ViewType>& types)
 	{
 		Analyze(prev, curr);
 
-		return {};
+		std::map<render::ViewType, Image<image::vec4uc>> output;
+
+		for (const auto type : types) {
+			auto renderer = render::IMotionViewRenderer::Create(type);
+			renderer->Render();
+
+			output.emplace(type, cuda::transfer::ImageGpuToCpu(m_state.View(type), m_ctx.m_stream));
+		}
+
+		cudaCheck(cudaStreamSynchronize(m_ctx.m_stream));
+		return output;
 	}
 
 	void MotionGpuPipeline::AllocMem(image::vec2ui dim) {
-		const auto curr_dim = m_prev.Dim();
+		const auto curr_dim = m_prev.img.Dim();
 
 		if (curr_dim.x == dim.x && curr_dim.y == dim.y) {
 			return;
 		}
 
-		m_prev = ImageGPU<uchar4>(dim);
-		m_curr = ImageGPU<uchar4>(dim);
+		m_prev.img = ImageGPU<uchar4>(dim);
+		m_curr.img = ImageGPU<uchar4>(dim);
 
 		m_stats = ImageGPU<BlockMatchStats>(cuda::motion::MotionOutputDim(dim, m_params.macroBlockDim));
 	}
 
 	IMotionViewProcessor::Ptr IMotionViewProcessor::Create() {
+		// not really pipeline yet but lets see how it goes
 		return std::make_unique<MotionGpuPipeline>();
 	}
 }

@@ -141,9 +141,9 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DeviceImage\GpuImageView.h" />
     <ClInclude Include="DeviceImage\ImageGPU.h" />
     <ClInclude Include="DeviceImage\ImageTransfer.h" />
-    <ClInclude Include="GpuProcessor\GpuImageView.h" />
     <ClInclude Include="GpuProcessor\IMotionViewProcessor.h" />
     <ClInclude Include="GpuProcessor\State\IMotionGpuPipelineState.h" />
     <ClInclude Include="GpuProcessor\State\MotionGpuPipelineState.h" />

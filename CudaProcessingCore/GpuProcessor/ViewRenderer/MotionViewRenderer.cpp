@@ -1,6 +1,7 @@
 #include "IMotionViewRenderer.h"
 #include "../State/IMotionGpuPipelineState.h"
 #include <Cuda/Context.h>
+#include <stdexcept>
 
 namespace cuda::motion::render {
 	class ConfidenceViewRenderer : public IMotionViewRenderer {
@@ -33,8 +34,8 @@ namespace cuda::motion::render {
 			break;
 		case cuda::motion::render::ViewType::VisualizationMap:
 			break;
-		default:
-			break;
 		}
+
+		throw std::logic_error("IMotionViewRenderer::Create: invalid renderer type");
 	}
 }

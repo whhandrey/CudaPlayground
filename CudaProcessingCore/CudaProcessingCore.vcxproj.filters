@@ -30,9 +30,6 @@
     <ClInclude Include="GpuProcessor\State\IMotionGpuPipelineState.h">
       <Filter>GpuProcessor\State</Filter>
     </ClInclude>
-    <ClInclude Include="GpuProcessor\GpuImageView.h">
-      <Filter>GpuProcessor</Filter>
-    </ClInclude>
     <ClInclude Include="GpuProcessor\ViewRenderer\IMotionViewRenderer.h">
       <Filter>GpuProcessor\ViewRenderer</Filter>
     </ClInclude>
@@ -41,6 +38,9 @@
     </ClInclude>
     <ClInclude Include="GpuProcessor\IMotionViewProcessor.h">
       <Filter>GpuProcessor</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceImage\GpuImageView.h">
+      <Filter>DeviceImage</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

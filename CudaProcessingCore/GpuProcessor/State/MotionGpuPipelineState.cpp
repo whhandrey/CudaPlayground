@@ -1,5 +1,5 @@
 #include "MotionGpuPipelineState.h"
-#include "../GpuImageView.h"
+#include "../../DeviceImage/GpuImageView.h"
 
 namespace cuda::motion::state {
 	const GpuImageView<BlockMatchStats> MotionGpuPipelineState::Stats() const {
