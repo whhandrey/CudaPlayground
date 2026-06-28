@@ -117,7 +117,7 @@ namespace cuda::motion {
 			auto renderer = render::IMotionViewRenderer::Create(type);
 			renderer->Render();
 
-			output.emplace(type, cuda::transfer::ImageGpuToCpu(m_state.View(type), m_ctx.m_stream));
+			output.emplace(type, cuda::transfer::DownloadCompatible<image::vec4uc>(m_state.View(type), m_ctx.m_stream));
 		}
 
 		cudaCheck(cudaStreamSynchronize(m_ctx.m_stream));

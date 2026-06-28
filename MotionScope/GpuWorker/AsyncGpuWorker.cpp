@@ -46,7 +46,7 @@ namespace {
 		return output;
 	}
 
-	image::ImageView<image::vec4uc> MakeImageView(const QImage& img) {
+	cuda::motion::IndexedCpuFrame<image::vec4uc> MakeIndexedImgView(const QImage& img, int index) {
 		if (img.format() != QImage::Format_RGBA8888) {
 			throw std::logic_error("AsyncGpuWorker::MakeImageView: invalid input image, expected RGBA8888 format");
 		}
@@ -57,7 +57,9 @@ namespace {
 		assert(img.bytesPerLine() % alignof(image::vec4uc) == 0);
 
 		image::vec2ui dim = { static_cast<unsigned int>(img.width()), static_cast<unsigned int>(img.height()) };
-		return image::ImageView<image::vec4uc> { ptr, dim, static_cast<size_t>(img.bytesPerLine()) };
+		auto imageView = image::ImageView<image::vec4uc>{ ptr, dim, static_cast<size_t>(img.bytesPerLine()) };
+
+		return { index, imageView };
 	}
 }
 
@@ -106,9 +108,9 @@ namespace gpu {
 
 				try {
 					auto views = m_processor->RenderViews(
-						MakeImageView(job.prev),
-						MakeImageView(job.curr),
-						{}
+						MakeIndexedImgView(job.prev, int(job.frameIndex)),
+						MakeIndexedImgView(job.curr, int(job.frameIndex + 1)),
+						{ ViewType::ConfidenceMap, ViewType::VisualizationMap }
 					);
 
 					auto result = Result {
