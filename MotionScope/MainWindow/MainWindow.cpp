@@ -36,14 +36,19 @@ MainWindow::MainWindow(std::unique_ptr<GpuApp::Controller> controller, QWidget* 
     m_prevImgLabel = CreateImagePlaceholder("PrevFrame");
     m_currImgLabel = CreateImagePlaceholder("CurrFrame");
     m_confImgLabel = CreateImagePlaceholder("ConfImage");
+    m_visImgLabel = CreateImagePlaceholder("VisualizationImage");
 
     QVBoxLayout* leftLayout = new QVBoxLayout();
     leftLayout->addWidget(m_prevImgLabel);
     leftLayout->addWidget(m_currImgLabel);
 
+    QVBoxLayout* rightLayout = new QVBoxLayout();
+    rightLayout->addWidget(m_confImgLabel);
+    rightLayout->addWidget(m_visImgLabel);
+
     QHBoxLayout* fullImageLayout = new QHBoxLayout();
     fullImageLayout->addLayout(leftLayout);
-    fullImageLayout->addWidget(m_confImgLabel);
+    fullImageLayout->addLayout(rightLayout);
 
     m_frameSlider = new QSlider(Qt::Horizontal, central);
     m_frameSlider->setRange(0, 0);
@@ -134,9 +139,10 @@ void MainWindow::TogglePlay()
 {
 }
 
-void MainWindow::ShowImages(QImage prev, QImage curr, QImage conf)
+void MainWindow::ShowImages(QImage prev, QImage curr, QImage conf, QImage vis)
 {
     m_prevImgLabel->setPixmap(FitToLabel(prev, m_prevImgLabel->size()));
     m_currImgLabel->setPixmap(FitToLabel(curr, m_currImgLabel->size()));
     m_confImgLabel->setPixmap(FitToLabel(conf, m_confImgLabel->size()));
+    m_visImgLabel->setPixmap(FitToLabel(vis, m_visImgLabel->size()));
 }

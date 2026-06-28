@@ -9,7 +9,7 @@ namespace {
 			return {};
 		}
 
-		const unsigned int rowBytes = img.Dim().x * sizeof(unsigned char);
+		const unsigned int rowBytes = img.Dim().x * sizeof(image::vec4uc);
 		const size_t pitch = img.Pitch();
 
 		if (pitch < rowBytes) {
@@ -17,14 +17,14 @@ namespace {
 		}
 
 		// Need to alloc on heap to transfer ownership
-		auto* buffer = new std::vector<unsigned char>(std::move(img.m_data));
+		auto* buffer = new std::vector<image::vec4uc>(std::move(img.m_data));
 
 		auto cleanup = [](void* info) {
-			delete static_cast<std::vector<unsigned char>*>(info);
+			delete static_cast<std::vector<image::vec4uc>*>(info);
 		};
 
 		QImage qimg(
-			buffer->data(),
+			reinterpret_cast<unsigned char*>(buffer->data()),
 			img.Dim().x,
 			img.Dim().y,
 			pitch,
@@ -39,8 +39,8 @@ namespace {
 	std::map<ViewType, QImage> ToQImages(std::map<ViewType, image::Image<image::vec4uc>>&& views) {
 		std::map<ViewType, QImage> output;
 
-		for (auto&& img : views) {
-			output.emplace(ToQImage(std::move(img.second)));
+		for (auto& img : views) {
+			output.emplace(img.first, ToQImage(std::move(img.second)));
 		}
 
 		return output;
@@ -106,16 +106,16 @@ namespace gpu {
 
 				try {
 					auto views = m_processor->RenderViews(
-						MakeImageView(job.m_prev),
-						MakeImageView(job.m_curr),
+						MakeImageView(job.prev),
+						MakeImageView(job.curr),
 						{}
 					);
 
 					auto result = Result {
 						job.frameIndex,
 						job.generation,
-						job.m_prev,
-						job.m_curr,
+						job.prev,
+						job.curr,
 						ToQImages(std::move(views))
 					};
 

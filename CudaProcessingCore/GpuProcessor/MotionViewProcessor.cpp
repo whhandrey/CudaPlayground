@@ -113,4 +113,8 @@ namespace cuda::motion {
 
 		m_stats = ImageGPU<BlockMatchStats>(cuda::motion::MotionOutputDim(dim, m_params.macroBlockDim));
 	}
+
+	IMotionViewProcessor::Ptr IMotionViewProcessor::Create() {
+		return std::make_unique<MotionGpuPipeline>();
+	}
 }

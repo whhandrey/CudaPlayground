@@ -28,7 +28,7 @@ private:
     void TogglePlay();
 
 private slots:
-    void ShowImages(QImage prev, QImage curr, QImage conf);
+    void ShowImages(QImage prev, QImage curr, QImage conf, QImage vis);
 
 private:
     std::unique_ptr<GpuApp::Controller> m_controller;
@@ -36,6 +36,7 @@ private:
     QLabel* m_prevImgLabel = nullptr;
     QLabel* m_currImgLabel = nullptr;
     QLabel* m_confImgLabel = nullptr;
+    QLabel* m_visImgLabel = nullptr;
 
     QSlider* m_frameSlider = nullptr;
 

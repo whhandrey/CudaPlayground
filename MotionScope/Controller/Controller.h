@@ -34,7 +34,7 @@ namespace GpuApp {
 		void OnGpuResultReady(gpu::motion::Result result);
 
 	signals:
-		void ImagesReady(QImage prev, QImage curr, QImage conf);
+		void ImagesReady(QImage prev, QImage curr, QImage conf, QImage vis);
 
 	private:
 		std::unique_ptr<image::Loader> m_loader;

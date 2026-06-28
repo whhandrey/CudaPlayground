@@ -15,16 +15,16 @@ namespace gpu {
 		struct Job {
 			size_t frameIndex;
 			size_t generation;
-			QImage m_prev;
-			QImage m_curr;
+			QImage prev;
+			QImage curr;
 		};
 
 		struct Result {
 			size_t frameIndex;
 			size_t generation;
-			QImage m_prev;
-			QImage m_curr;
-			std::map<ViewType, QImage> m_views;
+			QImage prev;
+			QImage curr;
+			std::map<ViewType, QImage> views;
 		};
 
 		using ProcessCallback = std::function<void(Result&&)>;

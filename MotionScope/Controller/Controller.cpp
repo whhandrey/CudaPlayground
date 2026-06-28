@@ -165,12 +165,19 @@ namespace GpuApp {
 
 	void Controller::OnGpuResultReady(gpu::motion::Result result)
 	{
+		using cuda::motion::render::ViewType;
+
 		if (result.generation != m_generation)
 			return;
 
 		if (result.frameIndex != m_currentIndex)
 			return;
 
-		emit ImagesReady(result.m_prev, result.m_curr, result.m_conf);
+		emit ImagesReady(
+			result.prev,
+			result.curr,
+			result.views[ViewType::ConfidenceMap],
+			result.views[ViewType::VisualizationMap]
+		);
 	}
 }
