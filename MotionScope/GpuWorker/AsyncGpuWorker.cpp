@@ -110,7 +110,7 @@ namespace gpu {
 					auto views = m_processor->RenderViews(
 						MakeIndexedImgView(job.prev, int(job.frameIndex)),
 						MakeIndexedImgView(job.curr, int(job.frameIndex + 1)),
-						{ ViewType::ConfidenceMap, ViewType::VisualizationMap }
+						{ ViewType::ConfMap, ViewType::VisualizationMap }
 					);
 
 					auto result = Result {

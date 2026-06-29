@@ -17,9 +17,9 @@ namespace cuda {
 
 			int zeroSad;
 			unsigned long sumSad;
+			int count;
 		};
 
-		// simple version, no warp sync
 		void BlockMatching(
 			const GpuImageView<uchar4>& prevFrame,
 			const GpuImageView<uchar4>& currFrame,

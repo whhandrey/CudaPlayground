@@ -2,6 +2,14 @@
 #include "ViewType.h"
 #include <memory>
 
+namespace cuda {
+	struct KernelContext;
+
+	namespace motion::state {
+		class IMotionGpuPipelineState;
+	}
+}
+
 namespace cuda::motion::render {
 	class IMotionViewRenderer {
 	public:
@@ -10,6 +18,6 @@ namespace cuda::motion::render {
 		virtual ~IMotionViewRenderer() = default;
 		virtual void Render() = 0;
 
-		static Ptr Create(ViewType type);
+		static Ptr Create(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, ViewType type);
 	};
 }

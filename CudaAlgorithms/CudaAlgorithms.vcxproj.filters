@@ -13,6 +13,9 @@
     <Filter Include="Cuda\Transform">
       <UniqueIdentifier>{2d45e5eb-513c-43c1-8842-d5c8a6dd695f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Cuda\Motion\Visualization">
+      <UniqueIdentifier>{364207d1-3d55-4395-9669-585066f2c20e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cuda\KernelCommon.cpp">
@@ -56,6 +59,9 @@
     <ClInclude Include="Cuda\Transform\Shift.h">
       <Filter>Cuda\Transform</Filter>
     </ClInclude>
+    <ClInclude Include="Cuda\Motion\Visualization\Visualization.h">
+      <Filter>Cuda\Motion\Visualization</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\Filter.cu">
@@ -72,6 +78,9 @@
     </CudaCompile>
     <CudaCompile Include="Cuda\Transform\Shift.cu">
       <Filter>Cuda\Transform</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Motion\Visualization\Visualization.cu">
+      <Filter>Cuda\Motion\Visualization</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

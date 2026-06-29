@@ -176,7 +176,7 @@ namespace GpuApp {
 		emit ImagesReady(
 			result.prev,
 			result.curr,
-			result.views[ViewType::ConfidenceMap],
+			result.views[ViewType::ConfMap],
 			result.views[ViewType::VisualizationMap]
 		);
 	}

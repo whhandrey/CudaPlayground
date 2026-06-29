@@ -1,7 +1,11 @@
 #include "MotionGpuPipelineState.h"
+#include "../ViewRenderer/ViewType.h"
 #include "../../DeviceImage/GpuImageView.h"
+#include <array>
 
 namespace cuda::motion::state {
+	using cuda::motion::render::ViewType;
+
 	const GpuImageView<BlockMatchStats> MotionGpuPipelineState::Stats() const {
 		return m_stats;
 	}
@@ -15,7 +19,14 @@ namespace cuda::motion::state {
 	}
 
 	void MotionGpuPipelineState::Resize(image::vec2ui img_dim) {
+		const std::array<ViewType, 2> allViews {
+			ViewType::ConfMap,
+			ViewType::VisualizationMap
+		};
 
+		for (const auto view : allViews) {
+			m_renderedViews[view] = ImageGPU<uchar4>(img_dim);
+		}
 	}
 
 	void MotionGpuPipelineState::SetStats(const GpuImageView<BlockMatchStats>& stats) {

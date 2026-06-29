@@ -224,7 +224,9 @@ __global__  void BlockMatchingKernel(
             sadTile[0].top2.second.sad,
 
             sadTile[0].zeroSad,
-            sadTile[0].sumSad
+            sadTile[0].sumSad,
+
+            allCandidates
         };
 
         rowStats[blockIdx.x] = out;
@@ -379,7 +381,9 @@ __global__ void BlockMatchingKernelT(
             sadTile[0].top2.second.sad,
 
             sadTile[0].zeroSad,
-            sadTile[0].sumSad
+            sadTile[0].sumSad,
+
+            allCandidates
         };
 
         rowStats[blockIdx.x] = out;

@@ -1,6 +1,7 @@
 #include "IMotionViewRenderer.h"
 #include "../State/IMotionGpuPipelineState.h"
 #include <Cuda/Context.h>
+#include <Cuda/Motion/Visualization/Visualization.h>
 #include <stdexcept>
 
 namespace cuda::motion::render {
@@ -24,16 +25,21 @@ namespace cuda::motion::render {
 	}
 
 	void ConfidenceViewRenderer::Render() {
-
+		auto output_view = m_state.View(ViewType::ConfMap);
+		cuda::motion::visualization::Conf(m_state.Stats(), output_view, m_ctx);
 	}
 
-	IMotionViewRenderer::Ptr IMotionViewRenderer::Create(ViewType type) {
+	IMotionViewRenderer::Ptr IMotionViewRenderer::Create(
+		cuda::KernelContext& ctx,
+		state::IMotionGpuPipelineState& state,
+		ViewType type)
+	{
 		switch (type)
 		{
-		case cuda::motion::render::ViewType::ConfidenceMap:
-			break;
+		case cuda::motion::render::ViewType::ConfMap:
+			return std::make_unique<ConfidenceViewRenderer>(ctx, state);
 		case cuda::motion::render::ViewType::VisualizationMap:
-			break;
+			return std::make_unique<ConfidenceViewRenderer>(ctx, state);
 		}
 
 		throw std::logic_error("IMotionViewRenderer::Create: invalid renderer type");

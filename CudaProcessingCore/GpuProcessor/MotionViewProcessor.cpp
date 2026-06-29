@@ -94,6 +94,7 @@ namespace cuda::motion {
 		cuda::gpu_image::UploadCompatible(curr.img, m_curr.img, m_ctx.m_stream);
 
 		auto outView = cuda::gpu_image::MakeImageView(m_stats);
+		m_state.SetStats(outView);
 
 		cuda::motion::BlockMatching(
 			cuda::gpu_image::MakeImageView(m_prev.img),
@@ -114,7 +115,7 @@ namespace cuda::motion {
 		std::map<render::ViewType, Image<image::vec4uc>> output;
 
 		for (const auto type : types) {
-			auto renderer = render::IMotionViewRenderer::Create(type);
+			auto renderer = render::IMotionViewRenderer::Create(m_ctx, m_state, type);
 			renderer->Render();
 
 			output.emplace(type, cuda::gpu_image::DownloadCompatible<image::vec4uc>(m_state.View(type), m_ctx.m_stream));
@@ -134,7 +135,10 @@ namespace cuda::motion {
 		m_prev.img = ImageGPU<uchar4>(dim);
 		m_curr.img = ImageGPU<uchar4>(dim);
 
-		m_stats = ImageGPU<BlockMatchStats>(cuda::motion::MotionOutputDim(dim, m_params.macroBlockDim));
+		const auto motion_dim = cuda::motion::MotionOutputDim(dim, m_params.macroBlockDim);
+
+		m_stats = ImageGPU<BlockMatchStats>(motion_dim);
+		m_state.Resize(motion_dim);
 	}
 
 	IMotionViewProcessor::Ptr IMotionViewProcessor::Create() {
