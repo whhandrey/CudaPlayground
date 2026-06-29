@@ -39,7 +39,7 @@ __global__  void ConfVisualizationKernel(
     }
 
     float moved = float(motion >= 1);
-    float final_conf = (saturate(conf) * 0.5 + saturate(zeroScore) * 0.5f) * moved;
+    float final_conf = (/*saturate(conf) * 0.5 + */saturate(zeroScore) * 0.5f) * moved;
 
     unsigned char out_sample = unsigned char(final_conf * 255.0f + 0.5f);
 

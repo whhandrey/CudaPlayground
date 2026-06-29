@@ -10,9 +10,10 @@ namespace cuda::motion {
 	using image::ImageView;
 
 	template <class T>
-	struct IndexedCpuFrame {
-		int index;
+	struct VersionedCpuFrame {
 		ImageView<T> img;
+		size_t index = 0;
+		size_t generation = 0;
 	};
 
 	class IMotionViewProcessor {
@@ -22,8 +23,8 @@ namespace cuda::motion {
 		virtual ~IMotionViewProcessor() = default;
 
 		virtual std::map<render::ViewType, Image<image::vec4uc>> RenderViews(
-			const IndexedCpuFrame<image::vec4uc>& prev,
-			const IndexedCpuFrame<image::vec4uc>& curr,
+			const VersionedCpuFrame<image::vec4uc>& prev,
+			const VersionedCpuFrame<image::vec4uc>& curr,
 			const std::vector<render::ViewType>& types) = 0;
 
 		static Ptr Create();

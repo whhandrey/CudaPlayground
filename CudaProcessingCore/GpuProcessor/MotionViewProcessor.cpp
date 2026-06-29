@@ -29,10 +29,16 @@ namespace {
 	}
 
 	template <class T>
-	struct IndexedGpuFrame {
-		int index = -1;
+	struct VersionedGpuFrame {
 		cuda::ImageGPU<T> img;
+		size_t index = 0;
+		size_t generation = 0;
 	};
+
+	template <class T1, class T2>
+	bool EqVersion(const cuda::motion::VersionedCpuFrame<T1>& cpu_f, const VersionedGpuFrame<T2>& gpu_f) {
+		return cpu_f.generation == gpu_f.generation && cpu_f.index == gpu_f.index;
+	}
 }
 
 namespace cuda::motion {
@@ -43,21 +49,22 @@ namespace cuda::motion {
 
 	public:
 		std::map<render::ViewType, Image<image::vec4uc>> RenderViews(
-			const IndexedCpuFrame<image::vec4uc>& prev,
-			const IndexedCpuFrame<image::vec4uc>& curr,
+			const VersionedCpuFrame<image::vec4uc>& prev,
+			const VersionedCpuFrame<image::vec4uc>& curr,
 			const std::vector<render::ViewType>& types) override;
 
 	private:
 		void AllocMem(image::vec2ui dim);
-		void Analyze(const IndexedCpuFrame<image::vec4uc>& prev, const IndexedCpuFrame<image::vec4uc>& curr);
+		void Analyze(const VersionedCpuFrame<image::vec4uc>& prev, const VersionedCpuFrame<image::vec4uc>& curr);
 
 	private:
 		cuda::KernelContext m_ctx;
 		state::MotionGpuPipelineState m_state;
 		const BlockMatchingParams m_params;
 
-		IndexedGpuFrame<uchar4> m_prev;
-		IndexedGpuFrame<uchar4> m_curr;
+		VersionedGpuFrame<uchar4> m_prev;
+		VersionedGpuFrame<uchar4> m_curr;
+
 		ImageGPU<BlockMatchStats> m_stats;
 	};
 }
@@ -76,12 +83,12 @@ namespace cuda::motion {
 		cudaCheck(cudaStreamDestroy(m_ctx.m_stream));
 	}
 
-	void MotionGpuPipeline::Analyze(const IndexedCpuFrame<image::vec4uc>& prev, const IndexedCpuFrame<image::vec4uc>& curr) {
+	void MotionGpuPipeline::Analyze(const VersionedCpuFrame<image::vec4uc>& prev, const VersionedCpuFrame<image::vec4uc>& curr) {
 		if (!EqDim(prev.img.m_dim, curr.img.m_dim)) {
 			throw std::logic_error("MotionGpuPipeline::Analyze: prev.dim != curr.dim");
 		}
 
-		if (m_prev.index == prev.index && m_curr.index == curr.index) {
+		if (EqVersion(prev, m_prev) && EqVersion(curr, m_curr)) {
 			return;
 		}
 
@@ -106,8 +113,8 @@ namespace cuda::motion {
 	}
 
 	std::map<render::ViewType, Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
-		const IndexedCpuFrame<image::vec4uc>& prev,
-		const IndexedCpuFrame<image::vec4uc>& curr,
+		const VersionedCpuFrame<image::vec4uc>& prev,
+		const VersionedCpuFrame<image::vec4uc>& curr,
 		const std::vector<render::ViewType>& types)
 	{
 		Analyze(prev, curr);
