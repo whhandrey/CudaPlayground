@@ -46,7 +46,7 @@ namespace {
 		return output;
 	}
 
-	cuda::motion::VersionedCpuFrame<image::vec4uc> MakeView(const QImage& img, size_t index, size_t generation) {
+	gpu::motion::VersionedFrame MakeView(const QImage& img, size_t index, size_t generation) {
 		if (img.format() != QImage::Format_RGBA8888) {
 			throw std::logic_error("AsyncGpuWorker::MakeImageView: invalid input image, expected RGBA8888 format");
 		}
@@ -65,7 +65,7 @@ namespace {
 
 namespace gpu {
 	namespace motion {
-		AsyncGpuWorker::AsyncGpuWorker(std::unique_ptr<cuda::motion::IMotionViewProcessor> processor)
+		AsyncGpuWorker::AsyncGpuWorker(std::unique_ptr<MotionViewProcessor> processor)
 			: m_processor{ std::move(processor) }
 			, m_thread{ std::thread(&AsyncGpuWorker::Run, this) }
 		{

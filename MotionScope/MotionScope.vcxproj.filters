@@ -13,6 +13,9 @@
     <Filter Include="GpuWorker">
       <UniqueIdentifier>{900b98cd-0227-4e8a-bf52-3b10bfc041ec}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GpuProcessor">
+      <UniqueIdentifier>{051dc9f8-441e-4c69-bff0-32df61d6ece4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MainWindow\MainWindow.cpp">
@@ -27,6 +30,9 @@
     </ClCompile>
     <ClCompile Include="GpuWorker\AsyncGpuWorker.cpp">
       <Filter>GpuWorker</Filter>
+    </ClCompile>
+    <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp">
+      <Filter>GpuProcessor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -43,6 +49,9 @@
     </ClInclude>
     <ClInclude Include="GpuWorker\AsyncGpuWorker.h">
       <Filter>GpuWorker</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuProcessor\MotionViewProcessor.h">
+      <Filter>GpuProcessor</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

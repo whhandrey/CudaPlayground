@@ -10,6 +10,11 @@ namespace {
 	bool EqDim(image::vec2ui dim1, image::vec2ui dim2) {
 		return dim1.x == dim2.x && dim1.y == dim2.y;
 	}
+	
+	template <class T>
+	bool Valid(const cuda::ImageGPU<T>& img) {
+		return img.Dim().x != 0 && img.Dim().y != 0;
+	}
 
 	class MockProfiler : public cuda::profiler::IProfiler {
 	public:
@@ -27,18 +32,6 @@ namespace {
 			search_halfsize
 		};
 	}
-
-	template <class T>
-	struct VersionedGpuFrame {
-		cuda::ImageGPU<T> img;
-		size_t index = 0;
-		size_t generation = 0;
-	};
-
-	template <class T1, class T2>
-	bool EqVersion(const cuda::motion::VersionedCpuFrame<T1>& cpu_f, const VersionedGpuFrame<T2>& gpu_f) {
-		return cpu_f.generation == gpu_f.generation && cpu_f.index == gpu_f.index;
-	}
 }
 
 namespace cuda::motion {
@@ -48,22 +41,23 @@ namespace cuda::motion {
 		~MotionGpuPipeline();
 
 	public:
-		std::map<render::ViewType, Image<image::vec4uc>> RenderViews(
-			const VersionedCpuFrame<image::vec4uc>& prev,
-			const VersionedCpuFrame<image::vec4uc>& curr,
+		void Analyze(
+			const image::ImageView<image::vec4uc>& prev,
+			const image::ImageView<image::vec4uc>& curr) override;
+
+		std::map<render::ViewType, image::Image<image::vec4uc>> RenderViews(
 			const std::vector<render::ViewType>& types) override;
 
 	private:
 		void AllocMem(image::vec2ui dim);
-		void Analyze(const VersionedCpuFrame<image::vec4uc>& prev, const VersionedCpuFrame<image::vec4uc>& curr);
 
 	private:
 		cuda::KernelContext m_ctx;
 		state::MotionGpuPipelineState m_state;
 		const BlockMatchingParams m_params;
 
-		VersionedGpuFrame<uchar4> m_prev;
-		VersionedGpuFrame<uchar4> m_curr;
+		ImageGPU<uchar4> m_prev;
+		ImageGPU<uchar4> m_curr;
 
 		ImageGPU<BlockMatchStats> m_stats;
 	};
@@ -83,43 +77,38 @@ namespace cuda::motion {
 		cudaCheck(cudaStreamDestroy(m_ctx.m_stream));
 	}
 
-	void MotionGpuPipeline::Analyze(const VersionedCpuFrame<image::vec4uc>& prev, const VersionedCpuFrame<image::vec4uc>& curr) {
-		if (!EqDim(prev.img.m_dim, curr.img.m_dim)) {
+	void MotionGpuPipeline::Analyze(const image::ImageView<image::vec4uc>& prev,
+		const image::ImageView<image::vec4uc>& curr)
+	{
+		if (!EqDim(prev.m_dim, curr.m_dim)) {
 			throw std::logic_error("MotionGpuPipeline::Analyze: prev.dim != curr.dim");
 		}
 
-		if (EqVersion(prev, m_prev) && EqVersion(curr, m_curr)) {
-			return;
-		}
+		AllocMem(prev.m_dim);
 
-		AllocMem(prev.img.m_dim);
-
-		m_prev.index = prev.index;
-		m_curr.index = curr.index;
-
-		cuda::gpu_image::UploadCompatible(prev.img, m_prev.img, m_ctx.m_stream);
-		cuda::gpu_image::UploadCompatible(curr.img, m_curr.img, m_ctx.m_stream);
+		cuda::gpu_image::UploadCompatible(prev, m_prev, m_ctx.m_stream);
+		cuda::gpu_image::UploadCompatible(curr, m_curr, m_ctx.m_stream);
 
 		auto outView = cuda::gpu_image::MakeImageView(m_stats);
 		m_state.SetStats(outView);
 
 		cuda::motion::BlockMatching(
-			cuda::gpu_image::MakeImageView(m_prev.img),
-			cuda::gpu_image::MakeImageView(m_curr.img),
+			cuda::gpu_image::MakeImageView(m_prev),
+			cuda::gpu_image::MakeImageView(m_curr),
 			outView,
 			m_params,
 			m_ctx
 		);
 	}
 
-	std::map<render::ViewType, Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
-		const VersionedCpuFrame<image::vec4uc>& prev,
-		const VersionedCpuFrame<image::vec4uc>& curr,
+	std::map<render::ViewType, image::Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
 		const std::vector<render::ViewType>& types)
 	{
-		Analyze(prev, curr);
+		if (!Valid(m_stats)) {
+			throw std::logic_error("MotionGpuPipeline::RenderViews: analysis has not been performed");
+		}
 
-		std::map<render::ViewType, Image<image::vec4uc>> output;
+		std::map<render::ViewType, image::Image<image::vec4uc>> output;
 
 		for (const auto type : types) {
 			auto renderer = render::IMotionViewRenderer::Create(m_ctx, m_state, type);
@@ -133,14 +122,14 @@ namespace cuda::motion {
 	}
 
 	void MotionGpuPipeline::AllocMem(image::vec2ui dim) {
-		const auto curr_dim = m_prev.img.Dim();
+		const auto curr_dim = m_prev.Dim();
 
 		if (curr_dim.x == dim.x && curr_dim.y == dim.y) {
 			return;
 		}
 
-		m_prev.img = ImageGPU<uchar4>(dim);
-		m_curr.img = ImageGPU<uchar4>(dim);
+		m_prev = ImageGPU<uchar4>(dim);
+		m_curr = ImageGPU<uchar4>(dim);
 
 		const auto motion_dim = cuda::motion::MotionOutputDim(dim, m_params.macroBlockDim);
 
@@ -149,7 +138,7 @@ namespace cuda::motion {
 	}
 
 	IMotionViewProcessor::Ptr IMotionViewProcessor::Create() {
-		// not really pipeline yet but lets see how it goes
+		// not really pipeline yet but let's see how it goes
 		return std::make_unique<MotionGpuPipeline>();
 	}
 }

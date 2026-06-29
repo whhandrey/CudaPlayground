@@ -6,7 +6,7 @@
 #include <functional>
 #include <map>
 #include <QImage>
-#include <GpuProcessor/IMotionViewProcessor.h>
+#include "../GpuProcessor/MotionViewProcessor.h"
 
 namespace gpu {
 	namespace motion {
@@ -31,7 +31,7 @@ namespace gpu {
 
 		class AsyncGpuWorker {
 		public:
-			AsyncGpuWorker(std::unique_ptr<cuda::motion::IMotionViewProcessor> processor);
+			AsyncGpuWorker(std::unique_ptr<MotionViewProcessor> processor);
 			~AsyncGpuWorker();
 
 			AsyncGpuWorker(const AsyncGpuWorker&) = delete;
@@ -46,7 +46,7 @@ namespace gpu {
 			void Stop();
 
 		private:
-			std::unique_ptr<cuda::motion::IMotionViewProcessor> m_processor;
+			std::unique_ptr<MotionViewProcessor> m_processor;
 			ProcessCallback m_callback = nullptr;
 
 			bool m_stop = false;
