@@ -3,7 +3,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include <DeviceImage/ImageGPU.h>
-#include <DeviceImage/ImageTransfer.h>
+#include <DeviceImage/GpuImageTransfer.h>
 #include <Image/ImageView.h>
 #include <Cuda/Context.h>
 #include <Cuda/Filter.h>
@@ -176,10 +176,10 @@ int main() {
 
 	image::Image<uchar4> img = image::LoadFromFile<uchar4>(file);
 
-	ImageGPU<uchar4> prevFrame(img, stream);
-	ImageGPU<uchar4> currFrame(img, stream);
-	ImageGPU<uchar4> currFrameShifted(img.Dim());
-	ImageGPU<cuda::motion::BlockMatchStats> output(img.Dim());
+	cuda::ImageGPU<uchar4> prevFrame = cuda::gpu_image::Create(img, stream);
+	cuda::ImageGPU<uchar4> currFrame = cuda::gpu_image::Create(img, stream);
+	cuda::ImageGPU<uchar4> currFrameShifted(img.Dim());
+	cuda::ImageGPU<cuda::motion::BlockMatchStats> output(img.Dim());
 
 	image::GpuImageView<uchar4> prevView{ prevFrame.Data(), prevFrame.Dim(), prevFrame.Pitch() };
 	image::GpuImageView<uchar4> currView{ currFrame.Data(), currFrame.Dim(), currFrame.Pitch() };

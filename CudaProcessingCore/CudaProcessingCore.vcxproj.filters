@@ -21,7 +21,7 @@
     <ClInclude Include="DeviceImage\ImageGPU.h">
       <Filter>DeviceImage</Filter>
     </ClInclude>
-    <ClInclude Include="DeviceImage\ImageTransfer.h">
+    <ClInclude Include="DeviceImage\GpuImageTransfer.h">
       <Filter>DeviceImage</Filter>
     </ClInclude>
     <ClInclude Include="GpuProcessor\State\MotionGpuPipelineState.h">

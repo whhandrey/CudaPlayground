@@ -2,7 +2,7 @@
 #include "State/MotionGpuPipelineState.h"
 #include "ViewRenderer/IMotionViewRenderer.h"
 #include "../DeviceImage/GpuImageView.h"
-#include "../DeviceImage/ImageTransfer.h"
+#include "../DeviceImage/GpuImageTransfer.h"
 
 #include <Cuda/MathUtils.h>
 
@@ -31,7 +31,7 @@ namespace {
 	template <class T>
 	struct IndexedGpuFrame {
 		int index = -1;
-		ImageGPU<T> img;
+		cuda::ImageGPU<T> img;
 	};
 }
 
@@ -90,14 +90,14 @@ namespace cuda::motion {
 		m_prev.index = prev.index;
 		m_curr.index = curr.index;
 
-		m_prev.img.UploadCompatible(prev.img, m_ctx.m_stream);
-		m_curr.img.UploadCompatible(curr.img, m_ctx.m_stream);
+		cuda::gpu_image::UploadCompatible(prev.img, m_prev.img, m_ctx.m_stream);
+		cuda::gpu_image::UploadCompatible(curr.img, m_curr.img, m_ctx.m_stream);
 
-		auto outView = image_view::MakeImageView(m_stats);
+		auto outView = cuda::gpu_image::MakeImageView(m_stats);
 
 		cuda::motion::BlockMatching(
-			image_view::MakeImageView(m_prev.img),
-			image_view::MakeImageView(m_curr.img),
+			cuda::gpu_image::MakeImageView(m_prev.img),
+			cuda::gpu_image::MakeImageView(m_curr.img),
 			outView,
 			m_params,
 			m_ctx
@@ -117,7 +117,7 @@ namespace cuda::motion {
 			auto renderer = render::IMotionViewRenderer::Create(type);
 			renderer->Render();
 
-			output.emplace(type, cuda::transfer::DownloadCompatible<image::vec4uc>(m_state.View(type), m_ctx.m_stream));
+			output.emplace(type, cuda::gpu_image::DownloadCompatible<image::vec4uc>(m_state.View(type), m_ctx.m_stream));
 		}
 
 		cudaCheck(cudaStreamSynchronize(m_ctx.m_stream));

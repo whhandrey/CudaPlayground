@@ -11,7 +11,7 @@ namespace cuda::motion::state {
 			throw std::logic_error("MotionGpuPipelineState::View: not supported type");
 		}
 
-		return image_view::MakeImageView(m_renderedViews.at(type));
+		return cuda::gpu_image::MakeImageView(m_renderedViews.at(type));
 	}
 
 	void MotionGpuPipelineState::Resize(image::vec2ui img_dim) {
