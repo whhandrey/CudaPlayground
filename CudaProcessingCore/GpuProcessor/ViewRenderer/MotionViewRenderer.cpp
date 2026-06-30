@@ -16,9 +16,9 @@ namespace cuda::motion::render {
 		state::IMotionGpuPipelineState& m_state;
 	};
 
-	class MagnitudeMapViewRenderer : public IMotionViewRenderer {
+	class MotionMapViewRenderer : public IMotionViewRenderer {
 	public:
-		MagnitudeMapViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, image::vec2i search_halfsize);
+		MotionMapViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, image::vec2i search_halfsize);
 
 		void Render() override;
 
@@ -30,16 +30,16 @@ namespace cuda::motion::render {
 }
 
 namespace cuda::motion::render {
-	MagnitudeMapViewRenderer::MagnitudeMapViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, image::vec2i search_halfsize)
+	MotionMapViewRenderer::MotionMapViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, image::vec2i search_halfsize)
 		: m_state{ state }
 		, m_ctx{ ctx }
 		, m_search_halfsize{ search_halfsize }
 	{
 	}
 
-	void MagnitudeMapViewRenderer::Render() {
-		auto output_view = m_state.View(ViewType::VisualizationMap);
-		cuda::motion::visualization::MagnitudeMap(m_state.Stats(), output_view, m_ctx, m_search_halfsize);
+	void MotionMapViewRenderer::Render() {
+		auto output_view = m_state.View(ViewType::MotionMap);
+		cuda::motion::visualization::MotionMap(m_state.Stats(), output_view, m_ctx, m_search_halfsize);
 	}
 
 	ConfidenceViewRenderer::ConfidenceViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state)
@@ -59,8 +59,8 @@ namespace cuda::motion::render {
 		{
 		case cuda::motion::render::ViewType::ConfMap:
 			return std::make_unique<ConfidenceViewRenderer>(params.ctx, params.state);
-		case cuda::motion::render::ViewType::VisualizationMap:
-			return std::make_unique<MagnitudeMapViewRenderer>(params.ctx, params.state, params.search_halfsize);
+		case cuda::motion::render::ViewType::MotionMap:
+			return std::make_unique<MotionMapViewRenderer>(params.ctx, params.state, params.search_halfsize);
 		}
 
 		throw std::logic_error("IMotionViewRenderer::Create: invalid renderer type");

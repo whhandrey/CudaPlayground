@@ -177,7 +177,7 @@ namespace GpuApp {
 			result.prev,
 			result.curr,
 			result.views[ViewType::ConfMap],
-			result.views[ViewType::VisualizationMap]
+			result.views[ViewType::MotionMap]
 		);
 	}
 }

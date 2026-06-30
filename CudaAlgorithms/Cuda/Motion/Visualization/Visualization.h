@@ -15,7 +15,7 @@ namespace cuda {
 				image::vec2ui blockDim = { 8, 8 }
 			);
 
-			void MagnitudeMap(
+			void MotionMap(
 				const GpuImageView<BlockMatchStats>& stats,
 				GpuImageView<uchar4>& output,
 				cuda::KernelContext& ctx,

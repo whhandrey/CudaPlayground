@@ -50,7 +50,7 @@ __global__  void ConfVisualizationKernel(
     rowOut[x] = make_uchar4(out_sample, out_sample, out_sample, 255);
 }
 
-__global__  void MagnitudeMapKernel(
+__global__  void MotionMapKernel(
     const BlockMatchStats* __restrict__ allStats,
     size_t statsPitch,
     uchar4* __restrict__ output,
@@ -134,7 +134,7 @@ namespace cuda {
                 });
             }
 
-            void MagnitudeMap(
+            void MotionMap(
                 const GpuImageView<BlockMatchStats>& stats,
                 GpuImageView<uchar4>& output,
                 cuda::KernelContext& ctx,
@@ -146,8 +146,8 @@ namespace cuda {
                 float maxMag = sqrtf(float(search_halfsize.x * search_halfsize.x + search_halfsize.y * search_halfsize.y));
                 maxMag = maxMag < 1e-5f ? 1.0f : maxMag;
 
-                cuda::TimedCall("MagnitudeMapKernel: " + cuda::util::BlockDimToString(blockDim), ctx, [&]() {
-                    MagnitudeMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
+                cuda::TimedCall("MotionMapKernel: " + cuda::util::BlockDimToString(blockDim), ctx, [&]() {
+                    MotionMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
                         stats.m_ptr,
                         stats.m_pitch,
                         output.m_ptr,

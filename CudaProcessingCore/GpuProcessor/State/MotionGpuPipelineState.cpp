@@ -21,7 +21,7 @@ namespace cuda::motion::state {
 	void MotionGpuPipelineState::Resize(image::vec2ui img_dim) {
 		const std::array<ViewType, 2> allViews {
 			ViewType::ConfMap,
-			ViewType::VisualizationMap
+			ViewType::MotionMap
 		};
 
 		for (const auto view : allViews) {
