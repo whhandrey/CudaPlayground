@@ -24,3 +24,7 @@ __device__ __forceinline__ uchar4 floatVecToUchar(float4 v) {
 __device__ __forceinline__ float saturate(float x) {
     return clamp(x, 0.0f, 1.0f);
 }
+
+__device__ __forceinline__ unsigned char normFloatToUchar(float x) {
+    return static_cast<unsigned char>(saturate(x) * 255.0f + 0.5f);
+}
