@@ -108,10 +108,16 @@ namespace cuda::motion {
 			throw std::logic_error("MotionGpuPipeline::RenderViews: analysis has not been performed");
 		}
 
+		const auto params = render::ViewRendererParams {
+			m_ctx,
+			m_state,
+			m_params.search_halfsize,
+		};
+
 		std::map<render::ViewType, image::Image<image::vec4uc>> output;
 
 		for (const auto type : types) {
-			auto renderer = render::IMotionViewRenderer::Create(m_ctx, m_state, type);
+			auto renderer = render::IMotionViewRenderer::Create(params, type);
 			renderer->Render();
 
 			output.emplace(type, cuda::gpu_image::DownloadCompatible<image::vec4uc>(m_state.View(type), m_ctx.m_stream));

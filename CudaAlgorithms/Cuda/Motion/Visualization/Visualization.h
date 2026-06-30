@@ -14,6 +14,14 @@ namespace cuda {
 				cuda::KernelContext& ctx,
 				image::vec2ui blockDim = { 8, 8 }
 			);
+
+			void MagnitudeMap(
+				const GpuImageView<BlockMatchStats>& stats,
+				GpuImageView<uchar4>& output,
+				cuda::KernelContext& ctx,
+				image::vec2i search_halfsize,
+				image::vec2ui blockDim = { 8, 8 }
+			);
 		}
 	}
 }
