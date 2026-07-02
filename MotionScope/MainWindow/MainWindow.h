@@ -48,7 +48,5 @@ private:
     QPushButton* m_prevFrameBtn = nullptr;
     QCheckBox* m_loopCheckBox = nullptr;
 
-    QStringList m_frameFiles;
     QTimer* m_playTimer = nullptr;
 };
-
