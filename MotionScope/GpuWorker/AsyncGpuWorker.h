@@ -13,14 +13,14 @@ namespace gpu {
 		using cuda::motion::render::ViewType;
 
 		struct Job {
-			size_t frameIndex;
+			int frameIndex;
 			size_t generation;
 			QImage prev;
 			QImage curr;
 		};
 
 		struct Result {
-			size_t frameIndex;
+			int frameIndex;
 			size_t generation;
 			QImage prev;
 			QImage curr;

@@ -6,6 +6,7 @@ class QLabel;
 class QSlider;
 class QPushButton;
 class QTimer;
+class QCheckBox;
 
 namespace GpuApp {
     class Controller;
@@ -21,6 +22,7 @@ public:
 
 private:
     QLabel* CreateImagePlaceholder(const QString& text);
+    void SyncSliderState();
 
     // Handlers
     void OpenFolder();
@@ -42,9 +44,11 @@ private:
 
     QPushButton* m_playBtn = nullptr;
     QPushButton* m_openFolderBtn = nullptr;
+    QPushButton* m_nextFrameBtn = nullptr;
+    QPushButton* m_prevFrameBtn = nullptr;
+    QCheckBox* m_loopCheckBox = nullptr;
 
     QStringList m_frameFiles;
-    int m_currentFrame = 0;
     QTimer* m_playTimer = nullptr;
 };
 

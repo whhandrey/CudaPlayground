@@ -84,6 +84,20 @@ namespace loader {
 	};
 }
 
+namespace {
+	template <class T>
+	T wrap(T val, T minVal, T maxVal) {
+		if (val > maxVal) {
+			return minVal;
+		}
+		else if (val < minVal) {
+			return maxVal;
+		}
+
+		return val;
+	}
+}
+
 namespace GpuApp {
 	Controller::Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker)
 		: m_pool{ std::make_unique<loader::ThreadPool>() }
@@ -119,6 +133,47 @@ namespace GpuApp {
 		RequestFrame(1);
 	}
 
+	void Controller::SetPlayMode(PlayMode mode)
+	{
+		m_playMode = mode;
+	}
+
+	bool Controller::TryStepForward()
+	{
+		const auto range = GetFramesRange();
+
+		// if we are already at the max frame (normal mode) and trying to do step forward -> no move
+		if (m_playMode == PlayMode::Normal && m_currentIndex == range.second) {
+			return false;
+		}
+
+		int nextIndex = m_currentIndex + 1;
+		if (m_playMode == PlayMode::Loop) {
+			nextIndex = wrap(nextIndex, range.first, range.second);
+		}
+		
+		SetFrame(nextIndex);
+		return true;
+	}
+
+	bool Controller::TryStepBackward()
+	{
+		const auto range = GetFramesRange();
+
+		// if we are already at the min frame (normal mode) and trying to do step back -> no move
+		if (m_playMode == PlayMode::Normal && m_currentIndex == range.first) {
+			return false;
+		}
+
+		int nextIndex = m_currentIndex - 1;
+		if (m_playMode == PlayMode::Loop) {
+			nextIndex = wrap(nextIndex, range.first, range.second);
+		}
+
+		SetFrame(nextIndex);
+		return true;
+	}
+
 	void Controller::RequestFrame(int index)
 	{
 		const size_t generation = m_generation;
@@ -134,6 +189,25 @@ namespace GpuApp {
 			},
 			Qt::QueuedConnection);
 		});
+	}
+
+	void Controller::SetFrame(int index)
+	{
+		const auto range = GetFramesRange();
+		m_currentIndex = std::clamp(index, range.first, range.second);
+
+		RequestFrame(m_currentIndex);
+		RequestFrame(m_currentIndex + 1);
+	}
+
+	std::pair<int, int> Controller::GetFramesRange() const
+	{
+		return std::make_pair(0, int(m_loader->NumImages()) - 2);
+	}
+
+	int Controller::GetCurrentIndex() const
+	{
+		return m_currentIndex;
 	}
 
 	void Controller::OnFrameReady(int index, size_t generation, QImage&& image)

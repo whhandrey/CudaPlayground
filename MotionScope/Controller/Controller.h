@@ -18,6 +18,11 @@ namespace gpu {
 }
 
 namespace GpuApp {
+	enum class PlayMode {
+		Normal,
+		Loop
+	};
+
 	class Controller : public QObject {
 		Q_OBJECT
 
@@ -26,9 +31,18 @@ namespace GpuApp {
 		~Controller();
 
 		void SetFolder(const std::string& folderPath);
-		void RequestFrame(int index);
+		void SetPlayMode(PlayMode mode);
+
+		bool TryStepForward();
+		bool TryStepBackward();
+
+		void SetFrame(int index);
+
+		std::pair<int, int> GetFramesRange() const;
+		int GetCurrentIndex() const;
 
 	private:
+		void RequestFrame(int index);
 		void OnFrameReady(int index, size_t generation, QImage&& image);
 		void TryProcessImagePair();
 		void OnGpuResultReady(gpu::motion::Result result);
@@ -43,7 +57,9 @@ namespace GpuApp {
 		std::unique_ptr<gpu::motion::AsyncGpuWorker> m_gpuWorker;
 
 		size_t m_generation = 0;
-		size_t m_currentIndex = 0;
+		int m_currentIndex = 0;
+
+		PlayMode m_playMode = PlayMode::Normal;
 
 		std::vector<QImage> m_cache;
 	};
