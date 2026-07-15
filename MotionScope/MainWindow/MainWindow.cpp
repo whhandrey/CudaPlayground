@@ -76,9 +76,17 @@ MainWindow::MainWindow(std::unique_ptr<GpuApp::Controller> controller, QWidget* 
 
     m_openFolderBtn = new QPushButton("Open Folder", central);
 
+    auto* algoGroup = new QGroupBox("Algo", central);
+    auto* algoLayout = new QFormLayout(algoGroup);
+
+    m_motionAlgoCombo = new QComboBox(algoGroup);
+
+    algoLayout->addRow("Motion Algo:", m_motionAlgoCombo);
+
     auto* rightPanel = new QVBoxLayout();
     rightPanel->addWidget(m_openFolderBtn);
     rightPanel->addWidget(viewsGroup);
+    rightPanel->addWidget(algoGroup);
     rightPanel->addStretch();
 
     auto* mainRow = new QHBoxLayout();
@@ -220,6 +228,9 @@ void MainWindow::TogglePlay()
         m_playBtn->setText("Play");
     }
     else {
+        m_controller->PreparePlaybackStart();
+        SyncSliderState();
+
         m_playTimer->start();
         m_playBtn->setText("Pause");
     }
@@ -231,8 +242,7 @@ void MainWindow::FillComboView(QComboBox* comboBox)
 
     comboBox->clear();
 
-    const auto viewsOpts = m_controller->AllViewOptions();
-    for (const auto& viewOpt : viewsOpts) {
+    for (const auto& viewOpt : m_controller->AllViewOptions()) {
         comboBox->addItem(QString::fromStdString(viewOpt.label), QString::fromStdString(viewOpt.id));
     }
 }

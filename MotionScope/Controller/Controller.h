@@ -54,6 +54,8 @@ namespace GpuApp {
 		bool TryStepForward();
 		bool TryStepBackward();
 
+		void PreparePlaybackStart();
+
 		void SetFrame(int index);
 		void SetView(ViewSlot slot, const std::string& id);
 
@@ -64,7 +66,7 @@ namespace GpuApp {
 
 	private:
 		void RequestFrame(int index);
-		void OnFrameReady(int index, size_t generation, QImage&& image);
+		void OnFrameReady(int index, size_t generation);
 		void TryProcessImagePair();
 		void OnGpuResultReady(gpu::motion::Result result);
 

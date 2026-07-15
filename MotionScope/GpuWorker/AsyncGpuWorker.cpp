@@ -107,7 +107,7 @@ namespace gpu {
 				}
 
 				try {
-					auto views = m_processor->RenderViews(
+					auto views = m_processor->AnalyzeAndRenderViews(
 						MakeView(job.prev, job.frameIndex, job.generation),
 						MakeView(job.curr, job.frameIndex + 1, job.generation),
 						job.requestedViews

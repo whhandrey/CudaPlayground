@@ -27,10 +27,12 @@ namespace gpu::motion {
 	public:
 		MotionViewProcessor(std::unique_ptr<cuda::motion::IMotionViewProcessor>&& proc);
 
-		std::map<ViewType, Image<image::vec4uc>> RenderViews(
+		std::map<ViewType, Image<image::vec4uc>> AnalyzeAndRenderViews(
 			const VersionedFrame& prev,
 			const VersionedFrame& curr,
 			const std::vector<ViewType>& types);
+
+		std::map<ViewType, Image<image::vec4uc>> RenderViews(const std::vector<ViewType>& types);
 
 	private:
 		FrameVersion m_prev;

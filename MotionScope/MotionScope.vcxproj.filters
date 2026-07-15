@@ -34,6 +34,9 @@
     <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp">
       <Filter>GpuProcessor</Filter>
     </ClCompile>
+    <ClCompile Include="GpuWorker\GpuCommand.cpp">
+      <Filter>GpuWorker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="MainWindow\MainWindow.h">
@@ -52,6 +55,9 @@
     </ClInclude>
     <ClInclude Include="GpuProcessor\MotionViewProcessor.h">
       <Filter>GpuProcessor</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuWorker\GpuCommand.h">
+      <Filter>GpuWorker</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

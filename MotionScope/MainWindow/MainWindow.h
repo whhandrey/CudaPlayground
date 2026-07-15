@@ -54,5 +54,7 @@ private:
     QComboBox* m_view1Combo = nullptr;
     QComboBox* m_view2Combo = nullptr;
 
+    QComboBox* m_motionAlgoCombo = nullptr;
+
     QTimer* m_playTimer = nullptr;
 };

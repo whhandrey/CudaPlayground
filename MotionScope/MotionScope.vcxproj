@@ -14,6 +14,7 @@
     <ClCompile Include="Controller\Controller.cpp" />
     <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp" />
     <ClCompile Include="GpuWorker\AsyncGpuWorker.cpp" />
+    <ClCompile Include="GpuWorker\GpuCommand.cpp" />
     <ClCompile Include="ImageLoader\ImageLoader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow\MainWindow.cpp" />
@@ -25,6 +26,7 @@
     <QtMoc Include="Controller\Controller.h" />
     <ClInclude Include="GpuProcessor\MotionViewProcessor.h" />
     <ClInclude Include="GpuWorker\AsyncGpuWorker.h" />
+    <ClInclude Include="GpuWorker\GpuCommand.h" />
     <ClInclude Include="ImageLoader\ImageLoader.h" />
   </ItemGroup>
   <ItemGroup>

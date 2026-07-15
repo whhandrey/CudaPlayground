@@ -208,18 +208,30 @@ namespace GpuApp {
 		return true;
 	}
 
+	void Controller::PreparePlaybackStart()
+	{
+		const auto range = GetFramesRange();
+
+		if (m_playMode == PlayMode::Normal && m_currentIndex == range.second) {
+			SetFrame(range.first);
+		}
+	}
+
 	void Controller::RequestFrame(int index)
 	{
 		const size_t generation = m_generation;
 
 		m_pool->AddTask([this, index, generation]() {
-			auto img = m_loader->Load(index);
+			if (m_cache[index].isNull()) {
+				auto img = m_loader->Load(index);
+				m_cache[index] = std::move(img);
+			}
 
-			QMetaObject::invokeMethod(this, [this, index, generation, frame = std::move(img)]() mutable {
+			QMetaObject::invokeMethod(this, [this, index, generation]() mutable {
 				if (generation != m_generation)
 					return;
 
-				OnFrameReady(index, generation, std::move(frame));
+				OnFrameReady(index, generation);
 			},
 			Qt::QueuedConnection);
 		});
@@ -271,12 +283,11 @@ namespace GpuApp {
 		return output;
 	}
 
-	void Controller::OnFrameReady(int index, size_t generation, QImage&& image)
+	void Controller::OnFrameReady(int index, size_t generation)
 	{
 		if (generation != m_generation)
 			return;
 
-		m_cache[index] = std::move(image);
 		TryProcessImagePair();
 	}
 

@@ -12,7 +12,7 @@ namespace gpu::motion {
 	{
 	}
 
-	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::RenderViews(
+	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::AnalyzeAndRenderViews(
 		const VersionedFrame& prev,
 		const VersionedFrame& curr,
 		const std::vector<ViewType>& types)
@@ -23,6 +23,15 @@ namespace gpu::motion {
 
 			m_prev = { prev.index, prev.generation };
 			m_curr = { curr.index, curr.generation };
+		}
+
+		return RenderViews(types);
+	}
+
+	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::RenderViews(const std::vector<ViewType>& types)
+	{
+		if (m_prev.index == m_curr.index) {
+			throw std::logic_error("MotionViewProcessor::RenderViews: analysis has not been run");
 		}
 
 		return m_processor->RenderViews(types);
