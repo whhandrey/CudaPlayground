@@ -110,6 +110,45 @@ __global__  void MotionMapKernel(
     rowOut[x] = out_color;
 }
 
+__global__  void MagMapKernel(
+    const BlockMatchStats* __restrict__ allStats,
+    size_t statsPitch,
+    uchar4* __restrict__ output,
+    size_t outPitch,
+    int width,
+    int height,
+    float maxMag)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= width || y >= height)
+        return;
+
+    const BlockMatchStats* rowStats = (BlockMatchStats*)((char*)allStats + y * statsPitch);
+    const BlockMatchStats* stats = rowStats + x;
+
+    const bool moved = (abs(stats->bestDxDy.x) + abs(stats->bestDxDy.y)) > 0;
+
+    float conf = 0.0f;
+    if (stats->zeroSad > 0) {
+        float zeroScore = float(stats->zeroSad - stats->bestSad) / stats->zeroSad;
+        conf = saturate(zeroScore);
+    }
+
+    float out = 0.0f;
+    if (moved) {
+        float mag = sqrtf(stats->bestDxDy.x * stats->bestDxDy.x + stats->bestDxDy.y * stats->bestDxDy.y);
+        out = saturate(conf * mag / maxMag);
+    }
+
+    unsigned char green_part = static_cast<unsigned char>(out * 255.0f + 0.5f);
+    uchar4 out_color = make_uchar4(0, green_part, 0, 255);
+
+    uchar4* rowOut = (uchar4*)((char*)output + y * outPitch);
+    rowOut[x] = out_color;
+}
+
 namespace cuda {
     namespace motion {
         namespace visualization {
@@ -148,6 +187,31 @@ namespace cuda {
 
                 cuda::TimedCall("MotionMapKernel: " + cuda::util::BlockDimToString(blockDim), ctx, [&]() {
                     MotionMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
+                        stats.m_ptr,
+                        stats.m_pitch,
+                        output.m_ptr,
+                        output.m_pitch,
+                        stats.m_dim.x,
+                        stats.m_dim.y,
+                        maxMag
+                    );
+                });
+            }
+
+            void MagMap(
+                const GpuImageView<BlockMatchStats>& stats,
+                GpuImageView<uchar4>& output,
+                cuda::KernelContext& ctx,
+                image::vec2i search_halfsize,
+                image::vec2ui blockDim)
+            {
+                dim3 gridSize = cuda::math::Div(stats.m_dim, blockDim);
+
+                float maxMag = sqrtf(float(search_halfsize.x * search_halfsize.x + search_halfsize.y * search_halfsize.y));
+                maxMag = maxMag < 1e-5f ? 1.0f : maxMag;
+
+                cuda::TimedCall("MagMapKernel: " + cuda::util::BlockDimToString(blockDim), ctx, [&]() {
+                    MagMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
                         stats.m_ptr,
                         stats.m_pitch,
                         output.m_ptr,

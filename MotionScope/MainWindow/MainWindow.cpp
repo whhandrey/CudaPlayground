@@ -12,6 +12,10 @@
 #include <QMessageBox>
 #include <QSignalBlocker>
 #include <QCheckBox>
+#include <QGridLayout>
+#include <QComboBox>
+#include <QGroupBox>
+#include <QFormLayout>
 
 using GpuApp::PlayMode;
 
@@ -22,6 +26,10 @@ namespace {
             Qt::KeepAspectRatio,
             Qt::SmoothTransformation
         );
+    }
+
+    std::string GetSelectedViewId(QComboBox* comboBox) {
+        return comboBox->currentData().toString().toStdString();
     }
 }
 
@@ -35,52 +43,69 @@ MainWindow::MainWindow(std::unique_ptr<GpuApp::Controller> controller, QWidget* 
     setCentralWidget(central);
 
     // this registers mainLayout in the central one.
-    auto* mainLayout = new QVBoxLayout(central);
+    auto* root = new QVBoxLayout(central);
 
     m_prevImgLabel = CreateImagePlaceholder("PrevFrame");
     m_currImgLabel = CreateImagePlaceholder("CurrFrame");
-    m_confImgLabel = CreateImagePlaceholder("ConfImage");
-    m_visImgLabel = CreateImagePlaceholder("VisualizationImage");
+    m_view1ImgLabel = CreateImagePlaceholder("View1Image");
+    m_view2ImgLabel = CreateImagePlaceholder("View2Image");
 
-    QVBoxLayout* leftLayout = new QVBoxLayout();
-    leftLayout->addWidget(m_prevImgLabel);
-    leftLayout->addWidget(m_currImgLabel);
+    auto* imageGrid = new QGridLayout();
 
-    QVBoxLayout* rightLayout = new QVBoxLayout();
-    rightLayout->addWidget(m_confImgLabel);
-    rightLayout->addWidget(m_visImgLabel);
+    imageGrid->addWidget(m_prevImgLabel, 0, 0);
+    imageGrid->addWidget(m_currImgLabel, 1, 0);
+    imageGrid->addWidget(m_view1ImgLabel, 0, 1);
+    imageGrid->addWidget(m_view2ImgLabel, 1, 1);
 
-    QHBoxLayout* fullImageLayout = new QHBoxLayout();
-    fullImageLayout->addLayout(leftLayout);
-    fullImageLayout->addLayout(rightLayout);
+    imageGrid->setColumnStretch(0, 1);
+    imageGrid->setColumnStretch(1, 1);
+    imageGrid->setRowStretch(0, 1);
+    imageGrid->setRowStretch(1, 1);
 
-    m_frameSlider = new QSlider(Qt::Horizontal, central);
-    m_frameSlider->setRange(0, 0);
+    auto* viewsGroup = new QGroupBox("Views", central);
+    auto* viewsLayout = new QFormLayout(viewsGroup);
+
+    m_view1Combo = new QComboBox(viewsGroup);
+    m_view2Combo = new QComboBox(viewsGroup);
+
+    FillComboView(m_view1Combo);
+    FillComboView(m_view2Combo);
+
+    viewsLayout->addRow("View 1:", m_view1Combo);
+    viewsLayout->addRow("View 2:", m_view2Combo);
 
     m_openFolderBtn = new QPushButton("Open Folder", central);
+
+    auto* rightPanel = new QVBoxLayout();
+    rightPanel->addWidget(m_openFolderBtn);
+    rightPanel->addWidget(viewsGroup);
+    rightPanel->addStretch();
+
+    auto* mainRow = new QHBoxLayout();
+    mainRow->addLayout(imageGrid, 1);
+    mainRow->addLayout(rightPanel);
 
     m_playBtn = new QPushButton("Play", central);
     m_prevFrameBtn = new QPushButton("Prev", central);
     m_nextFrameBtn = new QPushButton("Next", central);
-
     m_loopCheckBox = new QCheckBox("Loop", central);
 
-    auto* controlsLayout = new QHBoxLayout();
+    auto* playbackRow = new QHBoxLayout();
 
-    controlsLayout->addWidget(m_openFolderBtn);
+    playbackRow->addWidget(m_playBtn);
+    playbackRow->addWidget(m_prevFrameBtn);
+    playbackRow->addWidget(m_nextFrameBtn);
+    playbackRow->addWidget(m_loopCheckBox);
 
-    controlsLayout->addSpacing(16);
+    playbackRow->addSpacing(16);
+    playbackRow->addStretch();
 
-    controlsLayout->addWidget(m_playBtn);
-    controlsLayout->addWidget(m_prevFrameBtn);
-    controlsLayout->addWidget(m_nextFrameBtn);
-    controlsLayout->addWidget(m_loopCheckBox);
-
-    controlsLayout->addStretch();
-
-    mainLayout->addLayout(fullImageLayout);
-    mainLayout->addWidget(m_frameSlider);
-    mainLayout->addLayout(controlsLayout);
+    m_frameSlider = new QSlider(Qt::Horizontal, central);
+    m_frameSlider->setRange(0, 0);
+    
+    root->addLayout(mainRow, 1);
+    root->addWidget(m_frameSlider);
+    root->addLayout(playbackRow);
 
     {
         m_playTimer = new QTimer(this);
@@ -113,11 +138,22 @@ MainWindow::MainWindow(std::unique_ptr<GpuApp::Controller> controller, QWidget* 
                 TogglePlay();
             }
         });
+
+        connect(m_view1Combo, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
+            m_controller->SetView(GpuApp::ViewSlot::View1, GetSelectedViewId(m_view1Combo));
+        });
+
+        connect(m_view2Combo, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
+            m_controller->SetView(GpuApp::ViewSlot::View2, GetSelectedViewId(m_view2Combo));
+        });
     }
 
     {
         connect(m_controller.get(), &GpuApp::Controller::ImagesReady, this, &MainWindow::ShowImages);
     }
+
+    m_controller->SetView(GpuApp::ViewSlot::View1, GetSelectedViewId(m_view1Combo));
+    m_controller->SetView(GpuApp::ViewSlot::View2, GetSelectedViewId(m_view2Combo));
 
     resize(1300, 650);
 }
@@ -189,10 +225,22 @@ void MainWindow::TogglePlay()
     }
 }
 
-void MainWindow::ShowImages(QImage prev, QImage curr, QImage conf, QImage vis)
+void MainWindow::FillComboView(QComboBox* comboBox)
+{
+    QSignalBlocker blocker(comboBox);
+
+    comboBox->clear();
+
+    const auto viewsOpts = m_controller->AllViewOptions();
+    for (const auto& viewOpt : viewsOpts) {
+        comboBox->addItem(QString::fromStdString(viewOpt.label), QString::fromStdString(viewOpt.id));
+    }
+}
+
+void MainWindow::ShowImages(QImage prev, QImage curr, QImage view1, QImage view2)
 {
     m_prevImgLabel->setPixmap(FitToLabel(prev, m_prevImgLabel->size()));
     m_currImgLabel->setPixmap(FitToLabel(curr, m_currImgLabel->size()));
-    m_confImgLabel->setPixmap(FitToLabel(conf, m_confImgLabel->size()));
-    m_visImgLabel->setPixmap(FitToLabel(vis, m_visImgLabel->size()));
+    m_view1ImgLabel->setPixmap(FitToLabel(view1, m_view1ImgLabel->size()));
+    m_view2ImgLabel->setPixmap(FitToLabel(view2, m_view2ImgLabel->size()));
 }

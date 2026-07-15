@@ -98,6 +98,40 @@ namespace {
 	}
 }
 
+namespace {
+	using cuda::motion::render::ViewType;
+
+	GpuApp::ViewOption ViewTypeToViewOption(cuda::motion::render::ViewType type) {
+		switch (type)
+		{
+		case cuda::motion::render::ViewType::ConfMap:
+			return { "conf", "Confidence View" };
+		case cuda::motion::render::ViewType::MotionMap:
+			return { "motion_map", "Motion Map" };
+		case cuda::motion::render::ViewType::MagnitudeMap:
+			return { "magnitude_map", "Magnitude Map" };
+		}
+
+		throw std::logic_error("Controller: Invalid ViewType passed as parameter");
+	}
+
+	ViewType ViewTypeFromId(const std::string& id) {
+		if (id == "conf") {
+			return ViewType::ConfMap;
+		}
+
+		else if (id == "motion_map") {
+			return ViewType::MotionMap;
+		}
+
+		else if (id == "magnitude_map") {
+			return ViewType::MagnitudeMap;
+		}
+
+		throw std::logic_error("Controller: Invalid id passed as parameter");
+	}
+}
+
 namespace GpuApp {
 	Controller::Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker)
 		: m_pool{ std::make_unique<loader::ThreadPool>() }
@@ -200,6 +234,21 @@ namespace GpuApp {
 		RequestFrame(m_currentIndex + 1);
 	}
 
+	void Controller::SetView(ViewSlot slot, const std::string& id)
+	{
+		switch (slot)
+		{
+		case GpuApp::ViewSlot::View1:
+			m_views.view1 = ViewTypeFromId(id);
+			return;
+		case GpuApp::ViewSlot::View2:
+			m_views.view2 = ViewTypeFromId(id);
+			return;
+		}
+
+		throw std::logic_error("Controller::SetView: invalid view slot");
+	}
+
 	std::pair<int, int> Controller::GetFramesRange() const
 	{
 		return std::make_pair(0, int(m_loader->NumImages()) - 2);
@@ -208,6 +257,18 @@ namespace GpuApp {
 	int Controller::GetCurrentIndex() const
 	{
 		return m_currentIndex;
+	}
+
+	std::vector<ViewOption> Controller::AllViewOptions() const
+	{
+		const auto allViews = cuda::motion::render::AllViews();
+
+		std::vector<ViewOption> output;
+		std::transform(allViews.begin(), allViews.end(), std::back_inserter(output), [](ViewType type) {
+			return ViewTypeToViewOption(type);
+		});
+
+		return output;
 	}
 
 	void Controller::OnFrameReady(int index, size_t generation, QImage&& image)
@@ -231,7 +292,8 @@ namespace GpuApp {
 			m_currentIndex,
 			m_generation,
 			m_cache[m_currentIndex],
-			m_cache[m_currentIndex + 1]
+			m_cache[m_currentIndex + 1],
+			{ m_views.view1, m_views.view2 }
 		};
 
 		m_gpuWorker->AddJob(job);
@@ -250,8 +312,8 @@ namespace GpuApp {
 		emit ImagesReady(
 			result.prev,
 			result.curr,
-			result.views[ViewType::ConfMap],
-			result.views[ViewType::MotionMap]
+			result.views[m_views.view1],
+			result.views[m_views.view2]
 		);
 	}
 }

@@ -5,6 +5,14 @@
 #include <stdexcept>
 
 namespace cuda::motion::render {
+	using StatsRenderFunc = void (*) (
+		const GpuImageView<BlockMatchStats>&,
+		GpuImageView<uchar4>&,
+		cuda::KernelContext&,
+		image::vec2i,
+		image::vec2ui
+	);
+
 	class ConfidenceViewRenderer : public IMotionViewRenderer {
 	public:
 		ConfidenceViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state);
@@ -16,9 +24,15 @@ namespace cuda::motion::render {
 		state::IMotionGpuPipelineState& m_state;
 	};
 
-	class MotionMapViewRenderer : public IMotionViewRenderer {
+	class StatsViewRenderer : public IMotionViewRenderer {
 	public:
-		MotionMapViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, image::vec2i search_halfsize);
+		StatsViewRenderer(
+			cuda::KernelContext& ctx,
+			state::IMotionGpuPipelineState& state,
+			image::vec2i search_halfsize,
+			ViewType viewType,
+			StatsRenderFunc renderFunc
+		);
 
 		void Render() override;
 
@@ -26,20 +40,25 @@ namespace cuda::motion::render {
 		cuda::KernelContext& m_ctx;
 		state::IMotionGpuPipelineState& m_state;
 		const image::vec2i m_search_halfsize;
+
+		ViewType m_viewType;
+		StatsRenderFunc m_renderFunc;
 	};
 }
 
 namespace cuda::motion::render {
-	MotionMapViewRenderer::MotionMapViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, image::vec2i search_halfsize)
+	StatsViewRenderer::StatsViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, image::vec2i search_halfsize, ViewType viewType, StatsRenderFunc renderFunc)
 		: m_state{ state }
 		, m_ctx{ ctx }
 		, m_search_halfsize{ search_halfsize }
+		, m_viewType{ viewType }
+		, m_renderFunc{ renderFunc }
 	{
 	}
 
-	void MotionMapViewRenderer::Render() {
-		auto output_view = m_state.View(ViewType::MotionMap);
-		cuda::motion::visualization::MotionMap(m_state.Stats(), output_view, m_ctx, m_search_halfsize);
+	void StatsViewRenderer::Render() {
+		auto output_view = m_state.View(m_viewType);
+		m_renderFunc(m_state.Stats(), output_view, m_ctx, m_search_halfsize, { 8, 8 });
 	}
 
 	ConfidenceViewRenderer::ConfidenceViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state)
@@ -60,7 +79,9 @@ namespace cuda::motion::render {
 		case cuda::motion::render::ViewType::ConfMap:
 			return std::make_unique<ConfidenceViewRenderer>(params.ctx, params.state);
 		case cuda::motion::render::ViewType::MotionMap:
-			return std::make_unique<MotionMapViewRenderer>(params.ctx, params.state, params.search_halfsize);
+			return std::make_unique<StatsViewRenderer>(params.ctx, params.state, params.search_halfsize, ViewType::MotionMap, cuda::motion::visualization::MotionMap);
+		case cuda::motion::render::ViewType::MagnitudeMap:
+			return std::make_unique<StatsViewRenderer>(params.ctx, params.state, params.search_halfsize, ViewType::MagnitudeMap, cuda::motion::visualization::MagMap);
 		}
 
 		throw std::logic_error("IMotionViewRenderer::Create: invalid renderer type");

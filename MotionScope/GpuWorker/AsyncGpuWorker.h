@@ -17,6 +17,7 @@ namespace gpu {
 			size_t generation;
 			QImage prev;
 			QImage curr;
+			std::vector<ViewType> requestedViews;
 		};
 
 		struct Result {

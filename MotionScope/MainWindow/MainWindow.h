@@ -7,6 +7,7 @@ class QSlider;
 class QPushButton;
 class QTimer;
 class QCheckBox;
+class QComboBox;
 
 namespace GpuApp {
     class Controller;
@@ -29,16 +30,18 @@ private:
     void ShowFrame(int idx);
     void TogglePlay();
 
+    void FillComboView(QComboBox* comboBox);
+
 private slots:
-    void ShowImages(QImage prev, QImage curr, QImage conf, QImage vis);
+    void ShowImages(QImage prev, QImage curr, QImage view1, QImage view2);
 
 private:
     std::unique_ptr<GpuApp::Controller> m_controller;
 
     QLabel* m_prevImgLabel = nullptr;
     QLabel* m_currImgLabel = nullptr;
-    QLabel* m_confImgLabel = nullptr;
-    QLabel* m_visImgLabel = nullptr;
+    QLabel* m_view1ImgLabel = nullptr;
+    QLabel* m_view2ImgLabel = nullptr;
 
     QSlider* m_frameSlider = nullptr;
 
@@ -47,6 +50,9 @@ private:
     QPushButton* m_nextFrameBtn = nullptr;
     QPushButton* m_prevFrameBtn = nullptr;
     QCheckBox* m_loopCheckBox = nullptr;
+
+    QComboBox* m_view1Combo = nullptr;
+    QComboBox* m_view2Combo = nullptr;
 
     QTimer* m_playTimer = nullptr;
 };

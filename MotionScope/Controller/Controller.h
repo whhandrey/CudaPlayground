@@ -1,6 +1,7 @@
 #pragma once
 #include <QImage>
 #include <QObject>
+#include <GpuProcessor/ViewRenderer/ViewType.h>
 
 namespace loader {
 	class ThreadPool;
@@ -18,9 +19,26 @@ namespace gpu {
 }
 
 namespace GpuApp {
+	using cuda::motion::render::ViewType;
+
 	enum class PlayMode {
 		Normal,
 		Loop
+	};
+
+	struct ViewOption {
+		std::string id;
+		std::string label;
+	};
+
+	enum class ViewSlot {
+		View1,
+		View2
+	};
+
+	struct DisplayViews {
+		ViewType view1;
+		ViewType view2;
 	};
 
 	class Controller : public QObject {
@@ -37,9 +55,12 @@ namespace GpuApp {
 		bool TryStepBackward();
 
 		void SetFrame(int index);
+		void SetView(ViewSlot slot, const std::string& id);
 
 		std::pair<int, int> GetFramesRange() const;
 		int GetCurrentIndex() const;
+
+		std::vector<ViewOption> AllViewOptions() const;
 
 	private:
 		void RequestFrame(int index);
@@ -60,6 +81,7 @@ namespace GpuApp {
 		int m_currentIndex = 0;
 
 		PlayMode m_playMode = PlayMode::Normal;
+		DisplayViews m_views;
 
 		std::vector<QImage> m_cache;
 	};

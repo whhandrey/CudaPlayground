@@ -110,7 +110,7 @@ namespace gpu {
 					auto views = m_processor->RenderViews(
 						MakeView(job.prev, job.frameIndex, job.generation),
 						MakeView(job.curr, job.frameIndex + 1, job.generation),
-						{ ViewType::ConfMap, ViewType::MotionMap }
+						job.requestedViews
 					);
 
 					auto result = Result {
