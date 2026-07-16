@@ -166,6 +166,11 @@ namespace app {
 		m_playMode = mode;
 	}
 
+	void Controller::SetPlayState(PlayState state)
+	{
+		m_playState = state;
+	}
+
 	bool Controller::TryStepForward()
 	{
 		const auto range = GetFramesRange();
@@ -254,7 +259,9 @@ namespace app {
 			break;
 		}
 
-		RequestView(slot, view);
+		if (m_playState == PlayState::Pause && !m_cache.empty()) {
+			RequestView(slot, view);
+		}
 	}
 
 	std::pair<int, int> Controller::GetFramesRange() const

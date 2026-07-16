@@ -31,7 +31,9 @@ namespace app {
 		~Controller();
 
 		void SetFolder(const std::string& folderPath);
+
 		void SetPlayMode(PlayMode mode);
+		void SetPlayState(PlayState state);
 
 		bool TryStepForward();
 		bool TryStepBackward();
@@ -75,6 +77,8 @@ namespace app {
 		int m_currentIndex = 0;
 
 		PlayMode m_playMode = PlayMode::Normal;
+		PlayState m_playState = PlayState::Pause;
+
 		DisplayViews m_views = {};
 
 		std::vector<QImage> m_cache;

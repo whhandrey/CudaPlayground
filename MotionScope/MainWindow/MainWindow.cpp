@@ -126,17 +126,17 @@ namespace app {
             connect(m_loopCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
                 const auto mode = checked ? PlayMode::Loop : PlayMode::Normal;
                 m_controller->SetPlayMode(mode);
-                });
+            });
 
             connect(m_prevFrameBtn, &QPushButton::clicked, this, [this]() {
                 m_controller->TryStepBackward();
                 SyncSliderState();
-                });
+            });
 
             connect(m_nextFrameBtn, &QPushButton::clicked, this, [this]() {
                 m_controller->TryStepForward();
                 SyncSliderState();
-                });
+            });
 
             connect(m_playTimer, &QTimer::timeout, this, [this]() {
                 const bool moved = m_controller->TryStepForward();
@@ -145,15 +145,15 @@ namespace app {
                 if (!moved) {
                     TogglePlay();
                 }
-                });
+            });
 
             connect(m_view1Combo, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
                 m_controller->SetView(app::ViewSlot::View1, GetSelectedViewId(m_view1Combo));
-                });
+            });
 
             connect(m_view2Combo, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
                 m_controller->SetView(app::ViewSlot::View2, GetSelectedViewId(m_view2Combo));
-                });
+            });
         }
 
         {
@@ -227,6 +227,7 @@ namespace app {
         if (m_playTimer->isActive()) {
             m_playTimer->stop();
             m_playBtn->setText("Play");
+            m_controller->SetPlayState(PlayState::Pause);
         }
         else {
             m_controller->PreparePlaybackStart();
@@ -234,6 +235,7 @@ namespace app {
 
             m_playTimer->start();
             m_playBtn->setText("Pause");
+            m_controller->SetPlayState(PlayState::Play);
         }
     }
 
