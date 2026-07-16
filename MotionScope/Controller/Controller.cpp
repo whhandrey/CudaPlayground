@@ -1,6 +1,7 @@
 #include "Controller.h"
 #include "../ImageLoader/ImageLoader.h"
 #include "../GpuWorker/AsyncGpuWorker.h"
+#include "../GpuWorker/Job/GpuJob.h"
 #include <queue>
 #include <thread>
 #include <condition_variable>
@@ -101,7 +102,7 @@ namespace {
 namespace {
 	using cuda::motion::render::ViewType;
 
-	GpuApp::ViewOption ViewTypeToViewOption(cuda::motion::render::ViewType type) {
+	app::ViewOption ViewTypeToViewOption(cuda::motion::render::ViewType type) {
 		switch (type)
 		{
 		case cuda::motion::render::ViewType::ConfMap:
@@ -132,23 +133,16 @@ namespace {
 	}
 }
 
-namespace GpuApp {
+namespace app {
 	Controller::Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker)
 		: m_pool{ std::make_unique<loader::ThreadPool>() }
 		, m_gpuWorker{ std::move(gpuWorker) }
 	{
-		m_gpuWorker->SetCallback([this](gpu::motion::Result&& result) mutable {
-			QMetaObject::invokeMethod(
-				this, [this, res = std::move(result)]() mutable {
-					OnGpuResultReady(std::move(res));
-				},
-				Qt::QueuedConnection
-			);
-		});
 	}
 
 	Controller::~Controller()
 	{
+		m_gpuWorker->Stop();
 	}
 
 	void Controller::SetFolder(const std::string& folderPath)
@@ -231,7 +225,7 @@ namespace GpuApp {
 				if (generation != m_generation)
 					return;
 
-				OnFrameReady(index, generation);
+				OnFrameReady(generation);
 			},
 			Qt::QueuedConnection);
 		});
@@ -246,19 +240,21 @@ namespace GpuApp {
 		RequestFrame(m_currentIndex + 1);
 	}
 
-	void Controller::SetView(ViewSlot slot, const std::string& id)
+	void Controller::SetView(app::ViewSlot slot, const std::string& id)
 	{
+		const auto view = ViewTypeFromId(id);
+
 		switch (slot)
 		{
-		case GpuApp::ViewSlot::View1:
-			m_views.view1 = ViewTypeFromId(id);
-			return;
-		case GpuApp::ViewSlot::View2:
-			m_views.view2 = ViewTypeFromId(id);
-			return;
+		case app::ViewSlot::View1:
+			m_views.view1 = view;
+			break;
+		case app::ViewSlot::View2:
+			m_views.view2 = view;
+			break;
 		}
 
-		throw std::logic_error("Controller::SetView: invalid view slot");
+		RequestView(slot, view);
 	}
 
 	std::pair<int, int> Controller::GetFramesRange() const
@@ -271,11 +267,11 @@ namespace GpuApp {
 		return m_currentIndex;
 	}
 
-	std::vector<ViewOption> Controller::AllViewOptions() const
+	std::vector<app::ViewOption> Controller::AllViewOptions() const
 	{
 		const auto allViews = cuda::motion::render::AllViews();
 
-		std::vector<ViewOption> output;
+		std::vector<app::ViewOption> output;
 		std::transform(allViews.begin(), allViews.end(), std::back_inserter(output), [](ViewType type) {
 			return ViewTypeToViewOption(type);
 		});
@@ -283,15 +279,15 @@ namespace GpuApp {
 		return output;
 	}
 
-	void Controller::OnFrameReady(int index, size_t generation)
+	void Controller::OnFrameReady(size_t generation)
 	{
 		if (generation != m_generation)
 			return;
 
-		TryProcessImagePair();
+		TryAnalyseImagePair();
 	}
 
-	void Controller::TryProcessImagePair()
+	void Controller::TryAnalyseImagePair()
 	{
 		if (m_currentIndex + 1 >= m_loader->NumImages())
 			return;
@@ -299,7 +295,7 @@ namespace GpuApp {
 		if (m_cache[m_currentIndex].isNull() || m_cache[m_currentIndex + 1].isNull())
 			return;
 
-		auto job = gpu::motion::Job {
+		auto jobInput = gpu::motion::AnalyseInput {
 			m_currentIndex,
 			m_generation,
 			m_cache[m_currentIndex],
@@ -307,13 +303,52 @@ namespace GpuApp {
 			{ m_views.view1, m_views.view2 }
 		};
 
-		m_gpuWorker->AddJob(job);
+		auto job = gpu::motion::CreateAnalyzeAndRenderJob(jobInput, [this](gpu::motion::AnalyseResult&& result) mutable {
+			QMetaObject::invokeMethod(
+				this, [this, res = std::move(result)]() mutable {
+					OnGpuAnalysisResultReady(std::move(res));
+				},
+				Qt::QueuedConnection
+			);
+		});
+
+		m_gpuWorker->AddJob(std::move(job));
 	}
 
-	void Controller::OnGpuResultReady(gpu::motion::Result result)
+	void Controller::RequestView(app::ViewSlot slot, ViewType view)
 	{
-		using cuda::motion::render::ViewType;
+		const auto requestedView = gpu::motion::RequestedView{ slot, view };
+		auto jobInput = gpu::motion::RenderViewsInput {
+			m_currentIndex,
+			m_generation,
+			{ requestedView }
+		};
 
+		auto job = gpu::motion::CreateRenderViewsJob(jobInput, [this](gpu::motion::RenderViewsResult&& result) mutable {
+			QMetaObject::invokeMethod(
+				this, [this, res = std::move(result)]() mutable {
+					OnGpuRenderedViewReady(std::move(res));
+				},
+				Qt::QueuedConnection
+			);
+		});
+
+		m_gpuWorker->AddJob(std::move(job));
+	}
+
+	void Controller::OnGpuRenderedViewReady(gpu::motion::RenderViewsResult&& result)
+	{
+		if (result.generation != m_generation)
+			return;
+
+		if (result.frameIndex != m_currentIndex)
+			return;
+
+		emit RenderedViewReady(std::move(result.views));
+	}
+
+	void Controller::OnGpuAnalysisResultReady(gpu::motion::AnalyseResult&& result)
+	{
 		if (result.generation != m_generation)
 			return;
 

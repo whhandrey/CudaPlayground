@@ -9,52 +9,55 @@ class QTimer;
 class QCheckBox;
 class QComboBox;
 
-namespace GpuApp {
+namespace app {
     class Controller;
+
+    enum class ViewSlot;
+
+    class MainWindow : public QMainWindow
+    {
+        Q_OBJECT
+
+    public:
+        MainWindow(std::unique_ptr<app::Controller> controller, QWidget* parent = nullptr);
+        ~MainWindow();
+
+    private:
+        QLabel* CreateImagePlaceholder(const QString& text);
+        void SyncSliderState();
+
+        // Handlers
+        void OpenFolder();
+        void ShowFrame(int idx);
+        void TogglePlay();
+
+        void FillComboView(QComboBox* comboBox);
+
+    private slots:
+        void ShowImages(QImage prev, QImage curr, QImage view1, QImage view2);
+        void ShowViews(std::map<app::ViewSlot, QImage> views);
+
+    private:
+        std::unique_ptr<app::Controller> m_controller;
+
+        QLabel* m_prevImgLabel = nullptr;
+        QLabel* m_currImgLabel = nullptr;
+        QLabel* m_view1ImgLabel = nullptr;
+        QLabel* m_view2ImgLabel = nullptr;
+
+        QSlider* m_frameSlider = nullptr;
+
+        QPushButton* m_playBtn = nullptr;
+        QPushButton* m_openFolderBtn = nullptr;
+        QPushButton* m_nextFrameBtn = nullptr;
+        QPushButton* m_prevFrameBtn = nullptr;
+        QCheckBox* m_loopCheckBox = nullptr;
+
+        QComboBox* m_view1Combo = nullptr;
+        QComboBox* m_view2Combo = nullptr;
+
+        QComboBox* m_motionAlgoCombo = nullptr;
+
+        QTimer* m_playTimer = nullptr;
+    };
 }
-
-class MainWindow : public QMainWindow
-{
-    Q_OBJECT
-
-public:
-    MainWindow(std::unique_ptr<GpuApp::Controller> controller, QWidget *parent = nullptr);
-    ~MainWindow();
-
-private:
-    QLabel* CreateImagePlaceholder(const QString& text);
-    void SyncSliderState();
-
-    // Handlers
-    void OpenFolder();
-    void ShowFrame(int idx);
-    void TogglePlay();
-
-    void FillComboView(QComboBox* comboBox);
-
-private slots:
-    void ShowImages(QImage prev, QImage curr, QImage view1, QImage view2);
-
-private:
-    std::unique_ptr<GpuApp::Controller> m_controller;
-
-    QLabel* m_prevImgLabel = nullptr;
-    QLabel* m_currImgLabel = nullptr;
-    QLabel* m_view1ImgLabel = nullptr;
-    QLabel* m_view2ImgLabel = nullptr;
-
-    QSlider* m_frameSlider = nullptr;
-
-    QPushButton* m_playBtn = nullptr;
-    QPushButton* m_openFolderBtn = nullptr;
-    QPushButton* m_nextFrameBtn = nullptr;
-    QPushButton* m_prevFrameBtn = nullptr;
-    QCheckBox* m_loopCheckBox = nullptr;
-
-    QComboBox* m_view1Combo = nullptr;
-    QComboBox* m_view2Combo = nullptr;
-
-    QComboBox* m_motionAlgoCombo = nullptr;
-
-    QTimer* m_playTimer = nullptr;
-};

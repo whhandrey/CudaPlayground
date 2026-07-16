@@ -2,6 +2,7 @@
 #include <QImage>
 #include <QObject>
 #include <GpuProcessor/ViewRenderer/ViewType.h>
+#include "../DisplayTypes/DisplayTypes.h"
 
 namespace loader {
 	class ThreadPool;
@@ -13,33 +14,14 @@ namespace image {
 
 namespace gpu {
 	namespace motion {
-		struct Result;
 		class AsyncGpuWorker;
+		struct AnalyseResult;
+		struct RenderViewsResult;
 	}
 }
 
-namespace GpuApp {
+namespace app {
 	using cuda::motion::render::ViewType;
-
-	enum class PlayMode {
-		Normal,
-		Loop
-	};
-
-	struct ViewOption {
-		std::string id;
-		std::string label;
-	};
-
-	enum class ViewSlot {
-		View1,
-		View2
-	};
-
-	struct DisplayViews {
-		ViewType view1;
-		ViewType view2;
-	};
 
 	class Controller : public QObject {
 		Q_OBJECT
@@ -66,12 +48,22 @@ namespace GpuApp {
 
 	private:
 		void RequestFrame(int index);
-		void OnFrameReady(int index, size_t generation);
-		void TryProcessImagePair();
-		void OnGpuResultReady(gpu::motion::Result result);
+		void OnFrameReady(size_t generation);
+		void TryAnalyseImagePair();
+		void OnGpuAnalysisResultReady(gpu::motion::AnalyseResult&& result);
+
+		void RequestView(ViewSlot slot, ViewType view);
+		void OnGpuRenderedViewReady(gpu::motion::RenderViewsResult&& result);
 
 	signals:
 		void ImagesReady(QImage prev, QImage curr, QImage conf, QImage vis);
+		void RenderedViewReady(std::map<ViewSlot, QImage> views);
+
+	private:
+		struct DisplayViews {
+			ViewType view1;
+			ViewType view2;
+		};
 
 	private:
 		std::unique_ptr<image::Loader> m_loader;
@@ -83,7 +75,7 @@ namespace GpuApp {
 		int m_currentIndex = 0;
 
 		PlayMode m_playMode = PlayMode::Normal;
-		DisplayViews m_views;
+		DisplayViews m_views = {};
 
 		std::vector<QImage> m_cache;
 	};

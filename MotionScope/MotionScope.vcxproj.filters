@@ -16,6 +16,12 @@
     <Filter Include="GpuProcessor">
       <UniqueIdentifier>{051dc9f8-441e-4c69-bff0-32df61d6ece4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GpuWorker\Job">
+      <UniqueIdentifier>{be91ab82-4977-4ab2-85e0-50e9a0f690dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DisplayTypes">
+      <UniqueIdentifier>{38849443-6900-4619-a5bb-383f5ad52217}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MainWindow\MainWindow.cpp">
@@ -34,16 +40,16 @@
     <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp">
       <Filter>GpuProcessor</Filter>
     </ClCompile>
-    <ClCompile Include="GpuWorker\GpuCommand.cpp">
-      <Filter>GpuWorker</Filter>
+    <ClCompile Include="GpuWorker\Job\GpuJob.cpp">
+      <Filter>GpuWorker\Job</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <QtMoc Include="MainWindow\MainWindow.h">
-      <Filter>MainWindow</Filter>
-    </QtMoc>
     <QtMoc Include="Controller\Controller.h">
       <Filter>Controller</Filter>
+    </QtMoc>
+    <QtMoc Include="MainWindow\MainWindow.h">
+      <Filter>MainWindow</Filter>
     </QtMoc>
   </ItemGroup>
   <ItemGroup>
@@ -56,8 +62,11 @@
     <ClInclude Include="GpuProcessor\MotionViewProcessor.h">
       <Filter>GpuProcessor</Filter>
     </ClInclude>
-    <ClInclude Include="GpuWorker\GpuCommand.h">
-      <Filter>GpuWorker</Filter>
+    <ClInclude Include="GpuWorker\Job\GpuJob.h">
+      <Filter>GpuWorker\Job</Filter>
+    </ClInclude>
+    <ClInclude Include="DisplayTypes\DisplayTypes.h">
+      <Filter>DisplayTypes</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
