@@ -4,7 +4,7 @@
 #include <GpuProcessor/ViewRenderer/ViewType.h>
 #include "../DisplayTypes/DisplayTypes.h"
 
-namespace pool {
+namespace loader {
 	class ThreadPool;
 }
 
@@ -49,9 +49,8 @@ namespace app {
 		std::vector<ViewOption> AllViewOptions() const;
 
 	private:
-		void RequestAnalysisPair(std::pair<int, int> reqPair);
 		void RequestFrame(int index);
-		void OnFrameReady(int index, size_t generation, QImage&& image);
+		void OnFrameReady(size_t generation);
 		void TryAnalyseImagePair();
 		void OnGpuAnalysisResultReady(gpu::motion::AnalyseResult&& result);
 
@@ -70,14 +69,12 @@ namespace app {
 
 	private:
 		std::unique_ptr<image::Loader> m_loader;
-		std::unique_ptr<pool::ThreadPool> m_pool;
+		std::unique_ptr<loader::ThreadPool> m_pool;
 
 		std::unique_ptr<gpu::motion::AsyncGpuWorker> m_gpuWorker;
 
 		size_t m_generation = 0;
-
-		std::pair<int, int> m_displayedPair = {};
-		std::pair<int, int> m_requestedPair = {};
+		int m_currentIndex = 0;
 
 		PlayMode m_playMode = PlayMode::Normal;
 		PlayState m_playState = PlayState::Pause;
