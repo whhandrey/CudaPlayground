@@ -6,7 +6,7 @@
 #include <thread>
 #include <condition_variable>
 
-namespace loader {
+namespace pool {
 	using Task = std::function<void()>;
 
 	const int defThreadsNum = 2;
@@ -97,6 +97,10 @@ namespace {
 
 		return val;
 	}
+
+	bool ValidPair(std::pair<int, int> pair, std::pair<int, int> validRange) {
+		return pair;
+	}
 }
 
 namespace {
@@ -135,7 +139,7 @@ namespace {
 
 namespace app {
 	Controller::Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker)
-		: m_pool{ std::make_unique<loader::ThreadPool>() }
+		: m_pool{ std::make_unique<pool::ThreadPool>() }
 		, m_gpuWorker{ std::move(gpuWorker) }
 	{
 	}
@@ -152,10 +156,11 @@ namespace app {
 		m_pool->Stop();
 
 		m_loader = std::make_unique<image::Loader>(folderPath);
-		m_pool = std::make_unique<loader::ThreadPool>();
+		m_pool = std::make_unique<pool::ThreadPool>();
 
 		m_cache = std::vector<QImage>(m_loader->NumImages());
-		m_currentIndex = 0;
+
+		m_requestedPair = { 0, 1 };
 
 		RequestFrame(0);
 		RequestFrame(1);
@@ -216,21 +221,30 @@ namespace app {
 		}
 	}
 
+	void Controller::RequestAnalysisPair(std::pair<int, int> reqPair)
+	{
+		RequestFrame(reqPair.first);
+		RequestFrame(reqPair.second);
+
+		TryAnalyseImagePair();
+	}
+
 	void Controller::RequestFrame(int index)
 	{
+		if (!m_cache[index].isNull()) {
+			return;
+		}
+
 		const size_t generation = m_generation;
 
 		m_pool->AddTask([this, index, generation]() {
-			if (m_cache[index].isNull()) {
-				auto img = m_loader->Load(index);
-				m_cache[index] = std::move(img);
-			}
+			auto img = m_loader->Load(index);
 
-			QMetaObject::invokeMethod(this, [this, index, generation]() mutable {
+			QMetaObject::invokeMethod(this, [this, index, generation, img = std::move(img)]() mutable {
 				if (generation != m_generation)
 					return;
 
-				OnFrameReady(generation);
+				OnFrameReady(index, generation, std::move(img));
 			},
 			Qt::QueuedConnection);
 		});
@@ -239,10 +253,11 @@ namespace app {
 	void Controller::SetFrame(int index)
 	{
 		const auto range = GetFramesRange();
-		m_currentIndex = std::clamp(index, range.first, range.second);
 
-		RequestFrame(m_currentIndex);
-		RequestFrame(m_currentIndex + 1);
+		int prevIndex = std::clamp(index, range.first, range.second);
+		int currIndex = prevIndex + 1;
+
+		RequestAnalysisPair({ prevIndex, currIndex });
 	}
 
 	void Controller::SetView(app::ViewSlot slot, const std::string& id)
@@ -271,7 +286,7 @@ namespace app {
 
 	int Controller::GetCurrentIndex() const
 	{
-		return m_currentIndex;
+		return m_displayedPair.first;
 	}
 
 	std::vector<app::ViewOption> Controller::AllViewOptions() const
@@ -286,11 +301,12 @@ namespace app {
 		return output;
 	}
 
-	void Controller::OnFrameReady(size_t generation)
+	void Controller::OnFrameReady(int index, size_t generation, QImage&& image)
 	{
 		if (generation != m_generation)
 			return;
 
+		m_cache[index] = std::move(image);
 		TryAnalyseImagePair();
 	}
 
