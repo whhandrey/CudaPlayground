@@ -11,7 +11,7 @@ namespace gpu::motion {
 	class MotionViewProcessor;
 
 	struct AnalyseInput {
-		int frameIndex;
+		app::FramePair framePair;
 		size_t generation;
 		QImage prev;
 		QImage curr;
@@ -19,7 +19,7 @@ namespace gpu::motion {
 	};
 
 	struct AnalyseResult {
-		int frameIndex;
+		app::FramePair framePair;
 		size_t generation;
 		QImage prev;
 		QImage curr;
@@ -34,13 +34,13 @@ namespace gpu::motion {
 	};
 
 	struct RenderViewsInput {
-		int frameIndex;
+		app::FramePair framePair;
 		size_t generation;
 		std::vector<RequestedView> requestedViews;
 	};
 
 	struct RenderViewsResult {
-		int frameIndex;
+		app::FramePair framePair;
 		size_t generation;
 		std::map<app::ViewSlot, QImage> views;
 	};

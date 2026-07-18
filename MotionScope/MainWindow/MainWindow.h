@@ -8,6 +8,7 @@ class QPushButton;
 class QTimer;
 class QCheckBox;
 class QComboBox;
+class QSpinBox;
 
 namespace app {
     class Controller;
@@ -24,7 +25,11 @@ namespace app {
 
     private:
         QLabel* CreateImagePlaceholder(const QString& text);
+
         void SyncSliderState();
+        void SyncFrameOffset();
+
+        void SyncUiControls();
 
         // Handlers
         void OpenFolder();
@@ -57,6 +62,7 @@ namespace app {
         QComboBox* m_view2Combo = nullptr;
 
         QComboBox* m_motionAlgoCombo = nullptr;
+        QSpinBox* m_offsetSelector = nullptr;
 
         QTimer* m_playTimer = nullptr;
     };

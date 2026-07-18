@@ -21,4 +21,6 @@ namespace app {
 		std::string id;
 		std::string label;
 	};
+
+	using FramePair = std::pair<int, int>;
 }

@@ -97,13 +97,13 @@ namespace gpu::motion {
 	void AnalyseRenderJobAsync::Execute(MotionViewProcessor& proc)
 	{
 		auto views = proc.AnalyzeAndRenderViews(
-			MakeView(m_input.prev, m_input.frameIndex, m_input.generation),
-			MakeView(m_input.curr, m_input.frameIndex + 1, m_input.generation),
+			MakeView(m_input.prev, m_input.framePair.first, m_input.generation),
+			MakeView(m_input.curr, m_input.framePair.second, m_input.generation),
 			m_input.requestedViews
 		);
 
 		auto result = AnalyseResult {
-			m_input.frameIndex,
+			m_input.framePair,
 			m_input.generation,
 			m_input.prev,
 			m_input.curr,
@@ -140,7 +140,7 @@ namespace gpu::motion {
 		}
 
 		auto result = RenderViewsResult {
-			m_input.frameIndex,
+			m_input.framePair,
 			m_input.generation,
 			output
 		};

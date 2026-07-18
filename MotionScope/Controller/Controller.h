@@ -4,7 +4,7 @@
 #include <GpuProcessor/ViewRenderer/ViewType.h>
 #include "../DisplayTypes/DisplayTypes.h"
 
-namespace loader {
+namespace pool {
 	class ThreadPool;
 }
 
@@ -42,15 +42,20 @@ namespace app {
 
 		void SetFrame(int index);
 		void SetView(ViewSlot slot, const std::string& id);
+		void SetPairOffset(int pairOffset);
 
 		std::pair<int, int> GetFramesRange() const;
+		std::pair<int, int> GetOffsetRange() const;
+
 		int GetCurrentIndex() const;
+		int GetPairOffset() const;
 
 		std::vector<ViewOption> AllViewOptions() const;
 
 	private:
+		void RequestPair(app::FramePair reqPair);
 		void RequestFrame(int index);
-		void OnFrameReady(size_t generation);
+		void OnFrameReady(int index, size_t generation, QImage&& img);
 		void TryAnalyseImagePair();
 		void OnGpuAnalysisResultReady(gpu::motion::AnalyseResult&& result);
 
@@ -69,12 +74,19 @@ namespace app {
 
 	private:
 		std::unique_ptr<image::Loader> m_loader;
-		std::unique_ptr<loader::ThreadPool> m_pool;
+		std::unique_ptr<pool::ThreadPool> m_pool;
 
 		std::unique_ptr<gpu::motion::AsyncGpuWorker> m_gpuWorker;
 
 		size_t m_generation = 0;
+
 		int m_currentIndex = 0;
+		int m_pairOffset = 1;
+
+		app::FramePair m_requestedPair = {};
+		app::FramePair m_displayedPair = { -1, -1 };
+
+		bool m_requestPairSubmitted = false;
 
 		PlayMode m_playMode = PlayMode::Normal;
 		PlayState m_playState = PlayState::Pause;

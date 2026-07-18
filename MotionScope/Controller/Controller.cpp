@@ -6,7 +6,7 @@
 #include <thread>
 #include <condition_variable>
 
-namespace loader {
+namespace pool {
 	using Task = std::function<void()>;
 
 	const int defThreadsNum = 2;
@@ -133,9 +133,13 @@ namespace {
 	}
 }
 
+namespace detail {
+	constexpr int minOffset = 1;
+}
+
 namespace app {
 	Controller::Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker)
-		: m_pool{ std::make_unique<loader::ThreadPool>() }
+		: m_pool{ std::make_unique<pool::ThreadPool>() }
 		, m_gpuWorker{ std::move(gpuWorker) }
 	{
 	}
@@ -152,13 +156,14 @@ namespace app {
 		m_pool->Stop();
 
 		m_loader = std::make_unique<image::Loader>(folderPath);
-		m_pool = std::make_unique<loader::ThreadPool>();
+		m_pool = std::make_unique<pool::ThreadPool>();
 
 		m_cache = std::vector<QImage>(m_loader->NumImages());
-		m_currentIndex = 0;
 
-		RequestFrame(0);
-		RequestFrame(1);
+		m_currentIndex = 0;
+		m_pairOffset = detail::minOffset;
+
+		RequestPair({ m_currentIndex, m_currentIndex + m_pairOffset });
 	}
 
 	void Controller::SetPlayMode(PlayMode mode)
@@ -216,21 +221,30 @@ namespace app {
 		}
 	}
 
+	void Controller::RequestPair(app::FramePair reqPair)
+	{
+		m_requestedPair = reqPair;
+		m_requestPairSubmitted = false;
+
+		RequestFrame(reqPair.first);
+		RequestFrame(reqPair.second);
+
+		TryAnalyseImagePair();
+	}
+
 	void Controller::RequestFrame(int index)
 	{
+		if (!m_cache[index].isNull()) {
+			return;
+		}
+
 		const size_t generation = m_generation;
 
 		m_pool->AddTask([this, index, generation]() {
-			if (m_cache[index].isNull()) {
-				auto img = m_loader->Load(index);
-				m_cache[index] = std::move(img);
-			}
+			auto img = m_loader->Load(index);
 
-			QMetaObject::invokeMethod(this, [this, index, generation]() mutable {
-				if (generation != m_generation)
-					return;
-
-				OnFrameReady(generation);
+			QMetaObject::invokeMethod(this, [this, index, generation, img = std::move(img)]() mutable {
+				OnFrameReady(index, generation, std::move(img));
 			},
 			Qt::QueuedConnection);
 		});
@@ -241,8 +255,10 @@ namespace app {
 		const auto range = GetFramesRange();
 		m_currentIndex = std::clamp(index, range.first, range.second);
 
-		RequestFrame(m_currentIndex);
-		RequestFrame(m_currentIndex + 1);
+		const auto offsetRange = GetOffsetRange();
+		m_pairOffset = std::clamp(m_pairOffset, offsetRange.first, offsetRange.second);
+
+		RequestPair({ m_currentIndex, m_currentIndex + m_pairOffset });
 	}
 
 	void Controller::SetView(app::ViewSlot slot, const std::string& id)
@@ -264,14 +280,41 @@ namespace app {
 		}
 	}
 
+	void Controller::SetPairOffset(int pairOffset)
+	{
+		if (m_cache.empty())
+			return;
+
+		auto range = GetOffsetRange();
+		m_pairOffset = std::clamp(pairOffset, range.first, range.second);
+
+		RequestPair({ m_currentIndex, m_currentIndex + m_pairOffset });
+	}
+
 	std::pair<int, int> Controller::GetFramesRange() const
 	{
 		return std::make_pair(0, int(m_loader->NumImages()) - 2);
 	}
 
+	std::pair<int, int> Controller::GetOffsetRange() const
+	{
+		if (m_cache.empty())
+			return {};
+
+		int lastFrame = int(m_loader->NumImages()) - 1;
+		int maxOffset = lastFrame - m_currentIndex;
+
+		return { detail::minOffset, maxOffset };
+	}
+
 	int Controller::GetCurrentIndex() const
 	{
 		return m_currentIndex;
+	}
+
+	int Controller::GetPairOffset() const
+	{
+		return m_pairOffset;
 	}
 
 	std::vector<app::ViewOption> Controller::AllViewOptions() const
@@ -286,27 +329,28 @@ namespace app {
 		return output;
 	}
 
-	void Controller::OnFrameReady(size_t generation)
+	void Controller::OnFrameReady(int index, size_t generation, QImage&& img)
 	{
 		if (generation != m_generation)
 			return;
 
+		m_cache[index] = std::move(img);
 		TryAnalyseImagePair();
 	}
 
 	void Controller::TryAnalyseImagePair()
 	{
-		if (m_currentIndex + 1 >= m_loader->NumImages())
+		if (m_cache[m_requestedPair.first].isNull() || m_cache[m_requestedPair.second].isNull())
 			return;
 
-		if (m_cache[m_currentIndex].isNull() || m_cache[m_currentIndex + 1].isNull())
+		if (m_requestPairSubmitted)
 			return;
 
 		auto jobInput = gpu::motion::AnalyseInput {
-			m_currentIndex,
+			m_requestedPair,
 			m_generation,
-			m_cache[m_currentIndex],
-			m_cache[m_currentIndex + 1],
+			m_cache[m_requestedPair.first],
+			m_cache[m_requestedPair.second],
 			{ m_views.view1, m_views.view2 }
 		};
 
@@ -319,14 +363,18 @@ namespace app {
 			);
 		});
 
+		m_requestPairSubmitted = true;
 		m_gpuWorker->AddJob(std::move(job));
 	}
 
 	void Controller::RequestView(app::ViewSlot slot, ViewType view)
 	{
+		if (m_displayedPair.first < 0 || m_displayedPair.second < 0)
+			return;
+
 		const auto requestedView = gpu::motion::RequestedView{ slot, view };
 		auto jobInput = gpu::motion::RenderViewsInput {
-			m_currentIndex,
+			m_displayedPair,
 			m_generation,
 			{ requestedView }
 		};
@@ -348,7 +396,7 @@ namespace app {
 		if (result.generation != m_generation)
 			return;
 
-		if (result.frameIndex != m_currentIndex)
+		if (result.framePair != m_displayedPair)
 			return;
 
 		emit RenderedViewReady(std::move(result.views));
@@ -359,8 +407,10 @@ namespace app {
 		if (result.generation != m_generation)
 			return;
 
-		if (result.frameIndex != m_currentIndex)
+		if (result.framePair != m_requestedPair)
 			return;
+
+		m_displayedPair = result.framePair;
 
 		emit ImagesReady(
 			result.prev,

@@ -17,6 +17,7 @@
 #include <QComboBox>
 #include <QGroupBox>
 #include <QFormLayout>
+#include <QSpinBox>
 
 namespace {
     QPixmap FitToLabel(const QImage& image, QSize labelSize) {
@@ -29,6 +30,19 @@ namespace {
 
     std::string GetSelectedViewId(QComboBox* comboBox) {
         return comboBox->currentData().toString().toStdString();
+    }
+
+    void InitOffsetCtrl(QSpinBox* spinBox) {
+        spinBox->setMinimum(1);
+        spinBox->setMaximum(1);
+        spinBox->setValue(1);
+
+        spinBox->setSingleStep(1);
+
+        spinBox->setPrefix("+");
+        spinBox->setSuffix(" frame(s)");
+
+        spinBox->setKeyboardTracking(false);
     }
 }
 
@@ -76,6 +90,7 @@ namespace app {
 
         m_openFolderBtn = new QPushButton("Open Folder", central);
 
+        // Algo group
         auto* algoGroup = new QGroupBox("Algo", central);
         auto* algoLayout = new QFormLayout(algoGroup);
 
@@ -83,9 +98,18 @@ namespace app {
 
         algoLayout->addRow("Motion Algo:", m_motionAlgoCombo);
 
+        // Offset selector
+        auto* offsetGroup = new QGroupBox("Frame Offset", central);
+        auto* offsetLayout = new QFormLayout(offsetGroup);
+
+        m_offsetSelector = new QSpinBox(offsetGroup);
+
+        offsetLayout->addRow("Offset:", m_offsetSelector);
+
         auto* rightPanel = new QVBoxLayout();
         rightPanel->addWidget(m_openFolderBtn);
         rightPanel->addWidget(viewsGroup);
+        rightPanel->addWidget(offsetGroup);
         rightPanel->addWidget(algoGroup);
         rightPanel->addStretch();
 
@@ -130,17 +154,17 @@ namespace app {
 
             connect(m_prevFrameBtn, &QPushButton::clicked, this, [this]() {
                 m_controller->TryStepBackward();
-                SyncSliderState();
+                SyncUiControls();
             });
 
             connect(m_nextFrameBtn, &QPushButton::clicked, this, [this]() {
                 m_controller->TryStepForward();
-                SyncSliderState();
+                SyncUiControls();
             });
 
             connect(m_playTimer, &QTimer::timeout, this, [this]() {
                 const bool moved = m_controller->TryStepForward();
-                SyncSliderState();
+                SyncUiControls();
 
                 if (!moved) {
                     TogglePlay();
@@ -154,6 +178,11 @@ namespace app {
             connect(m_view2Combo, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
                 m_controller->SetView(app::ViewSlot::View2, GetSelectedViewId(m_view2Combo));
             });
+
+            connect(m_offsetSelector, qOverload<int>(&QSpinBox::valueChanged), this, [this](int offset) {
+                m_controller->SetPairOffset(offset);
+                SyncFrameOffset();
+            });
         }
 
         {
@@ -163,6 +192,8 @@ namespace app {
 
         m_controller->SetView(app::ViewSlot::View1, GetSelectedViewId(m_view1Combo));
         m_controller->SetView(app::ViewSlot::View2, GetSelectedViewId(m_view2Combo));
+
+        InitOffsetCtrl(m_offsetSelector);
 
         resize(1300, 650);
     }
@@ -196,6 +227,24 @@ namespace app {
         m_frameSlider->setValue(m_controller->GetCurrentIndex());
     }
 
+    void MainWindow::SyncFrameOffset()
+    {
+        QSignalBlocker blocker(m_offsetSelector);
+
+        auto range = m_controller->GetOffsetRange();
+
+        m_offsetSelector->setMinimum(range.first);
+        m_offsetSelector->setMaximum(range.second);
+
+        m_offsetSelector->setValue(m_controller->GetPairOffset());
+    }
+
+    void MainWindow::SyncUiControls()
+    {
+        SyncSliderState();
+        SyncFrameOffset();
+    }
+
     void MainWindow::OpenFolder()
     {
         const QString folderPath = QFileDialog::getExistingDirectory(this, "Open frames folder");
@@ -210,6 +259,8 @@ namespace app {
 
             m_frameSlider->setRange(framesRange.first, framesRange.second);
             m_frameSlider->setValue(framesRange.first);
+
+            SyncFrameOffset();
         }
         catch (const std::exception& e) {
             QMessageBox::critical(this, "Open folder failed", QString::fromUtf8(e.what()));
@@ -219,7 +270,7 @@ namespace app {
     void MainWindow::ShowFrame(int idx)
     {
         m_controller->SetFrame(idx);
-        SyncSliderState();
+        SyncUiControls();
     }
 
     void MainWindow::TogglePlay()
@@ -231,7 +282,7 @@ namespace app {
         }
         else {
             m_controller->PreparePlaybackStart();
-            SyncSliderState();
+            SyncUiControls();
 
             m_playTimer->start();
             m_playBtn->setText("Pause");
