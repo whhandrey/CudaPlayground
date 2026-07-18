@@ -18,6 +18,9 @@
 #include <QGroupBox>
 #include <QFormLayout>
 #include <QSpinBox>
+#include <QTreeWidget>
+#include <QDockWidget>
+#include <QMenuBar>
 
 namespace {
     QPixmap FitToLabel(const QImage& image, QSize labelSize) {
@@ -66,52 +69,88 @@ namespace app {
 
         auto* imageGrid = new QGridLayout();
 
-        imageGrid->addWidget(m_prevImgLabel, 0, 0);
-        imageGrid->addWidget(m_currImgLabel, 1, 0);
-        imageGrid->addWidget(m_view1ImgLabel, 0, 1);
-        imageGrid->addWidget(m_view2ImgLabel, 1, 1);
+        {
+            imageGrid->addWidget(m_prevImgLabel, 0, 0);
+            imageGrid->addWidget(m_currImgLabel, 1, 0);
+            imageGrid->addWidget(m_view1ImgLabel, 0, 1);
+            imageGrid->addWidget(m_view2ImgLabel, 1, 1);
 
-        imageGrid->setColumnStretch(0, 1);
-        imageGrid->setColumnStretch(1, 1);
-        imageGrid->setRowStretch(0, 1);
-        imageGrid->setRowStretch(1, 1);
+            imageGrid->setColumnStretch(0, 1);
+            imageGrid->setColumnStretch(1, 1);
+            imageGrid->setRowStretch(0, 1);
+            imageGrid->setRowStretch(1, 1);
+        }
 
         auto* viewsGroup = new QGroupBox("Views", central);
-        auto* viewsLayout = new QFormLayout(viewsGroup);
 
-        m_view1Combo = new QComboBox(viewsGroup);
-        m_view2Combo = new QComboBox(viewsGroup);
+        {
+            auto* viewsLayout = new QFormLayout(viewsGroup);
 
-        FillComboView(m_view1Combo);
-        FillComboView(m_view2Combo);
+            m_view1Combo = new QComboBox(viewsGroup);
+            m_view2Combo = new QComboBox(viewsGroup);
 
-        viewsLayout->addRow("View 1:", m_view1Combo);
-        viewsLayout->addRow("View 2:", m_view2Combo);
+            FillComboView(m_view1Combo);
+            FillComboView(m_view2Combo);
+
+            viewsLayout->addRow("View 1:", m_view1Combo);
+            viewsLayout->addRow("View 2:", m_view2Combo);
+        }
 
         m_openFolderBtn = new QPushButton("Open Folder", central);
 
         // Algo group
         auto* algoGroup = new QGroupBox("Algo", central);
-        auto* algoLayout = new QFormLayout(algoGroup);
 
-        m_motionAlgoCombo = new QComboBox(algoGroup);
+        {
+            auto* algoLayout = new QFormLayout(algoGroup);
 
-        algoLayout->addRow("Motion Algo:", m_motionAlgoCombo);
+            m_motionAlgoCombo = new QComboBox(algoGroup);
+
+            algoLayout->addRow("Motion Algo:", m_motionAlgoCombo);
+        }
 
         // Offset selector
         auto* offsetGroup = new QGroupBox("Frame Offset", central);
-        auto* offsetLayout = new QFormLayout(offsetGroup);
 
-        m_offsetSelector = new QSpinBox(offsetGroup);
+        {
+            auto* offsetLayout = new QFormLayout(offsetGroup);
 
-        offsetLayout->addRow("Offset:", m_offsetSelector);
+            m_offsetSelector = new QSpinBox(offsetGroup);
+
+            offsetLayout->addRow("Offset:", m_offsetSelector);
+        }
+
+        InitStatsDock();
+
+        {
+            m_statsBtn = new QPushButton("Run Stats", central);
+            m_statsBtn->setCheckable(true);
+            m_statsBtn->setChecked(false);
+
+            connect(m_statsBtn, &QPushButton::toggled, this, [this](bool checked) {
+                m_statsDock->setVisible(checked);
+                m_statsBtn->setText(checked ? "Hide Stats" : "Show Stats");
+
+                if (checked) {
+                    m_statsDock->raise();
+                }
+            });
+
+            connect(m_statsDock, &QDockWidget::visibilityChanged, this, [this](bool visible) {
+                QSignalBlocker blocker(m_statsBtn);
+
+                m_statsBtn->setChecked(visible);
+                m_statsBtn->setText(visible ? "Hide Stats" : "Show Stats");
+            });
+        }
 
         auto* rightPanel = new QVBoxLayout();
         rightPanel->addWidget(m_openFolderBtn);
+        rightPanel->addWidget(m_statsBtn);
         rightPanel->addWidget(viewsGroup);
         rightPanel->addWidget(offsetGroup);
         rightPanel->addWidget(algoGroup);
-        rightPanel->addStretch();
+        rightPanel->addStretch(1);
 
         auto* mainRow = new QHBoxLayout();
         mainRow->addLayout(imageGrid, 1);
@@ -299,6 +338,34 @@ namespace app {
         for (const auto& viewOpt : m_controller->AllViewOptions()) {
             comboBox->addItem(QString::fromStdString(viewOpt.label), QString::fromStdString(viewOpt.id));
         }
+    }
+
+    void MainWindow::InitStatsDock()
+    {
+        m_statsDock = new QDockWidget("Stats", this);
+        m_statsDock->setAllowedAreas(Qt::RightDockWidgetArea | Qt::BottomDockWidgetArea | Qt::LeftDockWidgetArea);
+
+        m_statsTree = new QTreeWidget(m_statsDock);
+        m_statsTree->setColumnCount(3);
+        m_statsTree->setHeaderLabels({ "Name", "Value", "Unit" });
+        m_statsTree->setRootIsDecorated(true);
+        m_statsTree->setAlternatingRowColors(true);
+        m_statsTree->setUniformRowHeights(true);
+
+        m_statsDock->setWidget(m_statsTree);
+        addDockWidget(Qt::RightDockWidgetArea, m_statsDock);
+
+        // start hidden
+        m_statsDock->hide();
+
+        // TODO: maybe move stuff to menu later?
+        // 
+        //auto* viewMenu = menuBar()->addMenu("View");
+
+        //auto* statsAction = m_statsDock->toggleViewAction();
+        //statsAction->setText("Run Stats");
+
+        //viewMenu->addAction(statsAction);
     }
 
     void MainWindow::ShowImages(QImage prev, QImage curr, QImage view1, QImage view2)

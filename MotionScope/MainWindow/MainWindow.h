@@ -9,6 +9,8 @@ class QTimer;
 class QCheckBox;
 class QComboBox;
 class QSpinBox;
+class QTreeWidget;
+class QDockWidget;
 
 namespace app {
     class Controller;
@@ -38,6 +40,8 @@ namespace app {
 
         void FillComboView(QComboBox* comboBox);
 
+        void InitStatsDock();
+
     private slots:
         void ShowImages(QImage prev, QImage curr, QImage view1, QImage view2);
         void ShowViews(std::map<app::ViewSlot, QImage> views);
@@ -63,6 +67,10 @@ namespace app {
 
         QComboBox* m_motionAlgoCombo = nullptr;
         QSpinBox* m_offsetSelector = nullptr;
+
+        QTreeWidget* m_statsTree = nullptr;
+        QDockWidget* m_statsDock = nullptr;
+        QPushButton* m_statsBtn = nullptr;
 
         QTimer* m_playTimer = nullptr;
     };
