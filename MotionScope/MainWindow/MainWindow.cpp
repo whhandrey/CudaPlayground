@@ -146,10 +146,10 @@ namespace app {
 
         auto* rightPanel = new QVBoxLayout();
         rightPanel->addWidget(m_openFolderBtn);
-        rightPanel->addWidget(m_statsBtn);
         rightPanel->addWidget(viewsGroup);
         rightPanel->addWidget(offsetGroup);
         rightPanel->addWidget(algoGroup);
+        rightPanel->addWidget(m_statsBtn);
         rightPanel->addStretch(1);
 
         auto* mainRow = new QHBoxLayout();
