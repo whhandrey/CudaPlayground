@@ -1,6 +1,7 @@
 #include "../Controller/Controller.h"
-#include "../DisplayTypes/DisplayTypes.h"
 #include "MainWindow.h"
+#include "DebugFormatter.h"
+#include <Debug/StatsProvider.h>
 
 #include <QLabel>
 #include <QPushButton>
@@ -21,6 +22,7 @@
 #include <QTreeWidget>
 #include <QDockWidget>
 #include <QMenuBar>
+#include <QMessageBox>
 
 namespace {
     QPixmap FitToLabel(const QImage& image, QSize labelSize) {
@@ -227,6 +229,7 @@ namespace app {
         {
             connect(m_controller.get(), &Controller::ImagesReady, this, &MainWindow::ShowImages);
             connect(m_controller.get(), &Controller::RenderedViewReady, this, &MainWindow::ShowViews);
+            connect(m_controller.get(), &Controller::DebugStatsReady, this, &MainWindow::ShowDebugStats);
         }
 
         m_controller->SetView(app::ViewSlot::View1, GetSelectedViewId(m_view1Combo));
@@ -353,7 +356,9 @@ namespace app {
         m_statsTree->setUniformRowHeights(true);
 
         m_statsDock->setWidget(m_statsTree);
+
         addDockWidget(Qt::RightDockWidgetArea, m_statsDock);
+        resizeDocks({ m_statsDock }, { 350 }, Qt::Horizontal);
 
         // start hidden
         m_statsDock->hide();
@@ -376,18 +381,62 @@ namespace app {
         m_view2ImgLabel->setPixmap(FitToLabel(view2, m_view2ImgLabel->size()));
     }
 
-    void MainWindow::ShowViews(std::map<app::ViewSlot, QImage> views)
+    void MainWindow::ShowViews(std::vector<SlottedImage> views)
     {
         for (const auto& view : views) {
-            switch (view.first)
+            switch (view.slot)
             {
             case app::ViewSlot::View1:
-                m_view1ImgLabel->setPixmap(FitToLabel(view.second, m_view1ImgLabel->size()));
+                m_view1ImgLabel->setPixmap(FitToLabel(view.image, m_view1ImgLabel->size()));
                 break;
             case app::ViewSlot::View2:
-                m_view2ImgLabel->setPixmap(FitToLabel(view.second, m_view2ImgLabel->size()));
+                m_view2ImgLabel->setPixmap(FitToLabel(view.image, m_view2ImgLabel->size()));
                 break;
             }
         }
+    }
+
+    void MainWindow::ShowDebugStats(const IStatsProvider& statsProvider)
+    {
+        using ::motion::debug::StatsField;
+
+        m_statsTree->clear();
+
+        m_statsTree->setColumnCount(2);
+        m_statsTree->setHeaderLabels({ "Name", "Value" });
+
+        app::DebugFormatter formatter;
+
+        const auto groups = statsProvider.GetFieldNamesByGroups();
+
+        for (const auto& [groupName, fieldNames] : groups) {
+            auto* groupItem = new QTreeWidgetItem(m_statsTree);
+
+            groupItem->setText(0, QString::fromStdString(groupName));
+            groupItem->setText(1, "");
+
+            for (const auto& fieldName : fieldNames) {
+                StatsField field { fieldName, groupName };
+
+                std::string value;
+
+                try {
+                    value = statsProvider.GetField(field, formatter);
+                }
+                catch (const std::exception&) {
+                    // TODO: pass to sort of ExceptionHandler?
+                    QMessageBox::critical(this, "Peppa Pig is unhappy", QString("Peppa Pig is unhappy, bro"));
+                }
+
+                auto* fieldItem = new QTreeWidgetItem(groupItem);
+
+                fieldItem->setText(0, QString::fromStdString(fieldName));
+                fieldItem->setText(1, QString::fromStdString(value));
+            }
+        }
+
+        m_statsTree->expandAll();
+        m_statsTree->resizeColumnToContents(0);
+        m_statsTree->resizeColumnToContents(1);
     }
 }

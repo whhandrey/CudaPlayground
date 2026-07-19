@@ -2,7 +2,9 @@
 #include <QImage>
 #include <QObject>
 #include <GpuProcessor/ViewRenderer/ViewType.h>
+#include <Debug/StatsProvider.h>
 #include "../DisplayTypes/DisplayTypes.h"
+#include "../GpuWorker/GpuWorkerFactory.h"
 
 namespace pool {
 	class ThreadPool;
@@ -12,22 +14,24 @@ namespace image {
 	class Loader;
 }
 
-namespace gpu {
-	namespace motion {
-		class AsyncGpuWorker;
-		struct AnalyseResult;
-		struct RenderViewsResult;
-	}
+namespace app::worker {
+	class AsyncGpuWorker;
+}
+
+namespace app::motion {
+	struct AnalyseResult;
+	struct RenderViewsResult;
 }
 
 namespace app {
 	using cuda::motion::render::ViewType;
+	using ::motion::debug::IStatsProvider;
 
 	class Controller : public QObject {
 		Q_OBJECT
 
 	public:
-		Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker);
+		Controller(app::worker::GpuWorkerFactory& factory);
 		~Controller();
 
 		void SetFolder(const std::string& folderPath);
@@ -57,14 +61,17 @@ namespace app {
 		void RequestFrame(int index);
 		void OnFrameReady(int index, size_t generation, QImage&& img);
 		void TryAnalyseImagePair();
-		void OnGpuAnalysisResultReady(gpu::motion::AnalyseResult&& result);
+		void OnGpuAnalysisResultReady(app::motion::AnalyseResult&& result);
 
 		void RequestView(ViewSlot slot, ViewType view);
-		void OnGpuRenderedViewReady(gpu::motion::RenderViewsResult&& result);
+		void OnGpuRenderedViewReady(app::motion::RenderViewsResult&& result);
+
+		void OnDebugStats(IStatsProvider::Ptr statsProvider);
 
 	signals:
 		void ImagesReady(QImage prev, QImage curr, QImage conf, QImage vis);
-		void RenderedViewReady(std::map<ViewSlot, QImage> views);
+		void RenderedViewReady(std::vector<SlottedImage> views);
+		void DebugStatsReady(const IStatsProvider& statsProvider);
 
 	private:
 		struct DisplayViews {
@@ -76,7 +83,10 @@ namespace app {
 		std::unique_ptr<image::Loader> m_loader;
 		std::unique_ptr<pool::ThreadPool> m_pool;
 
-		std::unique_ptr<gpu::motion::AsyncGpuWorker> m_gpuWorker;
+		std::unique_ptr<app::worker::AsyncGpuWorker> m_gpuWorker;
+
+		// Qt is not happy with transferring unique_ptr via signals
+		IStatsProvider::Ptr m_statsProvider;
 
 		size_t m_generation = 0;
 

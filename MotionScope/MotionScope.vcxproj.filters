@@ -43,6 +43,12 @@
     <ClCompile Include="GpuWorker\Job\GpuJob.cpp">
       <Filter>GpuWorker\Job</Filter>
     </ClCompile>
+    <ClCompile Include="GpuWorker\GpuWorkerFactory.cpp">
+      <Filter>GpuWorker</Filter>
+    </ClCompile>
+    <ClCompile Include="MainWindow\DebugFormatter.cpp">
+      <Filter>MainWindow</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="Controller\Controller.h">
@@ -67,6 +73,12 @@
     </ClInclude>
     <ClInclude Include="DisplayTypes\DisplayTypes.h">
       <Filter>DisplayTypes</Filter>
+    </ClInclude>
+    <ClInclude Include="GpuWorker\GpuWorkerFactory.h">
+      <Filter>GpuWorker</Filter>
+    </ClInclude>
+    <ClInclude Include="MainWindow\DebugFormatter.h">
+      <Filter>MainWindow</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

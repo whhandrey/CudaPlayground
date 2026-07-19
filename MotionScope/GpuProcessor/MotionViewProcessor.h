@@ -8,7 +8,7 @@
 #include <QImage>
 #include <GpuProcessor/IMotionViewProcessor.h>
 
-namespace gpu::motion {
+namespace app::motion {
 	using cuda::motion::render::ViewType;
 	using image::Image;
 

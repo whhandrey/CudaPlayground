@@ -1,12 +1,12 @@
 #include "MotionViewProcessor.h"
 
 namespace {
-	bool EqVersion(const gpu::motion::FrameVersion& v1, const gpu::motion::VersionedFrame& v2) {
+	bool EqVersion(const app::motion::FrameVersion& v1, const app::motion::VersionedFrame& v2) {
 		return v1.index == v2.index && v1.generation == v2.generation;
 	}
 }
 
-namespace gpu::motion {
+namespace app::motion {
 	MotionViewProcessor::MotionViewProcessor(std::unique_ptr<cuda::motion::IMotionViewProcessor>&& proc)
 		: m_processor{ std::move(proc) }
 	{

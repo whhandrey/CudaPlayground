@@ -58,8 +58,14 @@ namespace detail {
 		FieldGroupMap output;
 
 		output.emplace("BlockMatching", blockMatchingParams);
-		output.emplace("CpuStats", FieldNames(m_cpuStats));
-		output.emplace("GpuStats", FieldNames(m_gpuStats));
+
+		if (!m_cpuStats.empty()) {
+			output.emplace("CpuStats", FieldNames(m_cpuStats));
+		}
+
+		if (!m_gpuStats.empty()) {
+			output.emplace("GpuStats", FieldNames(m_gpuStats));
+		}
 
 		return output;
 	}
@@ -69,20 +75,20 @@ namespace detail {
 			return BlockMatchParamToString(field.name, formatter);
 		}
 
-		if (field.group == "CpuStats") {
-			if (m_cpuStats.find(field.name) == m_cpuStats.end()) {
-				throw std::logic_error("StatsProvider::GetField: unknown CPU field");
+		auto getStats = [&field, &formatter](const std::map<std::string, float>& stats, const std::string& logName) {
+			if (stats.find(field.name) == stats.end()) {
+				throw std::logic_error("StatsProvider::GetField: unknown " + logName + " field");
 			}
 
-			return formatter.Format(m_cpuStats.at(field.name));
+			return formatter.Format(stats.at(field.name));
+		};
+
+		if (field.group == "CpuStats") {
+			return getStats(m_cpuStats, "CPU");
 		}
 
 		if (field.group == "GpuStats") {
-			if (m_gpuStats.find(field.name) == m_gpuStats.end()) {
-				throw std::logic_error("StatsProvider::GetField: unknown GPU field");
-			}
-
-			return formatter.Format(m_gpuStats.at(field.name));
+			return getStats(m_gpuStats, "GPU");
 		}
 
 		throw std::logic_error("StatsProvider::GetField: unknown group");
@@ -134,10 +140,10 @@ namespace cuda::motion::debug {
 
 		m_callback(std::make_unique<detail::StatsProvider>(m_params, std::move(m_cpuStats), std::move(m_gpuStats)));
 
-		ClearState();
+		Reset();
 	}
 
-	void Collector::ClearState()
+	void Collector::Reset()
 	{
 		m_params = {};
 		m_cpuStats.clear();

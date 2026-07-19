@@ -48,7 +48,7 @@ namespace {
 		return output;
 	}
 
-	gpu::motion::VersionedFrame MakeView(const QImage& img, size_t index, size_t generation) {
+	app::motion::VersionedFrame MakeView(const QImage& img, size_t index, size_t generation) {
 		if (img.format() != QImage::Format_RGBA8888) {
 			throw std::logic_error("AsyncGpuWorker::MakeImageView: invalid input image, expected RGBA8888 format");
 		}
@@ -65,7 +65,7 @@ namespace {
 	}
 }
 
-namespace gpu::motion {
+namespace app::motion {
 	class AnalyseRenderJobAsync : public IGpuJob {
 	public:
 		AnalyseRenderJobAsync(const AnalyseInput& input, AnalyseResultCb&& callback);
@@ -130,12 +130,12 @@ namespace gpu::motion {
 
 		auto views = ToQImages(proc.RenderViews(request));
 
-		std::map<app::ViewSlot, QImage> output;
+		std::vector<SlottedImage> output;
 		for (const auto& req : m_input.requestedViews) {
 			const auto it = views.find(req.view);
 
 			if (it != views.end()) {
-				output.emplace(req.slot, it->second);
+				output.push_back(app::SlottedImage{ req.slot, it->second });
 			}
 		}
 

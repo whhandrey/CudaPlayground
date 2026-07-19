@@ -138,10 +138,17 @@ namespace detail {
 }
 
 namespace app {
-	Controller::Controller(std::unique_ptr<gpu::motion::AsyncGpuWorker> gpuWorker)
+	Controller::Controller(app::worker::GpuWorkerFactory& factory)
 		: m_pool{ std::make_unique<pool::ThreadPool>() }
-		, m_gpuWorker{ std::move(gpuWorker) }
 	{
+		m_gpuWorker = factory.Create([this](IStatsProvider::Ptr statsProvider) mutable {
+			QMetaObject::invokeMethod(
+				this, [this, provider = std::move(statsProvider)]() mutable {
+					OnDebugStats(std::move(provider));
+				},
+				Qt::QueuedConnection
+			);
+		});
 	}
 
 	Controller::~Controller()
@@ -346,7 +353,7 @@ namespace app {
 		if (m_requestPairSubmitted)
 			return;
 
-		auto jobInput = gpu::motion::AnalyseInput {
+		auto jobInput = motion::AnalyseInput {
 			m_requestedPair,
 			m_generation,
 			m_cache[m_requestedPair.first],
@@ -354,7 +361,7 @@ namespace app {
 			{ m_views.view1, m_views.view2 }
 		};
 
-		auto job = gpu::motion::CreateAnalyzeAndRenderJob(jobInput, [this](gpu::motion::AnalyseResult&& result) mutable {
+		auto job = motion::CreateAnalyzeAndRenderJob(jobInput, [this](motion::AnalyseResult&& result) mutable {
 			QMetaObject::invokeMethod(
 				this, [this, res = std::move(result)]() mutable {
 					OnGpuAnalysisResultReady(std::move(res));
@@ -367,19 +374,19 @@ namespace app {
 		m_gpuWorker->AddJob(std::move(job));
 	}
 
-	void Controller::RequestView(app::ViewSlot slot, ViewType view)
+	void Controller::RequestView(ViewSlot slot, ViewType view)
 	{
 		if (m_displayedPair.first < 0 || m_displayedPair.second < 0)
 			return;
 
-		const auto requestedView = gpu::motion::RequestedView{ slot, view };
-		auto jobInput = gpu::motion::RenderViewsInput {
+		const auto requestedView = motion::RequestedView{ slot, view };
+		auto jobInput = app::motion::RenderViewsInput {
 			m_displayedPair,
 			m_generation,
 			{ requestedView }
 		};
 
-		auto job = gpu::motion::CreateRenderViewsJob(jobInput, [this](gpu::motion::RenderViewsResult&& result) mutable {
+		auto job = motion::CreateRenderViewsJob(jobInput, [this](motion::RenderViewsResult&& result) mutable {
 			QMetaObject::invokeMethod(
 				this, [this, res = std::move(result)]() mutable {
 					OnGpuRenderedViewReady(std::move(res));
@@ -391,7 +398,7 @@ namespace app {
 		m_gpuWorker->AddJob(std::move(job));
 	}
 
-	void Controller::OnGpuRenderedViewReady(gpu::motion::RenderViewsResult&& result)
+	void Controller::OnGpuRenderedViewReady(motion::RenderViewsResult&& result)
 	{
 		if (result.generation != m_generation)
 			return;
@@ -402,7 +409,13 @@ namespace app {
 		emit RenderedViewReady(std::move(result.views));
 	}
 
-	void Controller::OnGpuAnalysisResultReady(gpu::motion::AnalyseResult&& result)
+	void Controller::OnDebugStats(IStatsProvider::Ptr statsProvider)
+	{
+		m_statsProvider = std::move(statsProvider);
+		emit DebugStatsReady(*m_statsProvider);
+	}
+
+	void Controller::OnGpuAnalysisResultReady(motion::AnalyseResult&& result)
 	{
 		if (result.generation != m_generation)
 			return;

@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <Qimage>
 
 namespace app {
 	enum class ViewSlot {
@@ -23,4 +24,9 @@ namespace app {
 	};
 
 	using FramePair = std::pair<int, int>;
+
+	struct SlottedImage {
+		ViewSlot slot;
+		QImage image;
+	};
 }

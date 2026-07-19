@@ -1,4 +1,5 @@
 #pragma once
+#include "../DisplayTypes/DisplayTypes.h"
 #include <QtWidgets/QMainWindow>
 #include <memory>
 
@@ -12,7 +13,13 @@ class QSpinBox;
 class QTreeWidget;
 class QDockWidget;
 
+namespace motion::debug {
+    class IStatsProvider;
+}
+
 namespace app {
+    using ::motion::debug::IStatsProvider;
+
     class Controller;
 
     enum class ViewSlot;
@@ -44,7 +51,8 @@ namespace app {
 
     private slots:
         void ShowImages(QImage prev, QImage curr, QImage view1, QImage view2);
-        void ShowViews(std::map<app::ViewSlot, QImage> views);
+        void ShowViews(std::vector<SlottedImage> views);
+        void ShowDebugStats(const IStatsProvider& statsProvider);
 
     private:
         std::unique_ptr<app::Controller> m_controller;

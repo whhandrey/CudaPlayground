@@ -1,16 +1,13 @@
 #include "MainWindow/MainWindow.h"
 #include "Controller/Controller.h"
-#include "GpuWorker/AsyncGpuWorker.h"
-#include "GpuProcessor/MotionViewProcessor.h"
+#include "GpuWorker/GpuWorkerFactory.h"
 #include <QtWidgets/QApplication>
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
-    auto matcher = std::make_unique<gpu::motion::MotionViewProcessor>(cuda::motion::IMotionViewProcessor::Create());
-
-    auto gpuWorker = std::make_unique<gpu::motion::AsyncGpuWorker>(std::move(matcher));
-    auto controller = std::make_unique<app::Controller>(std::move(gpuWorker));
+    auto gpuWorkerFactory = app::worker::GpuWorkerFactory();
+    auto controller = std::make_unique<app::Controller>(gpuWorkerFactory);
 
     app::MainWindow window(std::move(controller));
     window.show();

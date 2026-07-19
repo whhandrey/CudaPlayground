@@ -5,7 +5,7 @@
 #include <GpuProcessor/ViewRenderer/ViewType.h>
 #include "../../DisplayTypes/DisplayTypes.h"
 
-namespace gpu::motion {
+namespace app::motion {
 	using cuda::motion::render::ViewType;
 
 	class MotionViewProcessor;
@@ -42,7 +42,7 @@ namespace gpu::motion {
 	struct RenderViewsResult {
 		app::FramePair framePair;
 		size_t generation;
-		std::map<app::ViewSlot, QImage> views;
+		std::vector<SlottedImage> views;
 	};
 
 	using RenderViewsResultCb = std::function<void(RenderViewsResult&&)>;

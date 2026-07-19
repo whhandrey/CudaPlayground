@@ -3,8 +3,10 @@
 #include "ViewRenderer/IMotionViewRenderer.h"
 #include "../DeviceImage/GpuImageView.h"
 #include "../DeviceImage/GpuImageTransfer.h"
+#include "../Motion/Debug/Collector.h"
 
 #include <Cuda/MathUtils.h>
+#include <Cuda/TimedCudaCall.h>
 
 namespace {
 	bool EqDim(image::vec2ui dim1, image::vec2ui dim2) {
@@ -16,12 +18,29 @@ namespace {
 		return img.Dim().x != 0 && img.Dim().y != 0;
 	}
 
-	class MockProfiler : public cuda::profiler::IProfiler {
+	class GpuProfiler : public cuda::profiler::IProfiler {
 	public:
-		void Profile(const std::string&, float) override {}
+		void Profile(const std::string& kernelName, float ms) override {
+			m_runs[kernelName].push_back(ms);
+		}
+
+		const std::map<std::string, std::vector<float>>& GetRuns() const {
+			return m_runs;
+		}
+
+		void Remove(const std::string& name) {
+			m_runs.erase(name);
+		}
+
+		void Clear() {
+			m_runs.clear();
+		}
+
+	private:
+		std::map<std::string, std::vector<float>> m_runs;
 	};
 
-	cuda::motion::BlockMatchingParams GetParams() {
+	cuda::motion::BlockMatchingParams GetDefaultParams() {
 		const image::vec2ui blockDim = { 8, 8 };
 		const image::vec2ui macroBlockDim = { 16, 16 };
 		const image::vec2i search_halfsize = { 3, 3 };
@@ -37,7 +56,7 @@ namespace {
 namespace cuda::motion {
 	class MotionGpuPipeline : public IMotionViewProcessor {
 	public:
-		MotionGpuPipeline();
+		MotionGpuPipeline(std::unique_ptr<debug::Collector> collector);
 		~MotionGpuPipeline();
 
 	public:
@@ -50,11 +69,16 @@ namespace cuda::motion {
 
 	private:
 		void AllocMem(image::vec2ui dim);
+		void SubmitStats();
 
 	private:
 		cuda::KernelContext m_ctx;
 		state::MotionGpuPipelineState m_state;
-		const BlockMatchingParams m_params;
+
+		std::shared_ptr<GpuProfiler> m_gpuProfiler;
+		std::unique_ptr<debug::Collector> m_collector;
+		
+		BlockMatchingParams m_params;
 
 		ImageGPU<uchar4> m_prev;
 		ImageGPU<uchar4> m_curr;
@@ -64,13 +88,15 @@ namespace cuda::motion {
 }
 
 namespace cuda::motion {
-	MotionGpuPipeline::MotionGpuPipeline()
-		: m_params{ GetParams() }
+	MotionGpuPipeline::MotionGpuPipeline(std::unique_ptr<debug::Collector> collector)
+		: m_params{ GetDefaultParams() }
+		, m_collector{ std::move(collector) }
+		, m_gpuProfiler{ std::make_shared<GpuProfiler>() }
 	{
 		cudaStream_t stream;
 		cudaCheck(cudaStreamCreate(&stream));
 
-		m_ctx = { stream, std::make_unique<MockProfiler>() };
+		m_ctx = { stream, m_gpuProfiler };
 	}
 
 	MotionGpuPipeline::~MotionGpuPipeline() {
@@ -84,10 +110,16 @@ namespace cuda::motion {
 			throw std::logic_error("MotionGpuPipeline::Analyze: prev.dim != curr.dim");
 		}
 
+		m_gpuProfiler->Clear();
 		AllocMem(prev.m_dim);
 
-		cuda::gpu_image::UploadCompatible(prev, m_prev, m_ctx.m_stream);
-		cuda::gpu_image::UploadCompatible(curr, m_curr, m_ctx.m_stream);
+		cuda::TimedCall("UploadCompatible(prev)", m_ctx, [this, &prev]() {
+			cuda::gpu_image::UploadCompatible(prev, m_prev, m_ctx.m_stream);
+		});
+
+		cuda::TimedCall("UploadCompatible(curr)", m_ctx, [this, &curr]() {
+			cuda::gpu_image::UploadCompatible(curr, m_curr, m_ctx.m_stream);
+		});
 
 		auto outView = cuda::gpu_image::MakeImageView(m_stats);
 		m_state.SetStats(outView);
@@ -99,6 +131,8 @@ namespace cuda::motion {
 			m_params,
 			m_ctx
 		);
+
+		SubmitStats();
 	}
 
 	std::map<render::ViewType, image::Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
@@ -143,8 +177,21 @@ namespace cuda::motion {
 		m_state.Resize(motion_dim);
 	}
 
-	IMotionViewProcessor::Ptr IMotionViewProcessor::Create() {
+	void MotionGpuPipeline::SubmitStats()
+	{
+		m_collector->AddParams(m_params);
+
+		for (const auto& entry : m_gpuProfiler->GetRuns()) {
+			m_collector->AddGpuStat(entry.first, entry.second.front());
+		}
+
+		m_collector->IssueCallback();
+	}
+
+	IMotionViewProcessor::Ptr IMotionViewProcessor::Create(StatsCallback&& callback) {
+		auto collector = std::make_unique<debug::Collector>(std::move(callback));
+
 		// not really pipeline yet but let's see how it goes
-		return std::make_unique<MotionGpuPipeline>();
+		return std::make_unique<MotionGpuPipeline>(std::move(collector));
 	}
 }

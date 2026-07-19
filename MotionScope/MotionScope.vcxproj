@@ -14,19 +14,23 @@
     <ClCompile Include="Controller\Controller.cpp" />
     <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp" />
     <ClCompile Include="GpuWorker\AsyncGpuWorker.cpp" />
+    <ClCompile Include="GpuWorker\GpuWorkerFactory.cpp" />
     <ClCompile Include="GpuWorker\Job\GpuJob.cpp" />
     <ClCompile Include="ImageLoader\ImageLoader.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MainWindow\DebugFormatter.cpp" />
     <ClCompile Include="MainWindow\MainWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="MainWindow\MainWindow.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MainWindow\DebugFormatter.h" />
     <QtMoc Include="Controller\Controller.h" />
     <ClInclude Include="DisplayTypes\DisplayTypes.h" />
     <ClInclude Include="GpuProcessor\MotionViewProcessor.h" />
     <ClInclude Include="GpuWorker\AsyncGpuWorker.h" />
+    <ClInclude Include="GpuWorker\GpuWorkerFactory.h" />
     <ClInclude Include="GpuWorker\Job\GpuJob.h" />
     <ClInclude Include="ImageLoader\ImageLoader.h" />
   </ItemGroup>
@@ -94,13 +98,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(SolutionDir)CudaProcessingCore;$(SolutionDir)ImgProcCommon;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)CudaProcessingCore;$(SolutionDir)ImgProcCommon;$(SolutionDir)MotionProcCommon</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(SolutionDir)CudaProcessingCore;$(SolutionDir)ImgProcCommon;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)CudaProcessingCore;$(SolutionDir)ImgProcCommon;$(SolutionDir)MotionProcCommon</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
