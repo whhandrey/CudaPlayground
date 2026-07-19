@@ -9,10 +9,13 @@
     <ClInclude Include="Debug\Formatter.h">
       <Filter>Debug</Filter>
     </ClInclude>
-    <ClInclude Include="Debug\StateSnapshotProvider.h">
+    <ClInclude Include="Debug\StatsProvider.h">
       <Filter>Debug</Filter>
     </ClInclude>
-    <ClInclude Include="Debug\StateField.h">
+    <ClInclude Include="Debug\StatsField.h">
+      <Filter>Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Debug\Callback.h">
       <Filter>Debug</Filter>
     </ClInclude>
   </ItemGroup>

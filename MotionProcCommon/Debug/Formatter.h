@@ -7,8 +7,8 @@ namespace motion::debug {
 	public:
 		virtual ~IFormatter() = default;
 
-		virtual std::string Format(int value) = 0;
-		virtual std::string Format(float value) = 0;
-		virtual std::string Format(std::pair<int, int> value) = 0;
+		virtual std::string Format(int value) const = 0;
+		virtual std::string Format(float value) const = 0;
+		virtual std::string Format(int first, int second) const = 0;
 	};
 }

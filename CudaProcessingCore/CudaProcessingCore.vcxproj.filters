@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Profiler">
-      <UniqueIdentifier>{20b066b3-989c-406d-a5b2-1f989a914967}</UniqueIdentifier>
-    </Filter>
     <Filter Include="DeviceImage">
       <UniqueIdentifier>{e9364423-5626-4c67-87e3-8bb20b41d594}</UniqueIdentifier>
     </Filter>
@@ -15,6 +12,12 @@
     </Filter>
     <Filter Include="GpuProcessor\ViewRenderer">
       <UniqueIdentifier>{0be6b97f-e5a0-4998-a059-37b9c49b6cee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Motion">
+      <UniqueIdentifier>{496e12c5-56ec-4296-9971-baa9092861b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Motion\Debug">
+      <UniqueIdentifier>{f054bf2c-18d4-4650-8b45-98b869e35b91}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -42,6 +45,9 @@
     <ClInclude Include="DeviceImage\GpuImageView.h">
       <Filter>DeviceImage</Filter>
     </ClInclude>
+    <ClInclude Include="Motion\Debug\Collector.h">
+      <Filter>Motion\Debug</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GpuProcessor\State\MotionGpuPipelineState.cpp">
@@ -52,6 +58,9 @@
     </ClCompile>
     <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp">
       <Filter>GpuProcessor</Filter>
+    </ClCompile>
+    <ClCompile Include="Motion\Debug\Collector.cpp">
+      <Filter>Motion\Debug</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

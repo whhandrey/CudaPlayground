@@ -2,7 +2,7 @@
 #include <string>
 
 namespace motion::debug {
-	struct StateField {
+	struct StatsField {
 		std::string name;
 		std::string group;
 	};

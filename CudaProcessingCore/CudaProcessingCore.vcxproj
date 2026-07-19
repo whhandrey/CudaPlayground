@@ -111,7 +111,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)ImgProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)ImgProcCommon;$(SolutionDir)MotionProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,7 +130,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)ImgProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)ImgProcCommon;$(SolutionDir)MotionProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -149,6 +149,7 @@
     <ClInclude Include="GpuProcessor\State\MotionGpuPipelineState.h" />
     <ClInclude Include="GpuProcessor\ViewRenderer\IMotionViewRenderer.h" />
     <ClInclude Include="GpuProcessor\ViewRenderer\ViewType.h" />
+    <ClInclude Include="Motion\Debug\Collector.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
@@ -159,6 +160,7 @@
     <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp" />
     <ClCompile Include="GpuProcessor\State\MotionGpuPipelineState.cpp" />
     <ClCompile Include="GpuProcessor\ViewRenderer\MotionViewRenderer.cpp" />
+    <ClCompile Include="Motion\Debug\Collector.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
