@@ -28,17 +28,23 @@ namespace app::motion {
 		return RenderViews(types);
 	}
 
-	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::RenderViews(const std::vector<SlottedView>& types)
+	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::RenderViews(const std::vector<SlottedView>& views)
 	{
 		if (m_prev.index == m_curr.index) {
 			throw std::logic_error("MotionViewProcessor::RenderViews: analysis has not been run");
 		}
 
 		std::vector<ViewType> request;
-		std::transform(types.begin(), types.end(), std::back_inserter(request), [](const auto& slottedView) {
+		std::transform(views.begin(), views.end(), std::back_inserter(request), [](const auto& slottedView) {
 			return slottedView.view;
 		});
 
+		m_cachedViews = views;
+
 		return m_processor->RenderViews(request);
+	}
+
+	void MotionViewProcessor::OnDebugStats(StatsPacket&& stats)
+	{
 	}
 }

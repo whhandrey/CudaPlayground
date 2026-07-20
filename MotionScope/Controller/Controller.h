@@ -2,7 +2,7 @@
 #include <QImage>
 #include <QObject>
 #include <GpuProcessor/ViewRenderer/ViewType.h>
-#include <Debug/StatsProvider.h>
+#include <Motion/Debug/Stats.h>
 #include "../DisplayTypes/DisplayTypes.h"
 #include "../GpuWorker/GpuWorkerFactory.h"
 

@@ -7,9 +7,12 @@
 #include <map>
 #include <QImage>
 #include <GpuProcessor/IMotionViewProcessor.h>
+#include <Motion/Debug/Stats.h>
 #include "../DisplayTypes/DisplayTypes.h"
 
 namespace app::motion {
+	using ::motion::debug::StatsPacket;
+
 	using cuda::motion::render::ViewType;
 	using image::Image;
 
@@ -33,7 +36,10 @@ namespace app::motion {
 			const VersionedFrame& curr,
 			const std::vector<SlottedView>& types);
 
-		std::map<ViewType, Image<image::vec4uc>> RenderViews(const std::vector<SlottedView>& types);
+		std::map<ViewType, Image<image::vec4uc>> RenderViews(const std::vector<SlottedView>& views);
+
+	private:
+		void OnDebugStats(StatsPacket&& stats);
 
 	private:
 		FrameVersion m_prev;

@@ -1,10 +1,11 @@
 #pragma once
 #include <Cuda/Motion/BlockMatchingParams.h>
-#include <Debug/StatsProvider.h>
-#include <Debug/Callback.h>
+#include <Motion/Debug/Stats.h>
+#include <Motion/Debug/Callback.h>
+#include <map>
 
 namespace cuda::motion::debug {
-	using ::motion::debug::StatsCallback;
+	using namespace ::motion::debug;
 
 	class Collector {
 	public:
@@ -12,8 +13,8 @@ namespace cuda::motion::debug {
 
 		void AddParams(const BlockMatchingParams& p);
 
-		void AddCpuStat(const std::string& name, float time);
-		void AddGpuStat(const std::string& name, float time);
+		void AddCpuStat(const std::string& name, float time, Unit unit = Unit::NoUnit);
+		void AddGpuStat(const std::string& name, float time, Unit unit = Unit::NoUnit);
 
 		void IssueCallback();
 
@@ -22,10 +23,6 @@ namespace cuda::motion::debug {
 
 	private:
 		StatsCallback m_callback;
-
-		BlockMatchingParams m_params = {};
-
-		std::map<std::string, float> m_cpuStats;
-		std::map<std::string, float> m_gpuStats;
+		StatsPacket m_stats;
 	};
 }

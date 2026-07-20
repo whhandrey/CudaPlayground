@@ -8,4 +8,12 @@
       <UniqueIdentifier>{6d9a2216-6af6-4253-8221-2fa16438587d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Motion\Debug\Callback.h">
+      <Filter>Motion\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Motion\Debug\Stats.h">
+      <Filter>Motion\Debug</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>
