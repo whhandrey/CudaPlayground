@@ -20,6 +20,15 @@ namespace detail {
 		return statsNames;
 	}
 
+	template <class T>
+	bool ZeroVec(T vec) {
+		return vec.x == 0 || vec.y == 0;
+	}
+
+	bool ValidParams(const BlockMatchingParams& p) {
+		return !ZeroVec(p.blockDim) && !ZeroVec(p.macroBlockDim) && !ZeroVec(p.search_halfsize);
+	}
+
 	class StatsProvider : public IStatsProvider {
 	public:
 		StatsProvider(
@@ -57,7 +66,9 @@ namespace detail {
 
 		FieldGroupMap output;
 
-		output.emplace("BlockMatching", blockMatchingParams);
+		if (ValidParams(m_params)) {
+			output.emplace("BlockMatching", blockMatchingParams);
+		}
 
 		if (!m_cpuStats.empty()) {
 			output.emplace("CpuStats", FieldNames(m_cpuStats));

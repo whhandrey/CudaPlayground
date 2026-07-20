@@ -110,6 +110,8 @@ namespace cuda::motion {
 			m_params,
 			m_ctx
 		);
+
+		m_collector->AddParams(m_params);
 	}
 
 	std::map<render::ViewType, image::Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
@@ -158,8 +160,6 @@ namespace cuda::motion {
 
 	void MotionGpuPipeline::SubmitStats()
 	{
-		m_collector->AddParams(m_params);
-
 		for (const auto& [name, time] : m_gpuProfiler->GetRuns()) {
 			m_collector->AddGpuStat(name, time);
 		}

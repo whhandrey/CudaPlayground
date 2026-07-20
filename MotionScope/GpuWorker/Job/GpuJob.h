@@ -15,7 +15,7 @@ namespace app::motion {
 		size_t generation;
 		QImage prev;
 		QImage curr;
-		std::vector<ViewType> requestedViews;
+		std::vector<SlottedView> requestedViews;
 	};
 
 	struct AnalyseResult {
@@ -28,15 +28,10 @@ namespace app::motion {
 
 	using AnalyseResultCb = std::function<void(AnalyseResult&&)>;
 
-	struct RequestedView {
-		app::ViewSlot slot;
-		ViewType view;
-	};
-
 	struct RenderViewsInput {
 		app::FramePair framePair;
 		size_t generation;
-		std::vector<RequestedView> requestedViews;
+		std::vector<SlottedView> requestedViews;
 	};
 
 	struct RenderViewsResult {

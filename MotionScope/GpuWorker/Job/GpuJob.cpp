@@ -123,12 +123,7 @@ namespace app::motion {
 
 	void RenderViewsJobAsync::Execute(MotionViewProcessor& proc)
 	{
-		std::vector<ViewType> request(m_input.requestedViews.size());
-		std::transform(m_input.requestedViews.begin(), m_input.requestedViews.end(), request.begin(), [](const auto& reqView) {
-			return reqView.view;
-		});
-
-		auto views = ToQImages(proc.RenderViews(request));
+		auto views = ToQImages(proc.RenderViews(m_input.requestedViews));
 
 		std::vector<SlottedImage> output;
 		for (const auto& req : m_input.requestedViews) {

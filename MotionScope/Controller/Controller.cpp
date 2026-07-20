@@ -353,12 +353,17 @@ namespace app {
 		if (m_requestPairSubmitted)
 			return;
 
+		std::vector<SlottedView> requestedViews {
+			{ ViewSlot::View1, m_views.view1 },
+			{ ViewSlot::View2, m_views.view2 }
+		};
+
 		auto jobInput = motion::AnalyseInput {
 			m_requestedPair,
 			m_generation,
 			m_cache[m_requestedPair.first],
 			m_cache[m_requestedPair.second],
-			{ m_views.view1, m_views.view2 }
+			requestedViews
 		};
 
 		auto job = motion::CreateAnalyzeAndRenderJob(jobInput, [this](motion::AnalyseResult&& result) mutable {
@@ -379,7 +384,7 @@ namespace app {
 		if (m_displayedPair.first < 0 || m_displayedPair.second < 0)
 			return;
 
-		const auto requestedView = motion::RequestedView{ slot, view };
+		const auto requestedView = app::SlottedView{ slot, view };
 		auto jobInput = app::motion::RenderViewsInput {
 			m_displayedPair,
 			m_generation,

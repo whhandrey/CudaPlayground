@@ -1,8 +1,11 @@
 #pragma once
 #include <string>
 #include <Qimage>
+#include <GpuProcessor/ViewRenderer/ViewType.h>
 
 namespace app {
+	using cuda::motion::render::ViewType;
+
 	enum class ViewSlot {
 		View1,
 		View2
@@ -28,5 +31,10 @@ namespace app {
 	struct SlottedImage {
 		ViewSlot slot;
 		QImage image;
+	};
+
+	struct SlottedView {
+		app::ViewSlot slot;
+		ViewType view;
 	};
 }

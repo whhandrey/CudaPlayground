@@ -15,7 +15,7 @@ namespace app::motion {
 	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::AnalyzeAndRenderViews(
 		const VersionedFrame& prev,
 		const VersionedFrame& curr,
-		const std::vector<ViewType>& types)
+		const std::vector<SlottedView>& types)
 	{
 		const bool skipAnalysis = EqVersion(m_prev, prev) && EqVersion(m_curr, curr);
 		if (!skipAnalysis) {
@@ -28,12 +28,17 @@ namespace app::motion {
 		return RenderViews(types);
 	}
 
-	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::RenderViews(const std::vector<ViewType>& types)
+	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::RenderViews(const std::vector<SlottedView>& types)
 	{
 		if (m_prev.index == m_curr.index) {
 			throw std::logic_error("MotionViewProcessor::RenderViews: analysis has not been run");
 		}
 
-		return m_processor->RenderViews(types);
+		std::vector<ViewType> request;
+		std::transform(types.begin(), types.end(), std::back_inserter(request), [](const auto& slottedView) {
+			return slottedView.view;
+		});
+
+		return m_processor->RenderViews(request);
 	}
 }

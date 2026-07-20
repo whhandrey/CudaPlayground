@@ -7,6 +7,7 @@
 #include <map>
 #include <QImage>
 #include <GpuProcessor/IMotionViewProcessor.h>
+#include "../DisplayTypes/DisplayTypes.h"
 
 namespace app::motion {
 	using cuda::motion::render::ViewType;
@@ -30,9 +31,9 @@ namespace app::motion {
 		std::map<ViewType, Image<image::vec4uc>> AnalyzeAndRenderViews(
 			const VersionedFrame& prev,
 			const VersionedFrame& curr,
-			const std::vector<ViewType>& types);
+			const std::vector<SlottedView>& types);
 
-		std::map<ViewType, Image<image::vec4uc>> RenderViews(const std::vector<ViewType>& types);
+		std::map<ViewType, Image<image::vec4uc>> RenderViews(const std::vector<SlottedView>& types);
 
 	private:
 		FrameVersion m_prev;
