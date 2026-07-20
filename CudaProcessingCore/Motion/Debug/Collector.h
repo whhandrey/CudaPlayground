@@ -12,14 +12,9 @@ namespace cuda::motion::debug {
 		Collector(StatsCallback&& callback);
 
 		void AddParams(const BlockMatchingParams& p);
-
-		void AddCpuStat(const std::string& name, float time, Unit unit = Unit::NoUnit);
-		void AddGpuStat(const std::string& name, float time, Unit unit = Unit::NoUnit);
+		void AddStat(const std::string& scope, const std::string& group, const std::string& name, float time);
 
 		void IssueCallback();
-
-	private:
-		void Clear();
 
 	private:
 		StatsCallback m_callback;

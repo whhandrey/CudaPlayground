@@ -127,19 +127,15 @@ namespace cuda::motion::debug {
 
 	void Collector::AddParams(const BlockMatchingParams& p)
 	{
-		m_stats.emplace("BlockMatching", StatsField{ "BlockDim", p.blockDim, Unit::px });
-		m_stats.emplace("BlockMatching", StatsField{ "MacroBlockDim", p.macroBlockDim, Unit::px });
-		m_stats.emplace("BlockMatching", StatsField{ "SearchRad", p.search_halfsize, Unit::px });
+		m_stats.emplace("Algo/Params", StatsField{ "BlockDim", p.blockDim, Unit::px });
+		m_stats.emplace("Algo/Params", StatsField{ "MacroBlockDim", p.macroBlockDim, Unit::px });
+		m_stats.emplace("Algo/Params", StatsField{ "SearchRad", p.search_halfsize, Unit::px });
 	}
 
-	void Collector::AddCpuStat(const std::string& name, float time, Unit unit)
+	void Collector::AddStat(const std::string& scope, const std::string& group, const std::string& name, float time)
 	{
-		m_stats["CpuStats"].emplace_back(name, time, unit);
-	}
-
-	void Collector::AddGpuStat(const std::string& name, float time, Unit unit)
-	{
-		m_stats["GpuStats"].emplace_back(name, time, unit);
+		const std::string key = scope + "/" + group;
+		m_stats[key].emplace_back(name, time, Unit::ms);
 	}
 
 	void Collector::IssueCallback()
@@ -150,11 +146,6 @@ namespace cuda::motion::debug {
 
 		m_callback(std::move(m_stats));
 
-		Clear();
-	}
-
-	void Collector::Clear()
-	{
 		m_stats.clear();
 	}
 }

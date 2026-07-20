@@ -1,4 +1,5 @@
 #include "MotionViewProcessor.h"
+#include <algorithm>
 
 namespace {
 	bool EqVersion(const app::motion::FrameVersion& v1, const app::motion::VersionedFrame& v2) {
@@ -7,7 +8,7 @@ namespace {
 }
 
 namespace app::motion {
-	MotionViewProcessor::MotionViewProcessor(std::unique_ptr<cuda::motion::IMotionViewProcessor>&& proc)
+	MotionViewProcessor::MotionViewProcessor(IMotionViewProcessor::Ptr&& proc)
 		: m_processor{ std::move(proc) }
 	{
 	}
@@ -15,7 +16,7 @@ namespace app::motion {
 	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::AnalyzeAndRenderViews(
 		const VersionedFrame& prev,
 		const VersionedFrame& curr,
-		const std::vector<SlottedView>& types)
+		const std::vector<ViewType>& views)
 	{
 		const bool skipAnalysis = EqVersion(m_prev, prev) && EqVersion(m_curr, curr);
 		if (!skipAnalysis) {
@@ -25,26 +26,15 @@ namespace app::motion {
 			m_curr = { curr.index, curr.generation };
 		}
 
-		return RenderViews(types);
+		return RenderViews(views);
 	}
 
-	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::RenderViews(const std::vector<SlottedView>& views)
+	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::RenderViews(const std::vector<ViewType>& views)
 	{
 		if (m_prev.index == m_curr.index) {
 			throw std::logic_error("MotionViewProcessor::RenderViews: analysis has not been run");
 		}
 
-		std::vector<ViewType> request;
-		std::transform(views.begin(), views.end(), std::back_inserter(request), [](const auto& slottedView) {
-			return slottedView.view;
-		});
-
-		m_cachedViews = views;
-
-		return m_processor->RenderViews(request);
-	}
-
-	void MotionViewProcessor::OnDebugStats(StatsPacket&& stats)
-	{
+		return m_processor->RenderViews(views);
 	}
 }

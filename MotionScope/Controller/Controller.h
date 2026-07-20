@@ -25,7 +25,9 @@ namespace app::motion {
 
 namespace app {
 	using cuda::motion::render::ViewType;
-	using ::motion::debug::IStatsProvider;
+	using ::motion::debug::StatsPacket;
+
+	class StatsMerger;
 
 	class Controller : public QObject {
 		Q_OBJECT
@@ -66,12 +68,12 @@ namespace app {
 		void RequestView(ViewSlot slot, ViewType view);
 		void OnGpuRenderedViewReady(app::motion::RenderViewsResult&& result);
 
-		void OnDebugStats(IStatsProvider::Ptr statsProvider);
+		void OnDebugStats(StatsPacket&& stats);
 
 	signals:
 		void ImagesReady(QImage prev, QImage curr, QImage conf, QImage vis);
 		void RenderedViewReady(std::vector<SlottedImage> views);
-		void DebugStatsReady(const IStatsProvider& statsProvider);
+		void DebugStatsReady(const StatsPacket& stats);
 
 	private:
 		struct DisplayViews {
@@ -84,9 +86,7 @@ namespace app {
 		std::unique_ptr<pool::ThreadPool> m_pool;
 
 		std::unique_ptr<app::worker::AsyncGpuWorker> m_gpuWorker;
-
-		// Qt is not happy with transferring unique_ptr via signals
-		IStatsProvider::Ptr m_statsProvider;
+		StatsPacket m_stats;
 
 		size_t m_generation = 0;
 

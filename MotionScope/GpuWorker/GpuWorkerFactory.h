@@ -1,6 +1,6 @@
 #pragma once
 #include "AsyncGpuWorker.h"
-#include <Debug/Callback.h>
+#include <Motion/Debug/Callback.h>
 
 namespace app::worker {
 	using ::motion::debug::StatsCallback;

@@ -1,7 +1,7 @@
 #pragma once
 #include <Image/Image.h>
 #include <Image/ImageView.h>
-#include <Debug/Callback.h>
+#include <Motion/Debug/Callback.h>
 #include "ViewRenderer/ViewType.h"
 #include <memory>
 #include <map>

@@ -141,10 +141,10 @@ namespace app {
 	Controller::Controller(app::worker::GpuWorkerFactory& factory)
 		: m_pool{ std::make_unique<pool::ThreadPool>() }
 	{
-		m_gpuWorker = factory.Create([this](IStatsProvider::Ptr statsProvider) mutable {
+		m_gpuWorker = factory.Create([this](StatsPacket&& stats) mutable {
 			QMetaObject::invokeMethod(
-				this, [this, provider = std::move(statsProvider)]() mutable {
-					OnDebugStats(std::move(provider));
+				this, [this, stats = std::move(stats)]() mutable {
+					OnDebugStats(std::move(stats));
 				},
 				Qt::QueuedConnection
 			);
@@ -414,10 +414,13 @@ namespace app {
 		emit RenderedViewReady(std::move(result.views));
 	}
 
-	void Controller::OnDebugStats(IStatsProvider::Ptr statsProvider)
+	void Controller::OnDebugStats(StatsPacket&& stats)
 	{
-		m_statsProvider = std::move(statsProvider);
-		emit DebugStatsReady(*m_statsProvider);
+		for (auto& [scope, fields] : stats) {
+			m_stats[scope] = std::move(fields);
+		}
+
+		emit DebugStatsReady(m_stats);
 	}
 
 	void Controller::OnGpuAnalysisResultReady(motion::AnalyseResult&& result)

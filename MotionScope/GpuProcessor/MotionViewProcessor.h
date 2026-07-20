@@ -7,13 +7,12 @@
 #include <map>
 #include <QImage>
 #include <GpuProcessor/IMotionViewProcessor.h>
-#include <Motion/Debug/Stats.h>
 #include "../DisplayTypes/DisplayTypes.h"
 
 namespace app::motion {
-	using ::motion::debug::StatsPacket;
-
 	using cuda::motion::render::ViewType;
+	using cuda::motion::IMotionViewProcessor;
+
 	using image::Image;
 
 	struct VersionedFrame {
@@ -29,24 +28,19 @@ namespace app::motion {
 
 	class MotionViewProcessor {
 	public:
-		MotionViewProcessor(std::unique_ptr<cuda::motion::IMotionViewProcessor>&& proc);
+		MotionViewProcessor(IMotionViewProcessor::Ptr&& proc);
 
 		std::map<ViewType, Image<image::vec4uc>> AnalyzeAndRenderViews(
 			const VersionedFrame& prev,
 			const VersionedFrame& curr,
-			const std::vector<SlottedView>& types);
+			const std::vector<ViewType>& views);
 
-		std::map<ViewType, Image<image::vec4uc>> RenderViews(const std::vector<SlottedView>& views);
-
-	private:
-		void OnDebugStats(StatsPacket&& stats);
+		std::map<ViewType, Image<image::vec4uc>> RenderViews(const std::vector<ViewType>& views);
 
 	private:
+		std::unique_ptr<cuda::motion::IMotionViewProcessor> m_processor;
+
 		FrameVersion m_prev;
 		FrameVersion m_curr;
-
-		std::vector<SlottedView> m_cachedViews;
-
-		std::unique_ptr<cuda::motion::IMotionViewProcessor> m_processor;
 	};
 }

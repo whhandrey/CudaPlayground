@@ -369,7 +369,7 @@ namespace app {
         }
     }
 
-    void MainWindow::ShowDebugStats(const IStatsProvider& statsProvider)
+    void MainWindow::ShowDebugStats(const StatsPacket& stats)
     {
         using ::motion::debug::StatsField;
 

@@ -44,11 +44,11 @@ namespace cuda::motion {
 			const image::ImageView<image::vec4uc>& curr) override;
 
 		std::map<render::ViewType, image::Image<image::vec4uc>> RenderViews(
-			const std::vector<render::ViewType>& types) override;
+			const std::vector<render::ViewType>& views) override;
 
 	private:
 		void AllocMem(image::vec2ui dim);
-		void SubmitStats();
+		void WriteGpuStats(const std::string& scope, const std::string& group);
 
 	private:
 		cuda::KernelContext m_ctx;
@@ -112,10 +112,11 @@ namespace cuda::motion {
 		);
 
 		m_collector->AddParams(m_params);
+		WriteGpuStats("Algo", "GpuStats");
 	}
 
 	std::map<render::ViewType, image::Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
-		const std::vector<render::ViewType>& types)
+		const std::vector<render::ViewType>& views)
 	{
 		if (!Valid(m_stats)) {
 			throw std::logic_error("MotionGpuPipeline::RenderViews: analysis has not been performed");
@@ -129,14 +130,16 @@ namespace cuda::motion {
 
 		std::map<render::ViewType, image::Image<image::vec4uc>> output;
 
-		for (const auto type : types) {
-			auto renderer = render::IMotionViewRenderer::Create(params, type);
+		int viewIndex = 0;
+		for (const auto view : views) {
+			auto renderer = render::IMotionViewRenderer::Create(params, view);
 			renderer->Render();
 
-			output.emplace(type, cuda::gpu_image::DownloadCompatible<image::vec4uc>(m_state.View(type), m_ctx.m_stream));
+			output.emplace(view, cuda::gpu_image::DownloadCompatible<image::vec4uc>(m_state.View(view), m_ctx.m_stream));
+			WriteGpuStats("RenderView" + std::to_string(viewIndex++), "GpuStats");
 		}
 
-		SubmitStats();
+		m_collector->IssueCallback();
 
 		cudaCheck(cudaStreamSynchronize(m_ctx.m_stream));
 		return output;
@@ -158,13 +161,12 @@ namespace cuda::motion {
 		m_state.Resize(motion_dim);
 	}
 
-	void MotionGpuPipeline::SubmitStats()
+	void MotionGpuPipeline::WriteGpuStats(const std::string& scope, const std::string& group)
 	{
 		for (const auto& [name, time] : m_gpuProfiler->GetRuns()) {
-			m_collector->AddGpuStat(name, time);
+			m_collector->AddStat(scope, group, name, time);
 		}
 
-		m_collector->IssueCallback();
 		m_gpuProfiler->Clear();
 	}
 
