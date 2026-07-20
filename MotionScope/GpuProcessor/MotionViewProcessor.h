@@ -39,6 +39,8 @@ namespace app::motion {
 		FrameVersion m_prev;
 		FrameVersion m_curr;
 
+		std::vector<SlottedView> m_cachedViews;
+
 		std::unique_ptr<cuda::motion::IMotionViewProcessor> m_processor;
 	};
 }

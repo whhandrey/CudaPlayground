@@ -77,7 +77,6 @@ Testing/
 ipch/
 x64/
 x86/
-Debug/
 Release/
 
 # Visual Studio generated
