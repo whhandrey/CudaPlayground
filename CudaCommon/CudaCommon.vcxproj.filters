@@ -4,6 +4,9 @@
     <Filter Include="Cuda">
       <UniqueIdentifier>{d43448ba-b26b-4048-bdc3-a028eeb8bb90}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Profiler">
+      <UniqueIdentifier>{b40df68d-6da4-4e12-9e7e-9793cf41d125}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cuda\Context.h">
@@ -12,14 +15,22 @@
     <ClInclude Include="Cuda\CudaCheck.h">
       <Filter>Cuda</Filter>
     </ClInclude>
-    <ClInclude Include="Cuda\Profiler.h">
-      <Filter>Cuda</Filter>
-    </ClInclude>
     <ClInclude Include="Cuda\TimedCudaCall.h">
       <Filter>Cuda</Filter>
     </ClInclude>
     <ClInclude Include="Cuda\MathUtils.h">
       <Filter>Cuda</Filter>
     </ClInclude>
+    <ClInclude Include="Profiler\Profiler.h">
+      <Filter>Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Profiler\IProfiler.h">
+      <Filter>Profiler</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Profiler\Profiler.cpp">
+      <Filter>Profiler</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

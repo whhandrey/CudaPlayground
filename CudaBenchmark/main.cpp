@@ -9,6 +9,7 @@
 #include <Cuda/Filter.h>
 #include <Cuda/Motion/BlockMatching.h>
 #include <Cuda/Transform/Shift.h>
+#include <Profiler/Profiler.h>
 
 #include <Image/Image.h>
 #include <iostream>
@@ -165,11 +166,11 @@ int main() {
 	cudaStream_t stream;
 	cudaCheck(cudaStreamCreate(&stream));
 
-	auto profiler = std::make_shared<cuda::BenchProfiler>();
+	auto profiler = std::make_unique<cuda::profile::SampledProfiler>();
 
 	cuda::KernelContext ctx {
 		stream,
-		profiler
+		profiler.get()
 	};
 
 	const std::string file = "C:\\AY\\Code\\ImgTest\\1.jpg";

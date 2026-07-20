@@ -20,12 +20,14 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainWindow\DebugFormatter.cpp" />
     <ClCompile Include="MainWindow\MainWindow.cpp" />
+    <ClCompile Include="MainWindow\QImageView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="MainWindow\MainWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainWindow\DebugFormatter.h" />
+    <QtMoc Include="MainWindow\QImageView.h" />
     <QtMoc Include="Controller\Controller.h" />
     <ClInclude Include="DisplayTypes\DisplayTypes.h" />
     <ClInclude Include="GpuProcessor\MotionViewProcessor.h" />

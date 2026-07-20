@@ -18,7 +18,7 @@ namespace cuda::motion::debug {
 		void IssueCallback();
 
 	private:
-		void Reset();
+		void Clear();
 
 	private:
 		StatsCallback m_callback;

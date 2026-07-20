@@ -531,7 +531,7 @@ namespace cuda {
             const auto weights_cpu = gauss::MakeNormGaussWeights(p.filter_halfsize, p.sigma);
             cudaCheck(cudaMemcpyToSymbolAsync(c_weightsGauss, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, ctx.m_stream));
 
-            cuda::TimedCall("GaussianBlurX+Y: " + cuda::util::BlockDimToString(p.blockDim), ctx, [&]() {
+            cuda::TimedCall("GaussianBlurX+Y", ctx, [&]() {
                 GaussianBlurX<<<gridSize, cuda::math::vec2Todim3(p.blockDim), 0, ctx.m_stream>>> (
                     input.m_ptr,
                     input.m_pitch,
@@ -574,7 +574,7 @@ namespace cuda {
             const int outputPerBlockY = blockSize.y - 2 * p.filter_halfsize;
             gridSize.y = (input.m_dim.y + outputPerBlockY - 1) / outputPerBlockY;
 
-            cuda::TimedCall("GaussianBlurTileV1: " + cuda::util::BlockDimToString(blockSize), ctx, [&]() {
+            cuda::TimedCall("GaussianBlurTileV1", ctx, [&]() {
                 GaussianBlurTile<<<gridSize, cuda::math::vec2Todim3(blockSize), sharedMemSize, ctx.m_stream>>> (
                     input.m_ptr,
                     input.m_pitch,
@@ -603,7 +603,7 @@ namespace cuda {
             image::vec2ui outputBlock = { p.blockDim.x, p.blockDim.y - 2 * p.filter_halfsize };
             dim3 gridSize = cuda::math::DivUp(input.m_dim, outputBlock);
 
-            cuda::TimedCall("GaussianBlurTileV2: " + cuda::util::BlockDimToString(p.blockDim), ctx, [&]() {
+            cuda::TimedCall("GaussianBlurTileV2", ctx, [&]() {
                 GaussianBlurTile<<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.m_stream>>> (
                     input.m_ptr,
                     input.m_pitch,
@@ -636,7 +636,7 @@ namespace cuda {
 
             const size_t sharedMemSize = tileWidth * tileHeight * sizeof(int4);
 
-            cuda::TimedCall("BilateralKernel: " + cuda::util::BlockDimToString(p.blockDim), ctx, [&]() {
+            cuda::TimedCall("BilateralKernel", ctx, [&]() {
                 BilateralKernel<<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.m_stream>>> (
                     input.m_ptr,
                     input.m_pitch,
@@ -689,7 +689,7 @@ namespace cuda {
 
             // Quadro T1000/T2000
             if (gpuArch == cuda::gpu::Arch::Turing) {
-                cuda::TimedCall("BilateralKernel_Uchar4: " + cuda::util::BlockDimToString(p.blockDim), ctx, [&]() {
+                cuda::TimedCall("BilateralKernel_Uchar4", ctx, [&]() {
                     BilateralKernelT_Uchar<filter_halfsize> <<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.m_stream>>> (
                         input.m_ptr,
                         input.m_pitch,
@@ -706,7 +706,7 @@ namespace cuda {
             // This is opposite on Quadro.
             // Idk if this is better on rtx 2/3, tested on rtx 4050 and rtx 5060.
             else {
-                cuda::TimedCall("BilateralKernel_Int4: " + cuda::util::BlockDimToString(p.blockDim), ctx, [&]() {
+                cuda::TimedCall("BilateralKernel_Int4", ctx, [&]() {
                     BilateralKernelT<filter_halfsize> <<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.m_stream>>> (
                         input.m_ptr,
                         input.m_pitch,

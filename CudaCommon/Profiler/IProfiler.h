@@ -2,7 +2,7 @@
 #include <string>
 
 namespace cuda {
-	namespace profiler {
+	namespace profile {
 		class IProfiler {
 		public:
 			virtual ~IProfiler() = default;

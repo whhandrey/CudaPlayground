@@ -20,16 +20,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Profiler\Profiler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
       <Project>{b32cb206-5441-4209-a31a-17a3f5f7ff6d}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\CudaCommon\CudaCommon.vcxproj">
+      <Project>{cf70d966-aae0-4b46-86fc-353cbc927957}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Image\ImageIO.h" />
-    <ClInclude Include="Profiler\Profiler.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>

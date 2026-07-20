@@ -144,13 +144,17 @@
     <ClInclude Include="Cuda\Context.h" />
     <ClInclude Include="Cuda\CudaCheck.h" />
     <ClInclude Include="Cuda\MathUtils.h" />
-    <ClInclude Include="Cuda\Profiler.h" />
     <ClInclude Include="Cuda\TimedCudaCall.h" />
+    <ClInclude Include="Profiler\IProfiler.h" />
+    <ClInclude Include="Profiler\Profiler.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ImgProcCommon\ImgProcCommon.vcxproj">
       <Project>{3ead4a8c-e561-4b95-9d26-c8478b90f41c}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Profiler\Profiler.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

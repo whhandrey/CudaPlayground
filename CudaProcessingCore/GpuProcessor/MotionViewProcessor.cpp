@@ -7,6 +7,7 @@
 
 #include <Cuda/MathUtils.h>
 #include <Cuda/TimedCudaCall.h>
+#include <Profiler/Profiler.h>
 
 namespace {
 	bool EqDim(image::vec2ui dim1, image::vec2ui dim2) {
@@ -17,28 +18,6 @@ namespace {
 	bool Valid(const cuda::ImageGPU<T>& img) {
 		return img.Dim().x != 0 && img.Dim().y != 0;
 	}
-
-	class GpuProfiler : public cuda::profiler::IProfiler {
-	public:
-		void Profile(const std::string& kernelName, float ms) override {
-			m_runs[kernelName].push_back(ms);
-		}
-
-		const std::map<std::string, std::vector<float>>& GetRuns() const {
-			return m_runs;
-		}
-
-		void Remove(const std::string& name) {
-			m_runs.erase(name);
-		}
-
-		void Clear() {
-			m_runs.clear();
-		}
-
-	private:
-		std::map<std::string, std::vector<float>> m_runs;
-	};
 
 	cuda::motion::BlockMatchingParams GetDefaultParams() {
 		const image::vec2ui blockDim = { 8, 8 };
@@ -75,7 +54,7 @@ namespace cuda::motion {
 		cuda::KernelContext m_ctx;
 		state::MotionGpuPipelineState m_state;
 
-		std::shared_ptr<GpuProfiler> m_gpuProfiler;
+		std::unique_ptr<profile::SimpleProfiler> m_gpuProfiler;
 		std::unique_ptr<debug::Collector> m_collector;
 		
 		BlockMatchingParams m_params;
@@ -91,12 +70,12 @@ namespace cuda::motion {
 	MotionGpuPipeline::MotionGpuPipeline(std::unique_ptr<debug::Collector> collector)
 		: m_params{ GetDefaultParams() }
 		, m_collector{ std::move(collector) }
-		, m_gpuProfiler{ std::make_shared<GpuProfiler>() }
+		, m_gpuProfiler{ std::make_unique<profile::SimpleProfiler>() }
 	{
 		cudaStream_t stream;
 		cudaCheck(cudaStreamCreate(&stream));
 
-		m_ctx = { stream, m_gpuProfiler };
+		m_ctx = { stream, m_gpuProfiler.get() };
 	}
 
 	MotionGpuPipeline::~MotionGpuPipeline() {
@@ -131,8 +110,6 @@ namespace cuda::motion {
 			m_params,
 			m_ctx
 		);
-
-		SubmitStats();
 	}
 
 	std::map<render::ViewType, image::Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
@@ -156,6 +133,8 @@ namespace cuda::motion {
 
 			output.emplace(type, cuda::gpu_image::DownloadCompatible<image::vec4uc>(m_state.View(type), m_ctx.m_stream));
 		}
+
+		SubmitStats();
 
 		cudaCheck(cudaStreamSynchronize(m_ctx.m_stream));
 		return output;
@@ -181,11 +160,12 @@ namespace cuda::motion {
 	{
 		m_collector->AddParams(m_params);
 
-		for (const auto& entry : m_gpuProfiler->GetRuns()) {
-			m_collector->AddGpuStat(entry.first, entry.second.front());
+		for (const auto& [name, time] : m_gpuProfiler->GetRuns()) {
+			m_collector->AddGpuStat(name, time);
 		}
 
 		m_collector->IssueCallback();
+		m_gpuProfiler->Clear();
 	}
 
 	IMotionViewProcessor::Ptr IMotionViewProcessor::Create(StatsCallback&& callback) {

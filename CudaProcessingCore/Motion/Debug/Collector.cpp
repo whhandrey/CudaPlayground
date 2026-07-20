@@ -139,11 +139,10 @@ namespace cuda::motion::debug {
 		}
 
 		m_callback(std::make_unique<detail::StatsProvider>(m_params, std::move(m_cpuStats), std::move(m_gpuStats)));
-
-		Reset();
+		Clear();
 	}
 
-	void Collector::Reset()
+	void Collector::Clear()
 	{
 		m_params = {};
 		m_cpuStats.clear();

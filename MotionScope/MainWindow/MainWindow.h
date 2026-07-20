@@ -21,6 +21,7 @@ namespace app {
     using ::motion::debug::IStatsProvider;
 
     class Controller;
+    class QImageView;
 
     enum class ViewSlot;
 
@@ -33,8 +34,6 @@ namespace app {
         ~MainWindow();
 
     private:
-        QLabel* CreateImagePlaceholder(const QString& text);
-
         void SyncSliderState();
         void SyncFrameOffset();
 
@@ -57,10 +56,10 @@ namespace app {
     private:
         std::unique_ptr<app::Controller> m_controller;
 
-        QLabel* m_prevImgLabel = nullptr;
-        QLabel* m_currImgLabel = nullptr;
-        QLabel* m_view1ImgLabel = nullptr;
-        QLabel* m_view2ImgLabel = nullptr;
+        QImageView* m_prevImgLabel = nullptr;
+        QImageView* m_currImgLabel = nullptr;
+        QImageView* m_view1ImgLabel = nullptr;
+        QImageView* m_view2ImgLabel = nullptr;
 
         QSlider* m_frameSlider = nullptr;
 

@@ -161,7 +161,7 @@ namespace cuda {
             {
                 dim3 gridSize = cuda::math::Div(stats.m_dim, blockDim);
 
-                cuda::TimedCall("ConfKernel: " + cuda::util::BlockDimToString(blockDim), ctx, [&]() {
+                cuda::TimedCall("ConfKernel", ctx, [&]() {
                     ConfVisualizationKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
                         stats.m_ptr,
                         stats.m_pitch,
@@ -185,7 +185,7 @@ namespace cuda {
                 float maxMag = sqrtf(float(search_halfsize.x * search_halfsize.x + search_halfsize.y * search_halfsize.y));
                 maxMag = maxMag < 1e-5f ? 1.0f : maxMag;
 
-                cuda::TimedCall("MotionMapKernel: " + cuda::util::BlockDimToString(blockDim), ctx, [&]() {
+                cuda::TimedCall("MotionMapKernel", ctx, [&]() {
                     MotionMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
                         stats.m_ptr,
                         stats.m_pitch,
@@ -210,7 +210,7 @@ namespace cuda {
                 float maxMag = sqrtf(float(search_halfsize.x * search_halfsize.x + search_halfsize.y * search_halfsize.y));
                 maxMag = maxMag < 1e-5f ? 1.0f : maxMag;
 
-                cuda::TimedCall("MagMapKernel: " + cuda::util::BlockDimToString(blockDim), ctx, [&]() {
+                cuda::TimedCall("MagMapKernel", ctx, [&]() {
                     MagMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
                         stats.m_ptr,
                         stats.m_pitch,

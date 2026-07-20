@@ -49,12 +49,18 @@
     <ClCompile Include="MainWindow\DebugFormatter.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
+    <ClCompile Include="MainWindow\QImageView.cpp">
+      <Filter>MainWindow</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="Controller\Controller.h">
       <Filter>Controller</Filter>
     </QtMoc>
     <QtMoc Include="MainWindow\MainWindow.h">
+      <Filter>MainWindow</Filter>
+    </QtMoc>
+    <QtMoc Include="MainWindow\QImageView.h">
       <Filter>MainWindow</Filter>
     </QtMoc>
   </ItemGroup>

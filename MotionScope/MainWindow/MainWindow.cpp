@@ -1,9 +1,9 @@
 #include "../Controller/Controller.h"
 #include "MainWindow.h"
 #include "DebugFormatter.h"
+#include "QImageView.h"
 #include <Debug/StatsProvider.h>
 
-#include <QLabel>
 #include <QPushButton>
 #include <QSlider>
 #include <QVBoxLayout>
@@ -22,17 +22,8 @@
 #include <QTreeWidget>
 #include <QDockWidget>
 #include <QMenuBar>
-#include <QMessageBox>
 
 namespace {
-    QPixmap FitToLabel(const QImage& image, QSize labelSize) {
-        return QPixmap::fromImage(image).scaled(
-            labelSize,
-            Qt::KeepAspectRatio,
-            Qt::SmoothTransformation
-        );
-    }
-
     std::string GetSelectedViewId(QComboBox* comboBox) {
         return comboBox->currentData().toString().toStdString();
     }
@@ -64,10 +55,10 @@ namespace app {
         // this registers mainLayout in the central one.
         auto* root = new QVBoxLayout(central);
 
-        m_prevImgLabel = CreateImagePlaceholder("PrevFrame");
-        m_currImgLabel = CreateImagePlaceholder("CurrFrame");
-        m_view1ImgLabel = CreateImagePlaceholder("View1Image");
-        m_view2ImgLabel = CreateImagePlaceholder("View2Image");
+        m_prevImgLabel = new QImageView(central);
+        m_currImgLabel = new QImageView(central);
+        m_view1ImgLabel = new QImageView(central);
+        m_view2ImgLabel = new QImageView(central);
 
         auto* imageGrid = new QGridLayout();
 
@@ -244,25 +235,6 @@ namespace app {
     {
     }
 
-    QLabel* MainWindow::CreateImagePlaceholder(const QString& text) {
-        auto* label = new QLabel(text, this);
-
-        label->setMinimumSize(360, 270);
-        label->setAlignment(Qt::AlignCenter);
-
-        label->setStyleSheet(
-            "QLabel {"
-            " background-color: #222;"
-            " color: white;"
-            " border: 1px solid #555;"
-            " font-size: 16px;"
-            "}"
-        );
-
-        label->setScaledContents(false);
-        return label;
-    }
-
     void MainWindow::SyncSliderState()
     {
         QSignalBlocker blocker(m_frameSlider);
@@ -354,6 +326,7 @@ namespace app {
         m_statsTree->setRootIsDecorated(true);
         m_statsTree->setAlternatingRowColors(true);
         m_statsTree->setUniformRowHeights(true);
+        m_statsTree->setIndentation(10);
 
         m_statsDock->setWidget(m_statsTree);
 
@@ -375,10 +348,10 @@ namespace app {
 
     void MainWindow::ShowImages(QImage prev, QImage curr, QImage view1, QImage view2)
     {
-        m_prevImgLabel->setPixmap(FitToLabel(prev, m_prevImgLabel->size()));
-        m_currImgLabel->setPixmap(FitToLabel(curr, m_currImgLabel->size()));
-        m_view1ImgLabel->setPixmap(FitToLabel(view1, m_view1ImgLabel->size()));
-        m_view2ImgLabel->setPixmap(FitToLabel(view2, m_view2ImgLabel->size()));
+        m_prevImgLabel->SetImage(prev);
+        m_currImgLabel->SetImage(curr);
+        m_view1ImgLabel->SetImage(view1);
+        m_view2ImgLabel->SetImage(view2);
     }
 
     void MainWindow::ShowViews(std::vector<SlottedImage> views)
@@ -387,10 +360,10 @@ namespace app {
             switch (view.slot)
             {
             case app::ViewSlot::View1:
-                m_view1ImgLabel->setPixmap(FitToLabel(view.image, m_view1ImgLabel->size()));
+                m_view1ImgLabel->SetImage(view.image);
                 break;
             case app::ViewSlot::View2:
-                m_view2ImgLabel->setPixmap(FitToLabel(view.image, m_view2ImgLabel->size()));
+                m_view2ImgLabel->SetImage(view.image);
                 break;
             }
         }
@@ -401,9 +374,6 @@ namespace app {
         using ::motion::debug::StatsField;
 
         m_statsTree->clear();
-
-        m_statsTree->setColumnCount(2);
-        m_statsTree->setHeaderLabels({ "Name", "Value" });
 
         app::DebugFormatter formatter;
 
