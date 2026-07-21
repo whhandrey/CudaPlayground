@@ -5,6 +5,7 @@
 #include <Motion/Debug/Stats.h>
 #include "../DisplayTypes/DisplayTypes.h"
 #include "../GpuWorker/GpuWorkerFactory.h"
+#include "../Stats/StatsProvider.h"
 
 namespace pool {
 	class ThreadPool;
@@ -73,7 +74,7 @@ namespace app {
 	signals:
 		void ImagesReady(QImage prev, QImage curr, QImage conf, QImage vis);
 		void RenderedViewReady(std::vector<SlottedImage> views);
-		void DebugStatsReady(const StatsPacket& stats);
+		void DebugStatsReady(StatsProvider provider);
 
 	private:
 		struct DisplayViews {

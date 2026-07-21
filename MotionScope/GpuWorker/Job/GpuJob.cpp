@@ -2,6 +2,7 @@
 #include "../../GpuProcessor/MotionViewProcessor.h"
 #include <Image/ImageView.h>
 #include <stdexcept>
+#include <iterator>
 
 namespace {
 	using cuda::motion::render::ViewType;
@@ -123,7 +124,12 @@ namespace app::motion {
 
 	void RenderViewsJobAsync::Execute(MotionViewProcessor& proc)
 	{
-		auto views = ToQImages(proc.RenderViews(m_input.requestedViews));
+		std::vector<ViewType> request;
+		std::transform(m_input.requestedViews.begin(), m_input.requestedViews.end(), std::back_inserter(request), [](const auto& slottedView) {
+			return slottedView.view;
+		});
+
+		auto views = ToQImages(proc.RenderViews(request));
 
 		std::vector<SlottedImage> output;
 		for (const auto& req : m_input.requestedViews) {

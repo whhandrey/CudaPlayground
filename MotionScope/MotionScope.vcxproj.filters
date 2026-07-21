@@ -22,6 +22,9 @@
     <Filter Include="DisplayTypes">
       <UniqueIdentifier>{38849443-6900-4619-a5bb-383f5ad52217}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Stats">
+      <UniqueIdentifier>{014bc5a3-d871-4204-a017-5e5b5e135d73}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MainWindow\MainWindow.cpp">
@@ -46,11 +49,11 @@
     <ClCompile Include="GpuWorker\GpuWorkerFactory.cpp">
       <Filter>GpuWorker</Filter>
     </ClCompile>
-    <ClCompile Include="MainWindow\DebugFormatter.cpp">
-      <Filter>MainWindow</Filter>
-    </ClCompile>
     <ClCompile Include="MainWindow\QImageView.cpp">
       <Filter>MainWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="Stats\StatsProvider.cpp">
+      <Filter>Stats</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -83,8 +86,8 @@
     <ClInclude Include="GpuWorker\GpuWorkerFactory.h">
       <Filter>GpuWorker</Filter>
     </ClInclude>
-    <ClInclude Include="MainWindow\DebugFormatter.h">
-      <Filter>MainWindow</Filter>
+    <ClInclude Include="Stats\StatsProvider.h">
+      <Filter>Stats</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

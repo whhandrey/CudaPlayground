@@ -1,8 +1,6 @@
 #include "../Controller/Controller.h"
 #include "MainWindow.h"
-#include "DebugFormatter.h"
 #include "QImageView.h"
-#include <Debug/StatsProvider.h>
 
 #include <QPushButton>
 #include <QSlider>
@@ -369,15 +367,13 @@ namespace app {
         }
     }
 
-    void MainWindow::ShowDebugStats(const StatsPacket& stats)
+    void MainWindow::ShowDebugStats(StatsProvider provider)
     {
         using ::motion::debug::StatsField;
 
         m_statsTree->clear();
 
-        app::DebugFormatter formatter;
-
-        const auto groups = statsProvider.GetFieldNamesByGroups();
+        const auto groups = provider.GetFieldsByGroups();
 
         for (const auto& [groupName, fieldNames] : groups) {
             auto* groupItem = new QTreeWidgetItem(m_statsTree);
@@ -386,12 +382,10 @@ namespace app {
             groupItem->setText(1, "");
 
             for (const auto& fieldName : fieldNames) {
-                StatsField field { fieldName, groupName };
-
-                std::string value;
+                ValueUnit valueUnit;
 
                 try {
-                    value = statsProvider.GetField(field, formatter);
+                    valueUnit = provider.GetStatValue(groupName, fieldName);
                 }
                 catch (const std::exception&) {
                     // TODO: pass to sort of ExceptionHandler?
@@ -401,7 +395,8 @@ namespace app {
                 auto* fieldItem = new QTreeWidgetItem(groupItem);
 
                 fieldItem->setText(0, QString::fromStdString(fieldName));
-                fieldItem->setText(1, QString::fromStdString(value));
+                fieldItem->setText(1, QString::fromStdString(valueUnit.first));
+                fieldItem->setText(2, QString::fromStdString(valueUnit.second));
             }
         }
 

@@ -353,17 +353,12 @@ namespace app {
 		if (m_requestPairSubmitted)
 			return;
 
-		std::vector<SlottedView> requestedViews {
-			{ ViewSlot::View1, m_views.view1 },
-			{ ViewSlot::View2, m_views.view2 }
-		};
-
 		auto jobInput = motion::AnalyseInput {
 			m_requestedPair,
 			m_generation,
 			m_cache[m_requestedPair.first],
 			m_cache[m_requestedPair.second],
-			requestedViews
+			{ m_views.view1, m_views.view2 }
 		};
 
 		auto job = motion::CreateAnalyzeAndRenderJob(jobInput, [this](motion::AnalyseResult&& result) mutable {
@@ -420,7 +415,7 @@ namespace app {
 			m_stats[scope] = std::move(fields);
 		}
 
-		emit DebugStatsReady(m_stats);
+		emit DebugStatsReady(StatsProvider(m_stats));
 	}
 
 	void Controller::OnGpuAnalysisResultReady(motion::AnalyseResult&& result)

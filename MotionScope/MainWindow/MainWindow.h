@@ -1,6 +1,6 @@
 #pragma once
 #include "../DisplayTypes/DisplayTypes.h"
-#include <Motion/Debug/Stats.h>
+#include "../Stats/StatsProvider.h"
 #include <QtWidgets/QMainWindow>
 #include <memory>
 
@@ -48,7 +48,7 @@ namespace app {
     private slots:
         void ShowImages(QImage prev, QImage curr, QImage view1, QImage view2);
         void ShowViews(std::vector<SlottedImage> views);
-        void ShowDebugStats(const StatsPacket& stats);
+        void ShowDebugStats(StatsProvider provider);
 
     private:
         std::unique_ptr<app::Controller> m_controller;
