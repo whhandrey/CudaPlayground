@@ -1,13 +1,13 @@
 #pragma once
 #include <Image/Image.h>
 #include <Image/ImageView.h>
-#include <Motion/Debug/Callback.h>
+#include <Motion/Debug/Stats.h>
 #include "ViewRenderer/ViewType.h"
 #include <memory>
 #include <map>
 
 namespace cuda::motion {
-	using ::motion::debug::StatsCallback;
+	using ::motion::debug::StatsPacket;
 
 	class IMotionViewProcessor {
 	public:
@@ -22,6 +22,8 @@ namespace cuda::motion {
 		virtual std::map<render::ViewType, image::Image<image::vec4uc>> RenderViews(
 			const std::vector<render::ViewType>& types) = 0;
 
-		static Ptr Create(StatsCallback&& callback);
+		virtual StatsPacket TakeLastStats() = 0;
+
+		static Ptr Create();
 	};
 }

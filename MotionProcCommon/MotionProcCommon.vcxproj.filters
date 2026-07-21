@@ -9,9 +9,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Motion\Debug\Callback.h">
-      <Filter>Motion\Debug</Filter>
-    </ClInclude>
     <ClInclude Include="Motion\Debug\Stats.h">
       <Filter>Motion\Debug</Filter>
     </ClInclude>

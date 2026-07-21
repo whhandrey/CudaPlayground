@@ -4,7 +4,6 @@
 #include <GpuProcessor/ViewRenderer/ViewType.h>
 #include <Motion/Debug/Stats.h>
 #include "../DisplayTypes/DisplayTypes.h"
-#include "../GpuWorker/GpuWorkerFactory.h"
 #include "../Stats/StatsProvider.h"
 
 namespace pool {
@@ -28,13 +27,13 @@ namespace app {
 	using cuda::motion::render::ViewType;
 	using ::motion::debug::StatsPacket;
 
-	class StatsMerger;
+	class StatsState;
 
 	class Controller : public QObject {
 		Q_OBJECT
 
 	public:
-		Controller(app::worker::GpuWorkerFactory& factory);
+		Controller(std::unique_ptr<app::worker::AsyncGpuWorker> gpuWorker);
 		~Controller();
 
 		void SetFolder(const std::string& folderPath);
@@ -69,11 +68,9 @@ namespace app {
 		void RequestView(ViewSlot slot, ViewType view);
 		void OnGpuRenderedViewReady(app::motion::RenderViewsResult&& result);
 
-		void OnDebugStats(StatsPacket&& stats);
-
 	signals:
 		void ImagesReady(QImage prev, QImage curr, QImage conf, QImage vis);
-		void RenderedViewReady(std::vector<SlottedImage> views);
+		void RenderedViewReady(SlottedImage views);
 		void DebugStatsReady(StatsProvider provider);
 
 	private:
@@ -87,7 +84,7 @@ namespace app {
 		std::unique_ptr<pool::ThreadPool> m_pool;
 
 		std::unique_ptr<app::worker::AsyncGpuWorker> m_gpuWorker;
-		StatsPacket m_stats;
+		std::unique_ptr<app::StatsState> m_statsState;
 
 		size_t m_generation = 0;
 

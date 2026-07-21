@@ -138,17 +138,34 @@ namespace detail {
 }
 
 namespace app {
-	Controller::Controller(app::worker::GpuWorkerFactory& factory)
+	using ::motion::debug::StatsPacket;
+
+	class StatsState {
+	public:
+		void Replace(StatsPacket&& stats) {
+			m_stats = std::move(stats);
+		}
+
+		void UpdateViewStats(ViewSlot slot, StatsPacket&& stats) {
+			const std::string viewName = slot == ViewSlot::View1 ? "RenderView0/GpuStats" : "RenderView1/GpuStats";
+			m_stats[viewName] = std::move(stats["RenderView0/GpuStats"]);
+		}
+
+		const StatsPacket& Stats() const {
+			return m_stats;
+		}
+
+	private:
+		StatsPacket m_stats;
+	};
+}
+
+namespace app {
+	Controller::Controller(std::unique_ptr<app::worker::AsyncGpuWorker> gpuWorker)
 		: m_pool{ std::make_unique<pool::ThreadPool>() }
+		, m_gpuWorker{ std::move(gpuWorker) }
+		, m_statsState{ std::make_unique<app::StatsState>() }
 	{
-		m_gpuWorker = factory.Create([this](StatsPacket&& stats) mutable {
-			QMetaObject::invokeMethod(
-				this, [this, stats = std::move(stats)]() mutable {
-					OnDebugStats(std::move(stats));
-				},
-				Qt::QueuedConnection
-			);
-		});
 	}
 
 	Controller::~Controller()
@@ -169,6 +186,8 @@ namespace app {
 
 		m_currentIndex = 0;
 		m_pairOffset = detail::minOffset;
+
+		m_views = { ViewType::ConfMap, ViewType::ConfMap };
 
 		RequestPair({ m_currentIndex, m_currentIndex + m_pairOffset });
 	}
@@ -383,7 +402,7 @@ namespace app {
 		auto jobInput = app::motion::RenderViewsInput {
 			m_displayedPair,
 			m_generation,
-			{ requestedView }
+			requestedView
 		};
 
 		auto job = motion::CreateRenderViewsJob(jobInput, [this](motion::RenderViewsResult&& result) mutable {
@@ -406,16 +425,10 @@ namespace app {
 		if (result.framePair != m_displayedPair)
 			return;
 
-		emit RenderedViewReady(std::move(result.views));
-	}
+		m_statsState->UpdateViewStats(result.view.slot, std::move(result.stats));
 
-	void Controller::OnDebugStats(StatsPacket&& stats)
-	{
-		for (auto& [scope, fields] : stats) {
-			m_stats[scope] = std::move(fields);
-		}
-
-		emit DebugStatsReady(StatsProvider(m_stats));
+		emit RenderedViewReady(std::move(result.view));
+		emit DebugStatsReady(StatsProvider(m_statsState->Stats()));
 	}
 
 	void Controller::OnGpuAnalysisResultReady(motion::AnalyseResult&& result)
@@ -428,11 +441,15 @@ namespace app {
 
 		m_displayedPair = result.framePair;
 
+		m_statsState->Replace(std::move(result.stats));
+
 		emit ImagesReady(
 			result.prev,
 			result.curr,
 			result.views[m_views.view1],
 			result.views[m_views.view2]
 		);
+
+		emit DebugStatsReady(StatsProvider(m_statsState->Stats()));
 	}
 }

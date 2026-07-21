@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Motion\Debug\Callback.h" />
     <ClInclude Include="Motion\Debug\Stats.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

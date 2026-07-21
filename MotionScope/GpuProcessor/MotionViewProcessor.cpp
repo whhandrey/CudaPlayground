@@ -37,4 +37,9 @@ namespace app::motion {
 
 		return m_processor->RenderViews(views);
 	}
+
+	StatsPacket MotionViewProcessor::TakeLastStats()
+	{
+		return m_processor->TakeLastStats();
+	}
 }

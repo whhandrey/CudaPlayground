@@ -47,8 +47,8 @@ namespace app {
 
     private slots:
         void ShowImages(QImage prev, QImage curr, QImage view1, QImage view2);
-        void ShowViews(std::vector<SlottedImage> views);
-        void ShowDebugStats(StatsProvider provider);
+        void ShowViews(SlottedImage view);
+        void ShowDebugStats(const StatsProvider& provider);
 
     private:
         std::unique_ptr<app::Controller> m_controller;

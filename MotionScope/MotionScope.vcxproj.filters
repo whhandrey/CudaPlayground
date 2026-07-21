@@ -46,9 +46,6 @@
     <ClCompile Include="GpuWorker\Job\GpuJob.cpp">
       <Filter>GpuWorker\Job</Filter>
     </ClCompile>
-    <ClCompile Include="GpuWorker\GpuWorkerFactory.cpp">
-      <Filter>GpuWorker</Filter>
-    </ClCompile>
     <ClCompile Include="MainWindow\QImageView.cpp">
       <Filter>MainWindow</Filter>
     </ClCompile>
@@ -82,9 +79,6 @@
     </ClInclude>
     <ClInclude Include="DisplayTypes\DisplayTypes.h">
       <Filter>DisplayTypes</Filter>
-    </ClInclude>
-    <ClInclude Include="GpuWorker\GpuWorkerFactory.h">
-      <Filter>GpuWorker</Filter>
     </ClInclude>
     <ClInclude Include="Stats\StatsProvider.h">
       <Filter>Stats</Filter>

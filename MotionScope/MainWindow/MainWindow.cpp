@@ -352,22 +352,20 @@ namespace app {
         m_view2ImgLabel->SetImage(view2);
     }
 
-    void MainWindow::ShowViews(std::vector<SlottedImage> views)
+    void MainWindow::ShowViews(SlottedImage view)
     {
-        for (const auto& view : views) {
-            switch (view.slot)
-            {
-            case app::ViewSlot::View1:
-                m_view1ImgLabel->SetImage(view.image);
-                break;
-            case app::ViewSlot::View2:
-                m_view2ImgLabel->SetImage(view.image);
-                break;
-            }
+        switch (view.slot)
+        {
+        case app::ViewSlot::View1:
+            m_view1ImgLabel->SetImage(view.image);
+            break;
+        case app::ViewSlot::View2:
+            m_view2ImgLabel->SetImage(view.image);
+            break;
         }
     }
 
-    void MainWindow::ShowDebugStats(StatsProvider provider)
+    void MainWindow::ShowDebugStats(const StatsProvider& provider)
     {
         using ::motion::debug::StatsField;
 

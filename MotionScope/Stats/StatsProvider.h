@@ -12,7 +12,7 @@ namespace app {
 		explicit StatsProvider(const StatsPacket& stats);
 
 		std::map<std::string, std::vector<std::string>> GetFieldsByGroups() const;
-		ValueUnit GetStatValue(const std::string& group, const std::string& name);
+		ValueUnit GetStatValue(const std::string& group, const std::string& name) const;
 
 	private:
 		StatsPacket m_stats;

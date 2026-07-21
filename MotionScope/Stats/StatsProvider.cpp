@@ -74,7 +74,7 @@ namespace app {
 		return output;
 	}
 
-	ValueUnit StatsProvider::GetStatValue(const std::string& group, const std::string& name) {
+	ValueUnit StatsProvider::GetStatValue(const std::string& group, const std::string& name) const {
 		const auto& bucket = m_stats.at(group);
 
 		auto it = std::find_if(bucket.begin(), bucket.end(), [&name](const auto& statValue) {

@@ -3,10 +3,12 @@
 #include <map>
 #include <QImage>
 #include <GpuProcessor/ViewRenderer/ViewType.h>
+#include <Motion/Debug/Stats.h>
 #include "../../DisplayTypes/DisplayTypes.h"
 
 namespace app::motion {
 	using cuda::motion::render::ViewType;
+	using ::motion::debug::StatsPacket;
 
 	class MotionViewProcessor;
 
@@ -24,6 +26,7 @@ namespace app::motion {
 		QImage prev;
 		QImage curr;
 		std::map<ViewType, QImage> views;
+		StatsPacket stats;
 	};
 
 	using AnalyseResultCb = std::function<void(AnalyseResult&&)>;
@@ -31,13 +34,14 @@ namespace app::motion {
 	struct RenderViewsInput {
 		app::FramePair framePair;
 		size_t generation;
-		std::vector<SlottedView> requestedViews;
+		SlottedView requestedView;
 	};
 
 	struct RenderViewsResult {
 		app::FramePair framePair;
 		size_t generation;
-		std::vector<SlottedImage> views;
+		SlottedImage view;
+		StatsPacket stats;
 	};
 
 	using RenderViewsResultCb = std::function<void(RenderViewsResult&&)>;

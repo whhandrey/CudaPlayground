@@ -46,6 +46,8 @@ namespace cuda::motion {
 		std::map<render::ViewType, image::Image<image::vec4uc>> RenderViews(
 			const std::vector<render::ViewType>& views) override;
 
+		StatsPacket TakeLastStats() override;
+
 	private:
 		void AllocMem(image::vec2ui dim);
 		void WriteGpuStats(const std::string& scope, const std::string& group);
@@ -89,7 +91,6 @@ namespace cuda::motion {
 			throw std::logic_error("MotionGpuPipeline::Analyze: prev.dim != curr.dim");
 		}
 
-		m_gpuProfiler->Clear();
 		AllocMem(prev.m_dim);
 
 		cuda::TimedCall("UploadCompatible(prev)", m_ctx, [this, &prev]() {
@@ -139,8 +140,6 @@ namespace cuda::motion {
 			WriteGpuStats("RenderView" + std::to_string(viewIndex++), "GpuStats");
 		}
 
-		m_collector->IssueCallback();
-
 		cudaCheck(cudaStreamSynchronize(m_ctx.m_stream));
 		return output;
 	}
@@ -170,10 +169,13 @@ namespace cuda::motion {
 		m_gpuProfiler->Clear();
 	}
 
-	IMotionViewProcessor::Ptr IMotionViewProcessor::Create(StatsCallback&& callback) {
-		auto collector = std::make_unique<debug::Collector>(std::move(callback));
+	StatsPacket MotionGpuPipeline::TakeLastStats()
+	{
+		return m_collector->TakeStats();
+	}
 
+	IMotionViewProcessor::Ptr IMotionViewProcessor::Create() {
 		// not really pipeline yet but let's see how it goes
-		return std::make_unique<MotionGpuPipeline>(std::move(collector));
+		return std::make_unique<MotionGpuPipeline>(std::make_unique<debug::Collector>());
 	}
 }

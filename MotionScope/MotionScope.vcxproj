@@ -14,7 +14,6 @@
     <ClCompile Include="Controller\Controller.cpp" />
     <ClCompile Include="GpuProcessor\MotionViewProcessor.cpp" />
     <ClCompile Include="GpuWorker\AsyncGpuWorker.cpp" />
-    <ClCompile Include="GpuWorker\GpuWorkerFactory.cpp" />
     <ClCompile Include="GpuWorker\Job\GpuJob.cpp" />
     <ClCompile Include="ImageLoader\ImageLoader.cpp" />
     <ClCompile Include="main.cpp" />
@@ -32,7 +31,6 @@
     <ClInclude Include="DisplayTypes\DisplayTypes.h" />
     <ClInclude Include="GpuProcessor\MotionViewProcessor.h" />
     <ClInclude Include="GpuWorker\AsyncGpuWorker.h" />
-    <ClInclude Include="GpuWorker\GpuWorkerFactory.h" />
     <ClInclude Include="GpuWorker\Job\GpuJob.h" />
     <ClInclude Include="ImageLoader\ImageLoader.h" />
   </ItemGroup>

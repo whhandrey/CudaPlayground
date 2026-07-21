@@ -108,7 +108,8 @@ namespace app::motion {
 			m_input.generation,
 			m_input.prev,
 			m_input.curr,
-			ToQImages(std::move(views))
+			ToQImages(std::move(views)),
+			proc.TakeLastStats()
 		};
 
 		if (m_callback) {
@@ -124,26 +125,18 @@ namespace app::motion {
 
 	void RenderViewsJobAsync::Execute(MotionViewProcessor& proc)
 	{
-		std::vector<ViewType> request;
-		std::transform(m_input.requestedViews.begin(), m_input.requestedViews.end(), std::back_inserter(request), [](const auto& slottedView) {
-			return slottedView.view;
-		});
+		auto typedView = ToQImages(proc.RenderViews({ m_input.requestedView.view }));
 
-		auto views = ToQImages(proc.RenderViews(request));
-
-		std::vector<SlottedImage> output;
-		for (const auto& req : m_input.requestedViews) {
-			const auto it = views.find(req.view);
-
-			if (it != views.end()) {
-				output.push_back(app::SlottedImage{ req.slot, it->second });
-			}
-		}
+		SlottedImage output {
+			m_input.requestedView.slot,
+			std::move(typedView.at(m_input.requestedView.view))
+		};
 
 		auto result = RenderViewsResult {
 			m_input.framePair,
 			m_input.generation,
-			output
+			output,
+			proc.TakeLastStats()
 		};
 
 		if (m_callback) {
