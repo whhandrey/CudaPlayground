@@ -12,11 +12,13 @@ namespace cuda {
 }
 
 namespace cuda::motion::render {
-
 	struct ViewRendererParams {
 		cuda::KernelContext& ctx;
 		state::IMotionGpuPipelineState& state;
 		image::vec2i search_halfsize;
+		image::vec2ui renderDim;
+		image::vec2ui macroBlockDim;
+		float thickness;
 	};
 
 	class IMotionViewRenderer {

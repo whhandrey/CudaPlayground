@@ -11,8 +11,10 @@ namespace cuda::motion::state {
 		const GpuImageView<BlockMatchStats> Stats() const override;
 		GpuImageView<uchar4> View(render::ViewType type) override;
 
-		void Resize(image::vec2ui img_dim);
+		void Resize(render::ViewType viewType, image::vec2ui view_dim);
 		void SetStats(const GpuImageView<BlockMatchStats>& stats);
+
+		void ClearView(render::ViewType type, cudaStream_t stream);
 
 	private:
 		GpuImageView<BlockMatchStats> m_stats;

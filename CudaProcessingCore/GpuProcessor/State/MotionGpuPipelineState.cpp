@@ -18,19 +18,20 @@ namespace cuda::motion::state {
 		return cuda::gpu_image::MakeImageView(m_renderedViews.at(type));
 	}
 
-	void MotionGpuPipelineState::Resize(image::vec2ui img_dim) {
-		const std::array<ViewType, 3> allViews {
-			ViewType::ConfMap,
-			ViewType::MotionMap,
-			ViewType::MagnitudeMap
-		};
-
-		for (const auto view : allViews) {
-			m_renderedViews[view] = ImageGPU<uchar4>(img_dim);
-		}
+	void MotionGpuPipelineState::Resize(render::ViewType viewType, image::vec2ui view_dim) {
+		m_renderedViews[viewType] = ImageGPU<uchar4>(view_dim);
 	}
 
 	void MotionGpuPipelineState::SetStats(const GpuImageView<BlockMatchStats>& stats) {
 		m_stats = stats;
+	}
+
+	void MotionGpuPipelineState::ClearView(render::ViewType type, cudaStream_t stream) {
+		if (m_renderedViews.find(type) == m_renderedViews.end()) {
+			throw std::logic_error("MotionGpuPipelineState::ClearView: not supported type");
+		}
+
+		auto& img = m_renderedViews.at(type);
+		cudaCheck(cudaMemset2DAsync(img.Data(), img.Pitch(), 0, img.Dim().x * sizeof(uchar4), img.Dim().y, stream));
 	}
 }

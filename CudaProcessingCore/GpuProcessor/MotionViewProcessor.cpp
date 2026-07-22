@@ -7,9 +7,12 @@
 
 #include <Cuda/MathUtils.h>
 #include <Cuda/TimedCudaCall.h>
+#include <Cuda/Motion/Visualization/Params.h>
 #include <Profiler/Profiler.h>
 
 namespace {
+	using cuda::motion::render::ViewType;
+
 	bool EqDim(image::vec2ui dim1, image::vec2ui dim2) {
 		return dim1.x == dim2.x && dim1.y == dim2.y;
 	}
@@ -28,6 +31,15 @@ namespace {
 			blockDim,
 			macroBlockDim,
 			search_halfsize
+		};
+	}
+
+	std::map<ViewType, image::vec2ui> RenderViewsDims(image::vec2ui motion_dim, image::vec2ui arrows_dim) {
+		return {
+			{ ViewType::ConfMap, motion_dim },
+			{ ViewType::MotionMap, motion_dim },
+			{ ViewType::MagnitudeMap, motion_dim },
+			{ ViewType::ArrowsMap, arrows_dim }
 		};
 	}
 }
@@ -61,6 +73,10 @@ namespace cuda::motion {
 		
 		BlockMatchingParams m_params;
 
+		// this way for now
+		image::vec2ui m_renderDim;
+		float m_thickness;
+
 		ImageGPU<uchar4> m_prev;
 		ImageGPU<uchar4> m_curr;
 
@@ -78,6 +94,9 @@ namespace cuda::motion {
 		cudaCheck(cudaStreamCreate(&stream));
 
 		m_ctx = { stream, m_gpuProfiler.get() };
+
+		m_renderDim = m_params.macroBlockDim;
+		m_thickness = 1.5f;
 	}
 
 	MotionGpuPipeline::~MotionGpuPipeline() {
@@ -127,12 +146,17 @@ namespace cuda::motion {
 			m_ctx,
 			m_state,
 			m_params.search_halfsize,
+			m_renderDim,
+			m_params.macroBlockDim,
+			m_thickness
 		};
 
 		std::map<render::ViewType, image::Image<image::vec4uc>> output;
 
 		int viewIndex = 0;
 		for (const auto view : views) {
+			m_state.ClearView(view, m_ctx.m_stream);
+
 			auto renderer = render::IMotionViewRenderer::Create(params, view);
 			renderer->Render();
 
@@ -155,9 +179,14 @@ namespace cuda::motion {
 		m_curr = ImageGPU<uchar4>(dim);
 
 		const auto motion_dim = cuda::motion::MotionOutputDim(dim, m_params.macroBlockDim);
-
 		m_stats = ImageGPU<BlockMatchStats>(motion_dim);
-		m_state.Resize(motion_dim);
+
+		const auto arrows_dim = cuda::motion::visualization::ArrowsMapOutputDim(motion_dim, m_renderDim);
+		const auto viewsDims = RenderViewsDims(motion_dim, arrows_dim);
+
+		for (const auto viewDim : viewsDims) {
+			m_state.Resize(viewDim.first, viewDim.second);
+		}
 	}
 
 	void MotionGpuPipeline::WriteGpuStats(const std::string& scope, const std::string& group)

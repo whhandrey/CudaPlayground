@@ -30,6 +30,15 @@ namespace cuda {
 				image::vec2i search_halfsize,
 				image::vec2ui blockDim = { 8, 8 }
 			);
+
+			void ArrowsMap(
+				const GpuImageView<BlockMatchStats>& stats,
+				GpuImageView<uchar4>& output,
+				cuda::KernelContext& ctx,
+				image::vec2ui macroBlockDim,
+				image::vec2ui renderDim,
+				float thickness = 1.25f
+			);
 		}
 	}
 }

@@ -111,6 +111,8 @@ namespace {
 			return { "motion_map", "Motion Map" };
 		case cuda::motion::render::ViewType::MagnitudeMap:
 			return { "magnitude_map", "Magnitude Map" };
+		case cuda::motion::render::ViewType::ArrowsMap:
+			return { "arrows_map", "Arrows Map" };
 		}
 
 		throw std::logic_error("Controller: Invalid ViewType passed as parameter");
@@ -127,6 +129,10 @@ namespace {
 
 		else if (id == "magnitude_map") {
 			return ViewType::MagnitudeMap;
+		}
+
+		else if (id == "arrows_map") {
+			return ViewType::ArrowsMap;
 		}
 
 		throw std::logic_error("Controller: Invalid id passed as parameter");

@@ -44,6 +44,26 @@ namespace cuda::motion::render {
 		ViewType m_viewType;
 		StatsRenderFunc m_renderFunc;
 	};
+
+	class ArrowsMapViewRenderer : public IMotionViewRenderer {
+	public:
+		ArrowsMapViewRenderer(
+			cuda::KernelContext& ctx,
+			state::IMotionGpuPipelineState& state,
+			image::vec2ui renderDim,
+			image::vec2ui macroBlockDim,
+			float thickness);
+
+		void Render() override;
+
+	private:
+		cuda::KernelContext& m_ctx;
+		state::IMotionGpuPipelineState& m_state;
+
+		image::vec2ui m_renderDim;
+		image::vec2ui m_macroBlockDim;
+		float m_thickness;
+	};
 }
 
 namespace cuda::motion::render {
@@ -72,6 +92,20 @@ namespace cuda::motion::render {
 		cuda::motion::visualization::Conf(m_state.Stats(), output_view, m_ctx);
 	}
 
+	ArrowsMapViewRenderer::ArrowsMapViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, image::vec2ui renderDim, image::vec2ui macroBlockDim, float thickness)
+		: m_state{ state }
+		, m_ctx{ ctx }
+		, m_renderDim{ renderDim }
+		, m_macroBlockDim{ macroBlockDim }
+		, m_thickness{ thickness }
+	{
+	}
+
+	void ArrowsMapViewRenderer::Render() {
+		auto output_view = m_state.View(ViewType::ArrowsMap);
+		cuda::motion::visualization::ArrowsMap(m_state.Stats(), output_view, m_ctx, m_macroBlockDim, m_renderDim, m_thickness);
+	}
+
 	IMotionViewRenderer::Ptr IMotionViewRenderer::Create(const ViewRendererParams& params, ViewType type)
 	{
 		switch (type)
@@ -82,6 +116,8 @@ namespace cuda::motion::render {
 			return std::make_unique<StatsViewRenderer>(params.ctx, params.state, params.search_halfsize, ViewType::MotionMap, cuda::motion::visualization::MotionMap);
 		case cuda::motion::render::ViewType::MagnitudeMap:
 			return std::make_unique<StatsViewRenderer>(params.ctx, params.state, params.search_halfsize, ViewType::MagnitudeMap, cuda::motion::visualization::MagMap);
+		case cuda::motion::render::ViewType::ArrowsMap:
+			return std::make_unique<ArrowsMapViewRenderer>(params.ctx, params.state, params.renderDim, params.macroBlockDim, params.thickness);
 		}
 
 		throw std::logic_error("IMotionViewRenderer::Create: invalid renderer type");

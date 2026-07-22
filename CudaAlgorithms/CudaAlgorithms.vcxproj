@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="Cuda\KernelCommon.cpp" />
     <ClCompile Include="Cuda\Motion\BlockMatchingParams.cpp" />
+    <ClCompile Include="Cuda\Motion\Visualization\Params.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Common.h" />
@@ -32,6 +33,7 @@
     <ClInclude Include="Cuda\Motion\BlockMatchingCommon.cuh" />
     <ClInclude Include="Cuda\Motion\BlockMatchingParams.h" />
     <ClInclude Include="Cuda\Motion\BlockMatchingWarp.h" />
+    <ClInclude Include="Cuda\Motion\Visualization\Params.h" />
     <ClInclude Include="Cuda\Motion\Visualization\Visualization.h" />
     <ClInclude Include="Cuda\Reduction.cuh" />
     <ClInclude Include="Cuda\Transform\Shift.h" />

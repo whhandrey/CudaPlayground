@@ -24,6 +24,9 @@
     <ClCompile Include="Cuda\Motion\BlockMatchingParams.cpp">
       <Filter>Cuda\Motion</Filter>
     </ClCompile>
+    <ClCompile Include="Cuda\Motion\Visualization\Params.cpp">
+      <Filter>Cuda\Motion\Visualization</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\Common.h">
@@ -60,6 +63,9 @@
       <Filter>Cuda\Transform</Filter>
     </ClInclude>
     <ClInclude Include="Cuda\Motion\Visualization\Visualization.h">
+      <Filter>Cuda\Motion\Visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Motion\Visualization\Params.h">
       <Filter>Cuda\Motion\Visualization</Filter>
     </ClInclude>
   </ItemGroup>
