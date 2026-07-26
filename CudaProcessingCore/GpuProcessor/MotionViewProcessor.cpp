@@ -96,7 +96,7 @@ namespace cuda::motion {
 		m_ctx = { stream, m_gpuProfiler.get() };
 
 		m_renderDim = m_params.macroBlockDim;
-		m_thickness = 1.5f;
+		m_thickness = 2.0f;
 	}
 
 	MotionGpuPipeline::~MotionGpuPipeline() {

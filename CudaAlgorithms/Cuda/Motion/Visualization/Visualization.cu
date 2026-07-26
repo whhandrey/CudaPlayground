@@ -53,6 +53,18 @@ __device__ __forceinline__ bool PointNearLineSegment(float2 a, float2 b, float2 
     return Dot(px, px) < thickness * thickness;
 }
 
+__device__ __forceinline__ uchar4 ArrowColor(image::vec2i vec) {
+    if (vec.x == 0) {
+        return make_uchar4(255, 50, 50, 255);
+    }
+
+    if (vec.y == 0) {
+        return make_uchar4(50, 255, 50, 255);
+    }
+
+    return make_uchar4(64, 220, 255, 255);
+}
+
 __global__  void ConfVisualizationKernel(
     const BlockMatchStats* __restrict__ allStats,
     size_t statsPitch,
@@ -214,17 +226,15 @@ __global__  void ArrowsMapKernel(
     const BlockMatchStats* stats = rowStats + blockIdx.x;
 
     const bool moved = (abs(stats->bestDxDy.x) + abs(stats->bestDxDy.y)) > 0;
-    if (!moved) {
-        return;
-    }
-
     float conf = 0.0f;
+
     if (stats->zeroSad > 0) {
         float zeroScore = float(stats->zeroSad - stats->bestSad) / stats->zeroSad;
         conf = saturate(zeroScore);
     }
 
-    if (conf < 0.25f) {
+    // TODO: threshold is hardcoded.
+    if (!moved || conf < 0.25f) {
         return;
     }
 
@@ -233,38 +243,28 @@ __global__  void ArrowsMapKernel(
         blockIdx.y * blockDim.y + blockDim.y * 0.5f
     );
 
-    float vectorGain = 2.0f; // visual-only exaggeration
-
     float2 moveVec = make_float2(
-        stats->bestDxDy.x * scaleVector.x * vectorGain,
-        stats->bestDxDy.y * scaleVector.y * vectorGain
+        stats->bestDxDy.x * scaleVector.x,
+        stats->bestDxDy.y * scaleVector.y
     );
 
     float2 currPt = make_float2(x, y);
 
     float len = sqrtf(Dot(moveVec, moveVec));
+    moveVec = make_float2(moveVec.x / len, moveVec.y / len);
 
-    float2 dir = MulByConst(moveVec, 1.0f / len);
-    float2 n = make_float2(-dir.y, dir.x);
+    float arrowLen = float(blockDim.x);
 
-    float2 lineEnd = Add(blockCenter, moveVec);
+    float2 lineEnd = make_float2(
+        blockCenter.x + moveVec.x * arrowLen,
+        blockCenter.y + moveVec.y * arrowLen
+    );
 
-    float headLen = 3.5f;
-    float headWidth = 2.0f;
-
-    float2 headBase = Sub(lineEnd, MulByConst(dir, headLen));
-
-    float2 h1 = Add(headBase, MulByConst(n, headWidth));
-    float2 h2 = Sub(headBase, MulByConst(n, headWidth));
-
-    bool pointNearLine =
-        PointNearLineSegment(blockCenter, lineEnd, currPt, thickness) ||
-        PointNearLineSegment(lineEnd, h1, currPt, thickness) ||
-        PointNearLineSegment(lineEnd, h2, currPt, thickness);
+    bool pointNearLine = PointNearLineSegment(blockCenter, lineEnd, currPt, thickness);
 
     if (pointNearLine) {
         uchar4* rowOut = (uchar4*)((char*)output + y * outPitch);
-        rowOut[x] = make_uchar4(64, 220, 255, 255);
+        rowOut[x] = ArrowColor(stats->bestDxDy);
     }
 }
 
