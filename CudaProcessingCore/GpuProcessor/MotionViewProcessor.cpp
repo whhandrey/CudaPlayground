@@ -7,7 +7,6 @@
 
 #include <Cuda/MathUtils.h>
 #include <Cuda/TimedCudaCall.h>
-#include <Cuda/Motion/Visualization/Params.h>
 #include <Profiler/Profiler.h>
 
 namespace {
@@ -73,10 +72,6 @@ namespace cuda::motion {
 		
 		BlockMatchingParams m_params;
 
-		// this way for now
-		image::vec2ui m_renderDim;
-		float m_thickness;
-
 		ImageGPU<uchar4> m_prev;
 		ImageGPU<uchar4> m_curr;
 
@@ -94,9 +89,6 @@ namespace cuda::motion {
 		cudaCheck(cudaStreamCreate(&stream));
 
 		m_ctx = { stream, m_gpuProfiler.get() };
-
-		m_renderDim = m_params.macroBlockDim;
-		m_thickness = 2.0f;
 	}
 
 	MotionGpuPipeline::~MotionGpuPipeline() {
@@ -142,13 +134,16 @@ namespace cuda::motion {
 			throw std::logic_error("MotionGpuPipeline::RenderViews: analysis has not been performed");
 		}
 
+		const int groupSize = 3;
+		const float thickness = 3.0f;
+
 		const auto params = render::ViewRendererParams {
 			m_ctx,
 			m_state,
 			m_params.search_halfsize,
-			m_renderDim,
 			m_params.macroBlockDim,
-			m_thickness
+			groupSize,
+			thickness
 		};
 
 		std::map<render::ViewType, image::Image<image::vec4uc>> output;
@@ -181,7 +176,7 @@ namespace cuda::motion {
 		const auto motion_dim = cuda::motion::MotionOutputDim(dim, m_params.macroBlockDim);
 		m_stats = ImageGPU<BlockMatchStats>(motion_dim);
 
-		const auto arrows_dim = cuda::motion::visualization::ArrowsMapOutputDim(motion_dim, m_renderDim);
+		const auto arrows_dim = dim;
 		const auto viewsDims = RenderViewsDims(motion_dim, arrows_dim);
 
 		for (const auto viewDim : viewsDims) {

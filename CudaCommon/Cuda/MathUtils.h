@@ -4,10 +4,15 @@
 
 namespace cuda {
 	namespace math {
+		template <class IntT>
+		inline IntT DivUp(IntT x, IntT blockX) {
+			return (x + blockX - 1) / blockX;
+		}
+
 		inline dim3 DivUp(image::vec2ui dim, image::vec2ui blockSize) {
 			return {
-				(dim.x + blockSize.x - 1) / blockSize.x,
-				(dim.y + blockSize.y - 1) / blockSize.y,
+				DivUp(dim.x, blockSize.x),
+				DivUp(dim.y, blockSize.y),
 				1
 			};
 		}

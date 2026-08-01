@@ -36,8 +36,9 @@ namespace cuda {
 				GpuImageView<uchar4>& output,
 				cuda::KernelContext& ctx,
 				image::vec2ui macroBlockDim,
-				image::vec2ui renderDim,
-				float thickness = 1.25f
+				int groupSize,
+				float thickness = 1.25f,
+				image::vec2ui blockDim = { 16, 16 }
 			);
 		}
 	}

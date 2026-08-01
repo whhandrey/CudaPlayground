@@ -50,8 +50,8 @@ namespace cuda::motion::render {
 		ArrowsMapViewRenderer(
 			cuda::KernelContext& ctx,
 			state::IMotionGpuPipelineState& state,
-			image::vec2ui renderDim,
 			image::vec2ui macroBlockDim,
+			int groupSize,
 			float thickness);
 
 		void Render() override;
@@ -59,9 +59,9 @@ namespace cuda::motion::render {
 	private:
 		cuda::KernelContext& m_ctx;
 		state::IMotionGpuPipelineState& m_state;
-
-		image::vec2ui m_renderDim;
 		image::vec2ui m_macroBlockDim;
+
+		int m_groupSize;
 		float m_thickness;
 	};
 }
@@ -92,18 +92,18 @@ namespace cuda::motion::render {
 		cuda::motion::visualization::Conf(m_state.Stats(), output_view, m_ctx);
 	}
 
-	ArrowsMapViewRenderer::ArrowsMapViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, image::vec2ui renderDim, image::vec2ui macroBlockDim, float thickness)
+	ArrowsMapViewRenderer::ArrowsMapViewRenderer(cuda::KernelContext& ctx, state::IMotionGpuPipelineState& state, image::vec2ui macroBlockDim, int groupSize, float thickness)
 		: m_state{ state }
 		, m_ctx{ ctx }
-		, m_renderDim{ renderDim }
 		, m_macroBlockDim{ macroBlockDim }
+		, m_groupSize{ groupSize }
 		, m_thickness{ thickness }
 	{
 	}
 
 	void ArrowsMapViewRenderer::Render() {
 		auto output_view = m_state.View(ViewType::ArrowsMap);
-		cuda::motion::visualization::ArrowsMap(m_state.Stats(), output_view, m_ctx, m_macroBlockDim, m_renderDim, m_thickness);
+		cuda::motion::visualization::ArrowsMap(m_state.Stats(), output_view, m_ctx, m_macroBlockDim, m_groupSize, m_thickness);
 	}
 
 	IMotionViewRenderer::Ptr IMotionViewRenderer::Create(const ViewRendererParams& params, ViewType type)
@@ -117,7 +117,7 @@ namespace cuda::motion::render {
 		case cuda::motion::render::ViewType::MagnitudeMap:
 			return std::make_unique<StatsViewRenderer>(params.ctx, params.state, params.search_halfsize, ViewType::MagnitudeMap, cuda::motion::visualization::MagMap);
 		case cuda::motion::render::ViewType::ArrowsMap:
-			return std::make_unique<ArrowsMapViewRenderer>(params.ctx, params.state, params.renderDim, params.macroBlockDim, params.thickness);
+			return std::make_unique<ArrowsMapViewRenderer>(params.ctx, params.state, params.macroBlockDim, params.groupSize, params.thickness);
 		}
 
 		throw std::logic_error("IMotionViewRenderer::Create: invalid renderer type");

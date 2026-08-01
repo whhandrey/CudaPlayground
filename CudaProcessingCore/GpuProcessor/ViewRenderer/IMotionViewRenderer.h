@@ -16,8 +16,8 @@ namespace cuda::motion::render {
 		cuda::KernelContext& ctx;
 		state::IMotionGpuPipelineState& state;
 		image::vec2i search_halfsize;
-		image::vec2ui renderDim;
 		image::vec2ui macroBlockDim;
+		int groupSize;
 		float thickness;
 	};
 

@@ -8,6 +8,13 @@
 
 using cuda::motion::BlockMatchStats;
 
+namespace {
+    template <class Vec2, class Vec1>
+    Vec2 ConvertTo(Vec1 vec1) {
+        return { vec1.x, vec1.y };
+    }
+}
+
 __device__ __forceinline__ float Dot(float2 a, float2 b) {
     return a.x * b.x + a.y * b.y;
 }
@@ -24,33 +31,130 @@ __device__ __forceinline__ float2 MulByConst(float2 a, float c) {
     return { a.x * c, a.y * c };
 }
 
-__device__ __forceinline__ float2 ProjectPointOnLineSegment(float2 a, float2 b, float2 p) {
-    float2 ab = Sub(b, a);
-    float2 ap = Sub(p, a);
+__device__ __forceinline__ float2 Normalize(float2 vec) {
+    float len2 = vec.x * vec.x + vec.y * vec.y;
 
-    float abLenSq = Dot(ab, ab);
-
-    if (abLenSq < 1e-7f) {
-        return a;
+    if (len2 < 1e-10f) {
+        return { 0, 0 };
     }
 
-    float t = clamp(Dot(ap, ab) / abLenSq, 0.0f, 1.0f);
-    return Add(a, MulByConst(ab, t));
+    float invLength = rsqrtf(vec.x * vec.x + vec.y * vec.y);
+    return { vec.x * invLength, vec.y * invLength };
 }
 
-__device__ __forceinline__ bool PointNearLineSegment(float2 a, float2 b, float2 p, float thickness) {
-    float2 ab = Sub(b, a);
-    float abLenSq = Dot(ab, ab);
+__device__ __forceinline__ void DrawBrush(
+    uchar4* output,
+    size_t pitch,
+    int width,
+    int height,
+    int centerX,
+    int centerY,
+    float radius,
+    uchar4 color)
+{
+    int extent = int(ceilf(radius));
+    float radiusSq = radius * radius;
 
-    if (abLenSq < 1e-7f) {
-        return false;
+    for (int oy = -extent; oy <= extent; ++oy) {
+        int y = centerY + oy;
+
+        if (y < 0 || y >= height) {
+            continue;
+        }
+
+        uchar4* row = (uchar4*)((char*)output + y * pitch);
+
+        for (int ox = -extent; ox <= extent; ++ox) {
+
+            // Circular brush, not a square one.
+            if (float(ox * ox + oy * oy) > radiusSq)
+                continue;
+
+            int x = centerX + ox;
+
+            if (x < 0 || x >= width)
+                continue;
+
+            row[x] = color;
+        }
+    }
+}
+
+__device__ __forceinline__ void DrawLineDDA(
+    uchar4* output,
+    size_t pitch,
+    int width,
+    int height,
+    int2 begin,
+    int2 end,
+    float thickness,
+    uchar4 color)
+{
+    int dx = end.x - begin.x;
+    int dy = end.y - begin.y;
+
+    // Number of pixel-sized steps along the longest direction.
+    int steps = max(abs(dx), abs(dy));
+
+    float radius = thickness * 0.5f;
+
+    // no need to draw if zero movement yet
+    if (steps == 0) {
+        //DrawBrush(output, pitch, width, height, begin.x, begin.y, radius, color);
+        return;
     }
 
-    // projected point p onto vector AB
-    float2 x = ProjectPointOnLineSegment(a, b, p);
-    float2 px = Sub(x, p);
+    // Movement during one DDA iteration.
+    float stepX = dx / float(steps);
+    float stepY = dy / float(steps);
 
-    return Dot(px, px) < thickness * thickness;
+    float x = float(begin.x);
+    float y = float(begin.y);
+
+    // <= includes final end point
+    for (int i = 0; i <= steps; ++i) {
+        DrawBrush(output, pitch, width, height, __float2int_rn(x), __float2int_rn(y), radius, color);
+
+        x += stepX;
+        y += stepY;
+    }
+}
+
+// NB: no averaging by the total weight, the vector will anyway be normalized
+__device__ __forceinline__ float2 VecFromNeighbors(
+    const BlockMatchStats* __restrict__ allStats,
+    size_t pitch,
+    int statsWidth,
+    int statsHeight,
+    int beginX,
+    int beginY,
+    int groupSize)
+{
+    float2 vec_out = { 0.0f, 0.0f };
+
+    int endX = min(beginX + groupSize, statsWidth);
+    int endY = min(beginX + groupSize, statsHeight);
+
+    for (int i = beginY; i < endY; ++i) {
+        const BlockMatchStats* rowStats = (BlockMatchStats*)((char*)allStats + i * pitch);
+
+        for (int j = beginX; j < endX; ++j) {
+            const BlockMatchStats* stats = rowStats + j;
+
+            float conf = 0.0f;
+            bool moved = abs(stats->bestDxDy.x) + abs(stats->bestDxDy.y) > 0;
+
+            if (stats->zeroSad > 0) {
+                float zeroScore = float(stats->zeroSad - stats->bestSad) / stats->zeroSad;
+                conf = saturate(zeroScore) * float(moved);
+            }
+
+            vec_out.x += (stats->bestDxDy.x);
+            vec_out.y += (stats->bestDxDy.y);
+        }
+    }
+
+    return vec_out;
 }
 
 __device__ __forceinline__ uchar4 ArrowColor(image::vec2i vec) {
@@ -211,61 +315,56 @@ __global__  void ArrowsMapKernel(
     size_t statsPitch,
     uchar4* __restrict__ output,
     size_t outPitch,
-    float2 scaleVector,
-    int width,
-    int height,
+    uint2 statsDim,
+    uint2 outDim,
+    int2 renderDim,
+    int groupSize,
     float thickness)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (x >= width || y >= height)
+    // divUp
+    int arrowCountX = (statsDim.x + groupSize - 1) / groupSize;
+    int arrowCountY = (statsDim.y + groupSize - 1) / groupSize;
+
+    if (x >= arrowCountX || y >= arrowCountY)
         return;
 
-    const BlockMatchStats* rowStats = (BlockMatchStats*)((char*)allStats + blockIdx.y * statsPitch);
-    const BlockMatchStats* stats = rowStats + blockIdx.x;
+    // aggregated vec of neighboring bestDxDy vecs.
+    float2 agg_vec = VecFromNeighbors(allStats, statsPitch, statsDim.x, statsDim.y, x * groupSize, y * groupSize, groupSize);
 
-    const bool moved = (abs(stats->bestDxDy.x) + abs(stats->bestDxDy.y)) > 0;
-    float conf = 0.0f;
+    int2 blockBegin = { x * renderDim.x, y * renderDim.y };
+    int renderHeight = min(renderDim.x, renderDim.y);
 
-    if (stats->zeroSad > 0) {
-        float zeroScore = float(stats->zeroSad - stats->bestSad) / stats->zeroSad;
-        conf = saturate(zeroScore);
-    }
+    int2 begin = { blockBegin.x + int(renderHeight * 0.5f), blockBegin.y + int(renderHeight * 0.5f) };
+    
+    DrawBrush(
+        output,
+        outPitch,
+        outDim.x,
+        outDim.y,
+        begin.x,
+        begin.y,
+        4.0f,
+        make_uchar4(80, 80, 80, 255)
+    );
 
-    // TODO: threshold is hardcoded.
-    if (!moved || conf < 0.25f) {
+    float lengthSq = agg_vec.x * agg_vec.x + agg_vec.y * agg_vec.y;
+    if (lengthSq < 1e-10f) {
         return;
     }
 
-    float2 blockCenter = make_float2(
-        blockIdx.x * blockDim.x + blockDim.x * 0.5f,
-        blockIdx.y * blockDim.y + blockDim.y * 0.5f
-    );
+    float invLength = rsqrtf(lengthSq);
+    float2 vec_norm = { agg_vec.x * invLength, agg_vec.y * invLength };
+    
+    int2 end = {
+        begin.x + int(vec_norm.x * renderHeight * 0.5f),
+        begin.y + int(vec_norm.y * renderHeight * 0.5f)
+    };
 
-    float2 moveVec = make_float2(
-        stats->bestDxDy.x * scaleVector.x,
-        stats->bestDxDy.y * scaleVector.y
-    );
-
-    float2 currPt = make_float2(x, y);
-
-    float len = sqrtf(Dot(moveVec, moveVec));
-    moveVec = make_float2(moveVec.x / len, moveVec.y / len);
-
-    float arrowLen = float(blockDim.x);
-
-    float2 lineEnd = make_float2(
-        blockCenter.x + moveVec.x * arrowLen,
-        blockCenter.y + moveVec.y * arrowLen
-    );
-
-    bool pointNearLine = PointNearLineSegment(blockCenter, lineEnd, currPt, thickness);
-
-    if (pointNearLine) {
-        uchar4* rowOut = (uchar4*)((char*)output + y * outPitch);
-        rowOut[x] = ArrowColor(stats->bestDxDy);
-    }
+    const uchar4 color = make_uchar4(64, 220, 255, 255);
+    DrawLineDDA(output, outPitch, outDim.x, outDim.y, begin, end, thickness, color);
 }
 
 namespace {
@@ -354,27 +453,26 @@ namespace cuda {
                 GpuImageView<uchar4>& output,
                 cuda::KernelContext& ctx,
                 image::vec2ui macroBlockDim,
-                image::vec2ui renderDim,
-                float thickness)
+                int groupSize,
+                float thickness,
+                image::vec2ui blockDim)
             {
-                dim3 gridSize = dim3(stats.m_dim.x, stats.m_dim.y, 1);
-                uint2 outDim = { gridSize.x * renderDim.x, gridSize.y * renderDim.y };
+                unsigned int arrowCountX = cuda::math::DivUp(stats.m_dim.x, unsigned int(groupSize));
+                unsigned int arrowCountY = cuda::math::DivUp(stats.m_dim.y, unsigned int(groupSize));
 
-                if (!EqVec(output.m_dim, outDim)) {
-                    throw std::logic_error("CudaAlgorithms::ArrowsMap: invalid output image dim");
-                }
-
-                float2 scaleVec = { float(renderDim.x) / macroBlockDim.x, float(renderDim.y) / macroBlockDim.y };
+                dim3 gridSize = cuda::math::DivUp({ arrowCountX, arrowCountY }, blockDim);
+                int2 renderDim = { int(macroBlockDim.x) * groupSize, int(macroBlockDim.y) * groupSize };
 
                 cuda::TimedCall("ArrowsMapKernel", ctx, [&]() {
-                    ArrowsMapKernel <<<gridSize, cuda::math::vec2Todim3(renderDim), 0, ctx.m_stream>>> (
+                    ArrowsMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
                         stats.m_ptr,
                         stats.m_pitch,
                         output.m_ptr,
                         output.m_pitch,
-                        scaleVec,
-                        output.m_dim.x,
-                        output.m_dim.y,
+                        ConvertTo<uint2>(stats.m_dim),
+                        ConvertTo<uint2>(output.m_dim),
+                        renderDim,
+                        groupSize,
                         thickness
                     );
                 });
