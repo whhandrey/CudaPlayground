@@ -133,24 +133,27 @@ __device__ __forceinline__ float2 VecFromNeighbors(
     float2 vec_out = { 0.0f, 0.0f };
 
     int endX = min(beginX + groupSize, statsWidth);
-    int endY = min(beginX + groupSize, statsHeight);
+    int endY = min(beginY + groupSize, statsHeight);
 
     for (int i = beginY; i < endY; ++i) {
         const BlockMatchStats* rowStats = (BlockMatchStats*)((char*)allStats + i * pitch);
 
         for (int j = beginX; j < endX; ++j) {
-            const BlockMatchStats* stats = rowStats + j;
+            const BlockMatchStats& stats = rowStats[j];
+
+            bool moved = abs(stats.bestDxDy.x) + abs(stats.bestDxDy.y) > 0;
+            if (!moved) {
+                continue;
+            }
 
             float conf = 0.0f;
-            bool moved = abs(stats->bestDxDy.x) + abs(stats->bestDxDy.y) > 0;
-
-            if (stats->zeroSad > 0) {
-                float zeroScore = float(stats->zeroSad - stats->bestSad) / stats->zeroSad;
+            if (stats.zeroSad > 0) {
+                float zeroScore = float(stats.zeroSad - stats.bestSad) / stats.zeroSad;
                 conf = saturate(zeroScore) * float(moved);
             }
 
-            vec_out.x += (stats->bestDxDy.x);
-            vec_out.y += (stats->bestDxDy.y);
+            vec_out.x += (stats.bestDxDy.x * conf);
+            vec_out.y += (stats.bestDxDy.y * conf);
         }
     }
 
@@ -332,23 +335,31 @@ __global__  void ArrowsMapKernel(
         return;
 
     // aggregated vec of neighboring bestDxDy vecs.
-    float2 agg_vec = VecFromNeighbors(allStats, statsPitch, statsDim.x, statsDim.y, x * groupSize, y * groupSize, groupSize);
+    float2 agg_vec = {};
+    agg_vec = VecFromNeighbors(allStats, statsPitch, statsDim.x, statsDim.y, x * groupSize, y * groupSize, groupSize);
+
+    //if (groupSize == 1) {
+    //    const BlockMatchStats* rowStats = (BlockMatchStats*)((char*)allStats + y * statsPitch);
+    //    agg_vec = make_float2(rowStats[x].bestDxDy.x, rowStats[x].bestDxDy.y);
+
+    //    bool moved = abs(rowStats[x].bestDxDy.x) + abs(rowStats[x].bestDxDy.y) > 0;
+
+    //    float conf = 0.0f;
+    //    if (rowStats[x].zeroSad > 0) {
+    //        float zeroScore = float(rowStats[x].zeroSad - rowStats[x].bestSad) / rowStats[x].zeroSad;
+    //        conf = saturate(zeroScore) * float(moved);
+    //    }
+
+    //    agg_vec = { agg_vec.x * conf, agg_vec.y * conf };
+    //}
+    //else {
+    //    agg_vec = VecFromNeighbors(allStats, statsPitch, statsDim.x, statsDim.y, x * groupSize, y * groupSize, groupSize);
+    //}
 
     int2 blockBegin = { x * renderDim.x, y * renderDim.y };
     int renderHeight = min(renderDim.x, renderDim.y);
 
     int2 begin = { blockBegin.x + int(renderHeight * 0.5f), blockBegin.y + int(renderHeight * 0.5f) };
-    
-    DrawBrush(
-        output,
-        outPitch,
-        outDim.x,
-        outDim.y,
-        begin.x,
-        begin.y,
-        4.0f,
-        make_uchar4(80, 80, 80, 255)
-    );
 
     float lengthSq = agg_vec.x * agg_vec.x + agg_vec.y * agg_vec.y;
     if (lengthSq < 1e-10f) {
