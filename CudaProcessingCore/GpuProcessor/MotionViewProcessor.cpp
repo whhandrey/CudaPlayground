@@ -135,7 +135,7 @@ namespace cuda::motion {
 		}
 
 		const int groupSize = 3;
-		const float thickness = 3.0f;
+		const float thickness = 2.0f;
 
 		const auto params = render::ViewRendererParams {
 			m_ctx,

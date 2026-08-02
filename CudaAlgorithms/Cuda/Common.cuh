@@ -28,3 +28,7 @@ __device__ __forceinline__ float saturate(float x) {
 __device__ __forceinline__ unsigned char normFloatToUchar(float x) {
     return static_cast<unsigned char>(saturate(x) * 255.0f + 0.5f);
 }
+
+__device__ __forceinline__ int2 float2ToInt2(float2 value) {
+    return { __float2int_rn(value.x), __float2int_rn(value.y) };
+}

@@ -27,6 +27,10 @@ __device__ __forceinline__ float2 Add(float2 a, float2 b) {
     return { a.x + b.x, a.y + b.y };
 }
 
+__device__ __forceinline__ float2 Mul(float2 a, float2 b) {
+    return { a.x * b.x, a.y * b.y };
+}
+
 __device__ __forceinline__ float2 MulByConst(float2 a, float c) {
     return { a.x * c, a.y * c };
 }
@@ -40,6 +44,35 @@ __device__ __forceinline__ float2 Normalize(float2 vec) {
 
     float invLength = rsqrtf(vec.x * vec.x + vec.y * vec.y);
     return { vec.x * invLength, vec.y * invLength };
+}
+
+__device__ __forceinline__ float2 ProjectPointOnLineSegment(float2 a, float2 b, float2 p) {
+    float2 ab = Sub(b, a);
+    float2 ap = Sub(p, a);
+
+    float abLenSq = Dot(ab, ab);
+
+    if (abLenSq < 1e-7f) {
+        return a;
+    }
+
+    float t = clamp(Dot(ap, ab) / abLenSq, 0.0f, 1.0f);
+    return Add(a, MulByConst(ab, t));
+}
+
+__device__ __forceinline__ bool PointNearLineSegment(float2 a, float2 b, float2 p, float thickness) {
+    float2 ab = Sub(b, a);
+    float abLenSq = Dot(ab, ab);
+
+    if (abLenSq < 1e-7f) {
+        return false;
+    }
+
+    // projected point p onto vector AB
+    float2 x = ProjectPointOnLineSegment(a, b, p);
+    float2 px = Sub(x, p);
+
+    return Dot(px, px) < thickness * thickness;
 }
 
 __device__ __forceinline__ void DrawBrush(
@@ -121,7 +154,7 @@ __device__ __forceinline__ void DrawLineDDA(
 }
 
 // NB: no averaging by the total weight, the vector will anyway be normalized
-__device__ __forceinline__ float2 VecFromNeighbors(
+__device__ __forceinline__ float2 SelectBestDxDyVectorInGroup(
     const BlockMatchStats* __restrict__ allStats,
     size_t pitch,
     int statsWidth,
@@ -130,34 +163,37 @@ __device__ __forceinline__ float2 VecFromNeighbors(
     int beginY,
     int groupSize)
 {
-    float2 vec_out = { 0.0f, 0.0f };
+    image::vec2i vec_out = {};
 
     int endX = min(beginX + groupSize, statsWidth);
     int endY = min(beginY + groupSize, statsHeight);
 
+    float bestConf = 0.0f;
     for (int i = beginY; i < endY; ++i) {
         const BlockMatchStats* rowStats = (BlockMatchStats*)((char*)allStats + i * pitch);
 
         for (int j = beginX; j < endX; ++j) {
             const BlockMatchStats& stats = rowStats[j];
 
-            bool moved = abs(stats.bestDxDy.x) + abs(stats.bestDxDy.y) > 0;
-            if (!moved) {
-                continue;
-            }
-
+            const bool moved = abs(stats.bestDxDy.x) + abs(stats.bestDxDy.y) > 0;
             float conf = 0.0f;
+
             if (stats.zeroSad > 0) {
                 float zeroScore = float(stats.zeroSad - stats.bestSad) / stats.zeroSad;
                 conf = saturate(zeroScore) * float(moved);
             }
 
-            vec_out.x += (stats.bestDxDy.x * conf);
-            vec_out.y += (stats.bestDxDy.y * conf);
+            if (conf > bestConf) {
+                vec_out = { stats.bestDxDy.x, stats.bestDxDy.y };
+                bestConf = conf;
+            }
+
+            //vec_out.x += (stats.bestDxDy.x * conf);
+            //vec_out.y += (stats.bestDxDy.y * conf);
         }
     }
 
-    return vec_out;
+    return make_float2(vec_out.x, vec_out.y);
 }
 
 __device__ __forceinline__ uchar4 ArrowColor(image::vec2i vec) {
@@ -334,29 +370,46 @@ __global__  void ArrowsMapKernel(
     if (x >= arrowCountX || y >= arrowCountY)
         return;
 
-    // aggregated vec of neighboring bestDxDy vecs.
-    float2 agg_vec = VecFromNeighbors(allStats, statsPitch, statsDim.x, statsDim.y, x * groupSize, y * groupSize, groupSize);
+    // aggregated shaft vector of neighboring bestDxDy vecs.
+    float2 agg_vec = SelectBestDxDyVectorInGroup(allStats, statsPitch, statsDim.x, statsDim.y, x * groupSize, y * groupSize, groupSize);
 
-    float lengthSq = agg_vec.x * agg_vec.x + agg_vec.y * agg_vec.y;
-    if (lengthSq < 1e-10f) {
+    float lengthSqAgg = agg_vec.x * agg_vec.x + agg_vec.y * agg_vec.y;
+    if (lengthSqAgg < 1e-10f) {
         return;
     }
 
     int2 blockBegin = { x * renderDim.x, y * renderDim.y };
-    int renderHeight = min(renderDim.x, renderDim.y);
+    const int renderHeight = min(renderDim.x, renderDim.y);
 
-    int2 begin = { blockBegin.x + int(renderHeight * 0.5f), blockBegin.y + int(renderHeight * 0.5f) };
+    const float shaftLength = renderHeight * 0.5f;
+    int2 begin = { blockBegin.x + int(shaftLength), blockBegin.y + int(shaftLength) };
 
-    float invLength = rsqrtf(lengthSq);
-    float2 vec_norm = { agg_vec.x * invLength, agg_vec.y * invLength };
+    float invLengthAgg = rsqrtf(lengthSqAgg);
+    float2 direction = MulByConst(agg_vec, invLengthAgg);
     
-    int2 end = {
-        begin.x + int(vec_norm.x * renderHeight * 0.5f),
-        begin.y + int(vec_norm.y * renderHeight * 0.5f)
+    int2 tip = {
+        begin.x + int(ceilf(direction.x * shaftLength)),
+        begin.y + int(ceilf(direction.y * shaftLength))
     };
 
     const uchar4 color = make_uchar4(64, 220, 255, 255);
-    DrawLineDDA(output, outPitch, outDim.x, outDim.y, begin, end, thickness, color);
+    DrawLineDDA(output, outPitch, outDim.x, outDim.y, begin, tip, thickness, color);
+
+    // arrows
+    float2 perpendicular = { -direction.y, direction.x };
+    float headLength = shaftLength * 0.4f;
+
+    float2 tip_float = make_float2(tip.x, tip.y);
+    float2 headBase = Sub(tip_float, MulByConst(direction, headLength));
+
+    float headAngle = 35.0f * CUDART_PI_F / 180.0f;
+    const float headHalfWidth = headLength * tanf(headAngle);
+
+    float2 headLeft = Add(headBase, MulByConst(perpendicular, headHalfWidth));
+    float2 headRight = Sub(headBase, MulByConst(perpendicular, headHalfWidth));
+
+    DrawLineDDA(output, outPitch, outDim.x, outDim.y, float2ToInt2(headLeft), tip, thickness, color);
+    DrawLineDDA(output, outPitch, outDim.x, outDim.y, float2ToInt2(headRight), tip, thickness, color);
 }
 
 namespace {
