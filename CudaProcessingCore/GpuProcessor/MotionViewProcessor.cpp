@@ -134,8 +134,8 @@ namespace cuda::motion {
 			throw std::logic_error("MotionGpuPipeline::RenderViews: analysis has not been performed");
 		}
 
-		const int groupSize = 3;
-		const float thickness = 2.0f;
+		const int groupSize = 4;
+		const float thickness = 4.0f;
 
 		const auto params = render::ViewRendererParams {
 			m_ctx,
