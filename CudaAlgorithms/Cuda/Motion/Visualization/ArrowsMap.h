@@ -10,6 +10,10 @@ namespace cuda {
 
 			// this uses anti-aliasing method of making a capsule around the arrow
 			// and using coverage to blend colors at the edges of arrows
+
+			// TODO: this kernel is a bit slow, it needs probably:
+			// 1. Reduction for aggregate pass
+			// 2. One cuda block handles one arrow, not like now (one thread per arrow)
 			void ArrowsMap(
 				const GpuImageView<BlockMatchStats>& stats,
 				GpuImageView<uchar4>& output,
