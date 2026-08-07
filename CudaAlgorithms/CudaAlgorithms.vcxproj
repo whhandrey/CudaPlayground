@@ -28,13 +28,19 @@
     <ClInclude Include="Cuda\Common.cuh" />
     <ClInclude Include="Cuda\Filter.h" />
     <ClInclude Include="Cuda\KernelCommon.h" />
+    <ClInclude Include="Cuda\Math.cuh" />
     <ClInclude Include="Cuda\Motion\BlockMatching.h" />
     <ClInclude Include="Cuda\Motion\BlockMatchingCommon.cuh" />
     <ClInclude Include="Cuda\Motion\BlockMatchingParams.h" />
     <ClInclude Include="Cuda\Motion\BlockMatchingWarp.h" />
+    <ClInclude Include="Cuda\Motion\Visualization\ArrowsMap.h" />
+    <ClInclude Include="Cuda\Motion\Visualization\ArrowsMapOld.h" />
+    <ClInclude Include="Cuda\Motion\Visualization\BlockStatsReduction.cuh" />
     <ClInclude Include="Cuda\Motion\Visualization\Visualization.h" />
     <ClInclude Include="Cuda\Reduction.cuh" />
     <ClInclude Include="Cuda\Transform\Shift.h" />
+    <ClInclude Include="Cuda\Vector.cuh" />
+    <ClInclude Include="Cuda\VecUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\Filter.cu">
@@ -45,6 +51,8 @@
     </CudaCompile>
     <CudaCompile Include="Cuda\Motion\BlockMatching.cu" />
     <CudaCompile Include="Cuda\Motion\BlockMatchingWarp.cu" />
+    <CudaCompile Include="Cuda\Motion\Visualization\ArrowsMap.cu" />
+    <CudaCompile Include="Cuda\Motion\Visualization\ArrowsMapOld.cu" />
     <CudaCompile Include="Cuda\Motion\Visualization\Visualization.cu" />
     <CudaCompile Include="Cuda\Reduction.cu">
       <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

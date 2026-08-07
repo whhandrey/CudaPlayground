@@ -2,6 +2,7 @@
 #include "../State/IMotionGpuPipelineState.h"
 #include <Cuda/Context.h>
 #include <Cuda/Motion/Visualization/Visualization.h>
+#include <Cuda/Motion/Visualization/ArrowsMap.h>
 #include <stdexcept>
 
 namespace cuda::motion::render {

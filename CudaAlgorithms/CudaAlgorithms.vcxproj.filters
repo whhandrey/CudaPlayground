@@ -26,9 +26,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common\Common.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Cuda\Common.cuh">
       <Filter>Cuda</Filter>
     </ClInclude>
@@ -62,6 +59,27 @@
     <ClInclude Include="Cuda\Motion\Visualization\Visualization.h">
       <Filter>Cuda\Motion\Visualization</Filter>
     </ClInclude>
+    <ClInclude Include="Cuda\Vector.cuh">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Math.cuh">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Motion\Visualization\ArrowsMapOld.h">
+      <Filter>Cuda\Motion\Visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\VecUtils.h">
+      <Filter>Cuda</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Motion\Visualization\BlockStatsReduction.cuh">
+      <Filter>Cuda\Motion\Visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Motion\Visualization\ArrowsMap.h">
+      <Filter>Cuda\Motion\Visualization</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Common.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\Filter.cu">
@@ -80,6 +98,12 @@
       <Filter>Cuda\Transform</Filter>
     </CudaCompile>
     <CudaCompile Include="Cuda\Motion\Visualization\Visualization.cu">
+      <Filter>Cuda\Motion\Visualization</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Motion\Visualization\ArrowsMapOld.cu">
+      <Filter>Cuda\Motion\Visualization</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\Motion\Visualization\ArrowsMap.cu">
       <Filter>Cuda\Motion\Visualization</Filter>
     </CudaCompile>
   </ItemGroup>

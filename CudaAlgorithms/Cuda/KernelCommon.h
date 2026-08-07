@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+// TODO: move out, maybe make part of Context
+
 namespace cuda {
 	namespace util {
 		inline std::string BlockDimToString(const image::vec2ui& blockDim) {
