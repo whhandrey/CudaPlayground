@@ -192,7 +192,7 @@ __global__  void ArrowsMapKernel(
     }
 
     // aggregated shaft vector of neighboring bestDxDy vecs.
-    const float2 agg_vec = SelectBestDxDyVectorInGroup(
+    const float2 agg_vec = AggregateVectorsInGroup(
         allStats,
         statsPitch,
         statsDim.x,
