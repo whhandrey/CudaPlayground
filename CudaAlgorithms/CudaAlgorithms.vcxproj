@@ -35,7 +35,7 @@
     <ClInclude Include="Cuda\Motion\BlockMatchingWarp.h" />
     <ClInclude Include="Cuda\Motion\Visualization\ArrowsMap.h" />
     <ClInclude Include="Cuda\Motion\Visualization\ArrowsMapOld.h" />
-    <ClInclude Include="Cuda\Motion\Visualization\BlockStatsReduction.cuh" />
+    <ClInclude Include="Cuda\Motion\Visualization\BlockStatsAggregation.cuh" />
     <ClInclude Include="Cuda\Motion\Visualization\Visualization.h" />
     <ClInclude Include="Cuda\Reduction.cuh" />
     <ClInclude Include="Cuda\Transform\Shift.h" />

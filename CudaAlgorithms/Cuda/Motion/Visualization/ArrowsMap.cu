@@ -4,7 +4,7 @@
 
 #include "../../Common.cuh"
 #include "../../Vector.cuh"
-#include "BlockStatsReduction.cuh"
+#include "BlockStatsAggregation.cuh"
 
 #include <Cuda/TimedCudaCall.h>
 #include <Cuda/MathUtils.h>
@@ -268,7 +268,7 @@ __global__  void ArrowsMapKernel(
 
             if (coverage > 0.0f) {
                 uchar4* row = (uchar4*)((char*)output + y * outPitch);
-                row[x] = Blend(background, color, coverage);
+                row[x] = Blend(background, color, saturate(coverage));
             }
         }
     }

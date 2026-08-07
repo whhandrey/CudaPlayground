@@ -4,7 +4,7 @@
 
 #include "../../Common.cuh"
 #include "../../Vector.cuh"
-#include "BlockStatsReduction.cuh"
+#include "BlockStatsAggregation.cuh"
 
 #include <Cuda/TimedCudaCall.h>
 #include <Cuda/MathUtils.h>

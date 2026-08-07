@@ -71,7 +71,7 @@
     <ClInclude Include="Cuda\VecUtils.h">
       <Filter>Cuda</Filter>
     </ClInclude>
-    <ClInclude Include="Cuda\Motion\Visualization\BlockStatsReduction.cuh">
+    <ClInclude Include="Cuda\Motion\Visualization\BlockStatsAggregation.cuh">
       <Filter>Cuda\Motion\Visualization</Filter>
     </ClInclude>
     <ClInclude Include="Cuda\Motion\Visualization\ArrowsMap.h">
