@@ -9,14 +9,11 @@ namespace pipeline {
 	using dataflow::NodeId;
 	using dataflow::CudaExecutionContext;
 
-	class BlockMatchingNode : public dataflow::NodeBase {
+	class UploadNode : public dataflow::NodeBase {
 	public:
-		BlockMatchingNode(NodeId id, dataflow::INodeChangeListener& listener, dataflow::IPortRegistry& registry);
+		UploadNode(NodeId id, dataflow::INodeChangeListener& listener);
 
 	public:
 		void Execute(const CudaExecutionContext& ctx) override;
-
-	private:
-		dataflow::InputPort<BlockMatchingParams> m_params;
 	};
 }

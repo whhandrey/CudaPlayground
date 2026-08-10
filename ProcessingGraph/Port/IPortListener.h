@@ -1,9 +1,10 @@
 #pragma once
+#include "../Common/Id.h"
 
 namespace dataflow {
 	class IPortListener {
 	public:
 		virtual ~IPortListener() = default;
-		virtual void OnInputChanged() = 0;
+		virtual void OnInputChanged(PortId id) = 0;
 	};
 }

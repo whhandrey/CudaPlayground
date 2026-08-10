@@ -49,7 +49,7 @@ namespace dataflow {
 		void Update(const T& value) {
 			if (m_value != value) {
 				m_value = value;
-				m_listener.OnInputChanged();
+				m_listener.OnInputChanged(Id());
 			}
 		}
 

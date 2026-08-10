@@ -144,8 +144,10 @@
     <ClInclude Include="Common\Id.h" />
     <ClInclude Include="Context\CudaExecutionContext.h" />
     <ClInclude Include="Graph\NodeChangeListener.h" />
+    <ClInclude Include="Graph\PortGraph.h" />
     <ClInclude Include="Node\Node.h" />
     <ClInclude Include="Pipeline\Nodes\BlockMatchingNode.h" />
+    <ClInclude Include="Pipeline\Nodes\UploadNode.h" />
     <ClInclude Include="Port\IPortListener.h" />
     <ClInclude Include="Port\IPortRegistry.h" />
     <ClInclude Include="Port\Port.h" />
@@ -162,10 +164,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Graph\PortGraph.cpp" />
     <ClCompile Include="Node\Node.cpp" />
     <ClCompile Include="Pipeline\Nodes\BlockMatchingNode.cpp" />
+    <ClCompile Include="Pipeline\Nodes\UploadNode.cpp" />
     <ClCompile Include="Port\Port.cpp" />
-    <ClCompile Include="Port\PortRegistry.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

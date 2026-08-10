@@ -7,8 +7,8 @@ namespace dataflow {
 	{
 	}
 
-	void NodeBase::OnInputChanged()
-	{
+	// Id not yet used for now
+	void NodeBase::OnInputChanged(PortId /*id*/) {
 		m_listener.OnNodeChanged(m_id);
 	}
 }

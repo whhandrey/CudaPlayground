@@ -1,9 +1,9 @@
 #include "BlockMatchingNode.h"
 
 namespace pipeline {
-	BlockMatchingNode::BlockMatchingNode(dataflow::NodeId id, dataflow::INodeChangeListener& listener)
+	BlockMatchingNode::BlockMatchingNode(NodeId id, dataflow::INodeChangeListener& listener, dataflow::IPortRegistry& registry)
 		: NodeBase(id, listener)
-		//, m_params(*this, "blockMatchingParams")
+		, m_params(id, "blockMatchingParams", registry, *this)
 	{
 	}
 

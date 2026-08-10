@@ -17,7 +17,7 @@ namespace dataflow {
 		NodeBase(NodeId id, INodeChangeListener& listener);
 
 	protected:
-		void OnInputChanged() override;
+		void OnInputChanged(PortId id) override;
 
 	protected:
 		const NodeId m_id;

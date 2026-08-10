@@ -48,6 +48,12 @@
     <ClInclude Include="Common\Id.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Graph\PortGraph.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\Nodes\UploadNode.h">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Node\Node.cpp">
@@ -56,11 +62,14 @@
     <ClCompile Include="Pipeline\Nodes\BlockMatchingNode.cpp">
       <Filter>Pipeline\Nodes</Filter>
     </ClCompile>
-    <ClCompile Include="Port\PortRegistry.cpp">
-      <Filter>Port</Filter>
-    </ClCompile>
     <ClCompile Include="Port\Port.cpp">
       <Filter>Port</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\PortGraph.cpp">
+      <Filter>Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\Nodes\UploadNode.cpp">
+      <Filter>Pipeline\Nodes</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
