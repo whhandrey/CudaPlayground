@@ -15,6 +15,6 @@ namespace pipeline {
 		void Execute(const CudaExecutionContext& ctx) override;
 
 	private:
-		dataflow::InputPort<BlockMatchingParams> m_params;
+		//dataflow::InputPort<BlockMatchingParams> m_params;
 	};
 }

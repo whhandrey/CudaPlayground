@@ -36,16 +36,13 @@
     <ClInclude Include="Context\CudaExecutionContext.h">
       <Filter>Context</Filter>
     </ClInclude>
-    <ClInclude Include="Graph\GraphRuntime.h">
-      <Filter>Graph</Filter>
-    </ClInclude>
     <ClInclude Include="Graph\NodeChangeListener.h">
       <Filter>Graph</Filter>
     </ClInclude>
     <ClInclude Include="Pipeline\Nodes\BlockMatchingNode.h">
       <Filter>Pipeline\Nodes</Filter>
     </ClInclude>
-    <ClInclude Include="Port\PortRegistry.h">
+    <ClInclude Include="Port\IPortRegistry.h">
       <Filter>Port</Filter>
     </ClInclude>
     <ClInclude Include="Common\Id.h">

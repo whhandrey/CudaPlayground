@@ -1,5 +1,5 @@
 #pragma once
-#include "../Node/Common.h"
+#include "../Common/Id.h"
 
 namespace dataflow {
 	class INodeChangeListener {

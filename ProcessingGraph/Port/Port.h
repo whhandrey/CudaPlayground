@@ -1,9 +1,10 @@
 #pragma once
 #include "IPortListener.h"
-#include "PortRegistry.h"
+#include "IPortRegistry.h"
 #include "../Common/Id.h"
 #include <vector>
 #include <string>
+#include <stdexcept>
 
 namespace dataflow {
 	enum class PortType {
@@ -13,7 +14,7 @@ namespace dataflow {
 
 	class PortBase {
 	public:
-		PortBase(NodeId ownerId, const std::string& name, PortRegistry& registry);
+		PortBase(NodeId ownerId, const std::string& name, IPortRegistry& registry);
 		virtual ~PortBase();
 
 		PortBase(const PortBase&) = delete;
@@ -33,13 +34,13 @@ namespace dataflow {
 		const NodeId m_ownerId;
 
 		const std::string m_name;
-		PortRegistry& m_registry;
+		IPortRegistry& m_registry;
 	};
 
 	template <class T>
 	class InputPort : public PortBase {
 	public:
-		explicit InputPort(NodeId ownerId, const std::string& name, PortRegistry& registry, IPortListener& listener)
+		explicit InputPort(NodeId ownerId, const std::string& name, IPortRegistry& registry, IPortListener& listener)
 			: PortBase(ownerId, name, registry)
 			, m_listener{ listener }
 		{
@@ -68,31 +69,27 @@ namespace dataflow {
 	template <class T>
 	class OutputPort : public PortBase {
 	public:
-		explicit OutputPort(NodeId ownerId, const std::string& name, PortRegistry& registry)
+		explicit OutputPort(NodeId ownerId, const std::string& name, IPortRegistry& registry)
 			: PortBase(ownerId, name, registry)
 		{
 		}
 
 		void Publish(const T& value) {
-			for (auto* subscriber : m_subscribers) {
-				subscriber->Update(value);
+			auto subs = m_registry.GetConnections(Id());
+
+			for (auto* subscriber : subs) {
+				auto* inputPort = dynamic_cast<InputPort<T>*>(subscriber);
+
+				if (!inputPort) {
+					throw std::logic_error("OutputPort: registry contains an incompatible connection");
+				}
+
+				inputPort->Update(value);
 			}
 		}
 
 		PortType Type() const override {
 			return PortType::Output;
 		}
-
-	private:
-		void AddSubscriber(InputPort<T>& port) {
-			m_subscribers.push_back(&port);
-		}
-
-		void RemoveSubscriber(InputPort<T>& port) {
-			std::erase(m_subscribers, &port);
-		}
-
-	private:
-		std::vector<InputPort<T>*> m_subscribers;
 	};
 }

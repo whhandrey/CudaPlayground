@@ -3,7 +3,7 @@
 namespace pipeline {
 	BlockMatchingNode::BlockMatchingNode(dataflow::NodeId id, dataflow::INodeChangeListener& listener)
 		: NodeBase(id, listener)
-		, m_params(*this, "blockMatchingParams")
+		//, m_params(*this, "blockMatchingParams")
 	{
 	}
 

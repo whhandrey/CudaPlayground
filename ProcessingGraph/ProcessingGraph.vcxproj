@@ -143,12 +143,11 @@
   <ItemGroup>
     <ClInclude Include="Common\Id.h" />
     <ClInclude Include="Context\CudaExecutionContext.h" />
-    <ClInclude Include="Graph\GraphRuntime.h" />
     <ClInclude Include="Graph\NodeChangeListener.h" />
     <ClInclude Include="Node\Node.h" />
     <ClInclude Include="Pipeline\Nodes\BlockMatchingNode.h" />
     <ClInclude Include="Port\IPortListener.h" />
-    <ClInclude Include="Port\PortRegistry.h" />
+    <ClInclude Include="Port\IPortRegistry.h" />
     <ClInclude Include="Port\Port.h" />
   </ItemGroup>
   <ItemGroup>
