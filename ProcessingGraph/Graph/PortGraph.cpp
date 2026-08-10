@@ -9,15 +9,27 @@ namespace dataflow {
 	}
 
 	void PortGraph::Unregister(PortId id) {
-		// first check if ports is in the generic store
-		size_t erasedElems = std::erase_if(m_ports, [id](auto* port) {
+		auto portIt = std::find_if(m_ports.begin(), m_ports.end(), [id](auto* port) {
 			return port->Id() == id;
 		});
 
-		if (erasedElems > 0) {
-			// then check if the port was outputPort
-			m_connections.erase(id);
+		if (portIt == m_ports.end()) {
+			return;
 		}
+
+		auto* port = *portIt;
+
+		// If port is outputPort, remove its inputPorts subscribers
+		m_connections.erase(id);
+
+		// If port is an input, remove it from every output
+		// It scans all outputIds but since vectors are small it is not a problem
+		for (auto& [outputId, inputs] : m_connections) {
+			std::erase(inputs, port);
+		}
+
+		// Erase from generic port storage
+		m_ports.erase(portIt);
 	}
 
 	std::span<PortBase* const> PortGraph::GetConnections(PortId id) const {
