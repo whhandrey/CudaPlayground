@@ -1,12 +1,12 @@
 #pragma once
 
-#include <Cuda/Context.h>
 #include <Image/ImageView.h>
+#include <Cuda/Context.h>
 #include "BlockMatchingParams.h"
 
 namespace cuda {
 	namespace motion {
-		using image::GpuImageView;
+		using ::image::GpuImageView;
 
 		struct BlockMatchStats {
 			image::vec2i bestDxDy;

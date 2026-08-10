@@ -7,6 +7,8 @@ namespace cuda {
 			image::vec2ui blockDim;
 			image::vec2ui macroBlockDim;
 			image::vec2i search_halfsize;
+
+			bool operator ==(const BlockMatchingParams& p) const;
 		};
 
 		// Same for dxdyOutput and confOutput

@@ -1,10 +1,9 @@
 #pragma once
 
 namespace dataflow {
-	class IPortOwner {
+	class IPortListener {
 	public:
-		virtual ~IPortOwner() = default;
-
+		virtual ~IPortListener() = default;
 		virtual void OnInputChanged() = 0;
 	};
 }

@@ -2,9 +2,9 @@
 #include <cuda_runtime.h>
 #include <Profiler/IProfiler.h>
 
-namespace cuda::dataflow {
-	struct ExecutionContext {
+namespace dataflow {
+	struct CudaExecutionContext {
 		cudaStream_t stream;
-		profile::IProfiler* profiler;
+		cuda::profile::IProfiler* profiler;
 	};
 }

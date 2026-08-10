@@ -62,6 +62,11 @@
     </CudaCompile>
     <CudaCompile Include="Cuda\Transform\Shift.cu" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ImgProcCommon\ImgProcCommon.vcxproj">
+      <Project>{3ead4a8c-e561-4b95-9d26-c8478b90f41c}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
