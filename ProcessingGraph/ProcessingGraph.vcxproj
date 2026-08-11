@@ -150,7 +150,11 @@
     <ClInclude Include="Pipeline\Nodes\UploadNode.h" />
     <ClInclude Include="Port\IPortListener.h" />
     <ClInclude Include="Port\IPortRegistry.h" />
-    <ClInclude Include="Port\Port.h" />
+    <ClInclude Include="Port\ParamPort.h" />
+    <ClInclude Include="Port\PortBase.h" />
+    <ClInclude Include="Port\PortType.h" />
+    <ClInclude Include="Port\ResourcePort.h" />
+    <ClInclude Include="ResourceStore\IResourceStore.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
@@ -168,7 +172,8 @@
     <ClCompile Include="Node\Node.cpp" />
     <ClCompile Include="Pipeline\Nodes\BlockMatchingNode.cpp" />
     <ClCompile Include="Pipeline\Nodes\UploadNode.cpp" />
-    <ClCompile Include="Port\Port.cpp" />
+    <ClCompile Include="Port\PortBase.cpp" />
+    <ClCompile Include="Port\ResourcePort.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

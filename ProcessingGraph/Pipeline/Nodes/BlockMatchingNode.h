@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Port/Port.h"
+#include "../../Port/ParamPort.h"
 #include "../../Node/Node.h"
 #include "../../Port/IPortRegistry.h"
 #include <Cuda/Motion/BlockMatching.h>
@@ -17,6 +17,6 @@ namespace pipeline {
 		void Execute(const CudaExecutionContext& ctx) override;
 
 	private:
-		dataflow::InputPort<BlockMatchingParams> m_params;
+		dataflow::InParamPort<BlockMatchingParams> m_params;
 	};
 }

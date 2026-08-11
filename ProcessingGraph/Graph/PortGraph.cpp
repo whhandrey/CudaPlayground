@@ -1,6 +1,16 @@
 #include "PortGraph.h"
 #include <algorithm>
 #include <iterator>
+#include <stdexcept>
+
+namespace {
+	std::vector<dataflow::PortCategory> AllCategories() {
+		return {
+			dataflow::PortCategory::Param,
+			dataflow::PortCategory::Resource
+		};
+	}
+}
 
 namespace dataflow {
 	PortId PortGraph::Register(PortBase& port) {
@@ -42,26 +52,33 @@ namespace dataflow {
 	}
 
 	void PortGraph::ConnectPorts() {
-		std::vector<PortBase*> outputPorts;
+		const auto categories = AllCategories();
 
-		std::copy_if(m_ports.begin(), m_ports.end(), std::back_inserter(outputPorts), [](auto* node) {
-			return node->Type() == PortType::Output;
-		});
+		for (const auto cat : categories) {
+			std::vector<PortBase*> outputPorts;
 
-		for (auto* outputPort : outputPorts) {
-			const auto portName = outputPort->Name();
-			std::vector<PortBase*> inputPorts;
-
-			std::copy_if(m_ports.begin(), m_ports.end(), std::back_inserter(inputPorts), [&portName](auto* node) {
-				return node->Type() == PortType::Input && node->Name() == portName;
+			std::copy_if(m_ports.begin(), m_ports.end(), std::back_inserter(outputPorts), [cat](auto* node) {
+				return node->Category() == cat
+					&& node->Direction() == PortDirection::Output;
 			});
 
-			const PortId outputId = outputPort->Id();
-			if (m_connections.find(outputId) != m_connections.end()) {
-				throw std::logic_error("PortGraph::ConnectPorts: output port is already connected");
-			}
+			for (auto* outputPort : outputPorts) {
+				const auto portName = outputPort->Name();
+				std::vector<PortBase*> inputPorts;
 
-			m_connections.emplace(outputId, inputPorts);
+				std::copy_if(m_ports.begin(), m_ports.end(), std::back_inserter(inputPorts), [&portName, cat](auto* node) {
+					return node->Category() == cat
+						&& node->Direction() == PortDirection::Input
+						&& node->Name() == portName;
+				});
+
+				const PortId outputId = outputPort->Id();
+				if (m_connections.find(outputId) != m_connections.end()) {
+					throw std::logic_error("PortGraph::ConnectPorts: output port is already connected");
+				}
+
+				m_connections.emplace(outputId, inputPorts);
+			}
 		}
 	}
 }

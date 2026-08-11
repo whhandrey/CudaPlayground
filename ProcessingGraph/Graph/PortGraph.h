@@ -1,6 +1,6 @@
 #pragma once
 #include "../Port/IPortRegistry.h"
-#include "../Port/Port.h"
+#include "../Port/PortBase.h"
 #include <vector>
 #include <map>
 

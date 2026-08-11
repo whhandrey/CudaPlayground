@@ -1,5 +1,4 @@
 #pragma once
-#include "../../Port/Port.h"
 #include "../../Node/Node.h"
 #include "../../Port/IPortRegistry.h"
 #include <Cuda/Motion/BlockMatching.h>

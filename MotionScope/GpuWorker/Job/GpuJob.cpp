@@ -60,7 +60,7 @@ namespace {
 		assert(img.bytesPerLine() % alignof(image::vec4uc) == 0);
 
 		image::vec2ui dim = { static_cast<unsigned int>(img.width()), static_cast<unsigned int>(img.height()) };
-		auto imageView = image::ImageView<image::vec4uc>{ ptr, dim, static_cast<size_t>(img.bytesPerLine()) };
+		auto imageView = image::CpuImageView<image::vec4uc>{ ptr, dim, static_cast<size_t>(img.bytesPerLine()) };
 
 		return { imageView, index, generation };
 	}

@@ -39,7 +39,7 @@ namespace cuda::gpu_image {
 
 	template <class DstSample, class SrcSample>
 	void UploadCompatible(
-		const image::ImageView<SrcSample>& in_cpu,
+		const image::CpuImageView<SrcSample>& in_cpu,
 		image::GpuImageView<DstSample> out_gpu,
 		cudaStream_t stream)
 	{
@@ -63,7 +63,7 @@ namespace cuda::gpu_image {
 
 	template <class DstSample, class SrcSample>
 	void UploadCompatible(
-		const image::ImageView<SrcSample>& in_cpu,
+		const image::CpuImageView<SrcSample>& in_cpu,
 		cuda::ImageGPU<DstSample>& out_gpu,
 		cudaStream_t stream)
 	{
@@ -71,12 +71,12 @@ namespace cuda::gpu_image {
 	}
 
 	template <class T>
-	void Upload(const image::ImageView<T>& in_cpu, image::GpuImageView<T> out_gpu, cudaStream_t stream) {
+	void Upload(const image::CpuImageView<T>& in_cpu, image::GpuImageView<T> out_gpu, cudaStream_t stream) {
 		UploadCompatible<T>(in_cpu, out_gpu, stream);
 	}
 
 	template <class T>
-	ImageGPU<T> Create(const image::ImageView<T>& in_cpu, cudaStream_t stream) {
+	ImageGPU<T> Create(const image::CpuImageView<T>& in_cpu, cudaStream_t stream) {
 		ImageGPU<T> out(in_cpu.m_dim);
 		Upload(in_cpu, cuda::gpu_image::MakeImageView(out), stream);
 
@@ -87,7 +87,7 @@ namespace cuda::gpu_image {
 	ImageGPU<T> Create(const image::Image<T>& in_cpu, cudaStream_t stream) {
 		ImageGPU<T> out(in_cpu.m_dim);
 
-		auto in_view = image::ImageView<T>{ in_cpu.Data(), in_cpu.Dim(), size_t(in_cpu.Dim().x * sizeof(T)) };
+		auto in_view = image::CpuImageView<T>{ in_cpu.Data(), in_cpu.Dim(), size_t(in_cpu.Dim().x * sizeof(T)) };
 		Upload(in_view, cuda::gpu_image::MakeImageView(out), stream);
 
 		return out;

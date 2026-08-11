@@ -22,9 +22,12 @@
     <Filter Include="Common">
       <UniqueIdentifier>{3c62d538-69c0-4047-8719-acd696894f59}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ResourceStore">
+      <UniqueIdentifier>{2e73aa7f-aafe-407c-93b3-290f5f67f62f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Port\Port.h">
+    <ClInclude Include="Port\ParamPort.h">
       <Filter>Port</Filter>
     </ClInclude>
     <ClInclude Include="Port\IPortListener.h">
@@ -54,6 +57,18 @@
     <ClInclude Include="Pipeline\Nodes\UploadNode.h">
       <Filter>Pipeline\Nodes</Filter>
     </ClInclude>
+    <ClInclude Include="Port\ResourcePort.h">
+      <Filter>Port</Filter>
+    </ClInclude>
+    <ClInclude Include="Port\PortBase.h">
+      <Filter>Port</Filter>
+    </ClInclude>
+    <ClInclude Include="Port\PortType.h">
+      <Filter>Port</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceStore\IResourceStore.h">
+      <Filter>ResourceStore</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Node\Node.cpp">
@@ -62,14 +77,17 @@
     <ClCompile Include="Pipeline\Nodes\BlockMatchingNode.cpp">
       <Filter>Pipeline\Nodes</Filter>
     </ClCompile>
-    <ClCompile Include="Port\Port.cpp">
-      <Filter>Port</Filter>
-    </ClCompile>
     <ClCompile Include="Graph\PortGraph.cpp">
       <Filter>Graph</Filter>
     </ClCompile>
     <ClCompile Include="Pipeline\Nodes\UploadNode.cpp">
       <Filter>Pipeline\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Port\ResourcePort.cpp">
+      <Filter>Port</Filter>
+    </ClCompile>
+    <ClCompile Include="Port\PortBase.cpp">
+      <Filter>Port</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
