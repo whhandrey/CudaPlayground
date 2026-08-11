@@ -4,12 +4,20 @@
 #include <stdexcept>
 
 namespace {
-	std::vector<dataflow::PortCategory> AllCategories() {
-		return {
-			dataflow::PortCategory::Param,
-			dataflow::PortCategory::Resource
-		};
-	}
+	struct PortConnectionKey {
+		dataflow::PortCategory category;
+		std::string name;
+
+		auto operator<=>(const PortConnectionKey&) const = default;
+	};
+
+	struct PortGroup {
+		std::vector<dataflow::PortBase*> inputs;
+
+		// There is always one unique OutputPort with Key(name, category)
+		// std::vector here is to catch duplicates at runtime and throw if they are found
+		std::vector<dataflow::PortBase*> outputs;
+	};
 }
 
 namespace dataflow {
@@ -52,33 +60,43 @@ namespace dataflow {
 	}
 
 	void PortGraph::ConnectPorts() {
-		const auto categories = AllCategories();
+		m_connections.clear();
 
-		for (const auto cat : categories) {
-			std::vector<PortBase*> outputPorts;
+		std::map<PortConnectionKey, PortGroup> groups;
 
-			std::copy_if(m_ports.begin(), m_ports.end(), std::back_inserter(outputPorts), [cat](auto* node) {
-				return node->Category() == cat
-					&& node->Direction() == PortDirection::Output;
-			});
+		// Group every port in one pass.
+		for (auto* port : m_ports) {
+			PortConnectionKey key {
+				port->Category(),
+				port->Name()
+			};
 
-			for (auto* outputPort : outputPorts) {
-				const auto portName = outputPort->Name();
-				std::vector<PortBase*> inputPorts;
+			auto& group = groups[key];
 
-				std::copy_if(m_ports.begin(), m_ports.end(), std::back_inserter(inputPorts), [&portName, cat](auto* node) {
-					return node->Category() == cat
-						&& node->Direction() == PortDirection::Input
-						&& node->Name() == portName;
-				});
+			switch (port->Direction()) {
+			case PortDirection::Input:
+				group.inputs.push_back(port);
+				break;
 
-				const PortId outputId = outputPort->Id();
-				if (m_connections.find(outputId) != m_connections.end()) {
-					throw std::logic_error("PortGraph::ConnectPorts: output port is already connected");
-				}
-
-				m_connections.emplace(outputId, inputPorts);
+			case PortDirection::Output:
+				group.outputs.push_back(port);
+				break;
 			}
+		}
+
+		// Create output -> inputs connections.
+		for (auto& [key, group] : groups) {
+
+			if (group.outputs.empty()) {
+				throw std::logic_error("PortGraph: inputs have no corresponding output");
+			}
+
+			if (group.outputs.size() > 1) {
+				throw std::logic_error("Multiple output ports have the same category and name");
+			}
+
+			auto* outputPort = group.outputs.front();
+			m_connections.emplace(outputPort->Id(), std::move(group.inputs));
 		}
 	}
 }

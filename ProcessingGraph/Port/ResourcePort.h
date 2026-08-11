@@ -8,67 +8,50 @@
 
 namespace dataflow {
 	using cuda::memory::IResourceStore;
+	using cuda::memory::ResourceDesc;
 
-	template <class T>
-	class ResourceInPort : public PortBase {
+	class ResourceBasePort : public PortBase {
 	public:
-		ResourceInPort(NodeId ownerId, const std::string& name, IPortRegistry& registry, IResourceStore& store)
+		ResourceBasePort(NodeId ownerId, const std::string& name, IPortRegistry& registry, IResourceStore& store, const ResourceDesc& desc)
 			: PortBase(ownerId, name, registry)
 			, m_store{ store }
+			, m_resourceId{ store.RegisterRequest(name, desc) }
 		{
-		}
-
-		void Update(const T& resource) {
-			if (m_resource != resource) {
-				m_resource = resource;
-			}
-		}
-
-		const T& Resource() const {
-			return m_resource;
-		}
-
-		PortDirection Direction() const override {
-			return PortDirection::Input;
 		}
 
 		PortCategory Category() const override {
 			return PortCategory::Resource;
 		}
 
-	private:
-		T m_resource;
+		ResourceId ResId() const {
+			return m_resourceId;
+		}
+
+	protected:
+		const ResourceId m_resourceId;
 		IResourceStore& m_store;
 	};
 
-	template <class T>
-	class ResourceOutPort : public PortBase {
+	template <class ResourceView, PortDirection Dir>
+	class ResourcePort : public ResourceBasePort {
 	public:
-		explicit ResourceOutPort(NodeId ownerId, const std::string& name, IPortRegistry& registry)
-			: PortBase(ownerId, name, registry)
+		ResourcePort(NodeId ownerId, const std::string& name, IPortRegistry& registry, IResourceStore& store, const ResourceDesc& desc)
+			: ResourceBasePort(ownerId, name, registry, store, desc)
 		{
 		}
 
-		void Publish(const T& resource) {
-			auto subs = m_registry.GetConnections(Id());
-
-			for (auto* subscriber : subs) {
-				auto* resourceInPort = dynamic_cast<ResourceInPort<T>*>(subscriber);
-
-				if (!resourceInPort) {
-					throw std::logic_error("ResourceoutPort: registry contains an incompatible connection");
-				}
-
-				resourceInPort->Update(resource);
-			}
+		ResourceView View() const {
+			return m_store.Resolve<ResourceView>(ResId());
 		}
 
 		PortDirection Direction() const override {
-			return PortDirection::Output;
-		}
-
-		PortCategory Category() const override {
-			return PortCategory::Resource;
+			return Dir;
 		}
 	};
+
+	template <class ResourceView>
+	using ResourceInPort = ResourcePort<ResourceView, PortDirection::Input>;
+
+	template <class ResourceView>
+	using ResourceOutPort = ResourcePort<ResourceView, PortDirection::Output>;
 }

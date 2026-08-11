@@ -155,6 +155,9 @@
     <ClInclude Include="Port\PortType.h" />
     <ClInclude Include="Port\ResourcePort.h" />
     <ClInclude Include="ResourceStore\IResourceStore.h" />
+    <ClInclude Include="ResourceStore\ResourceDesc.h" />
+    <ClInclude Include="ResourceStore\ResourceStore.h" />
+    <ClInclude Include="ResourceStore\ResourceTraits.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
@@ -174,6 +177,7 @@
     <ClCompile Include="Pipeline\Nodes\UploadNode.cpp" />
     <ClCompile Include="Port\PortBase.cpp" />
     <ClCompile Include="Port\ResourcePort.cpp" />
+    <ClCompile Include="ResourceStore\ResourceStore.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

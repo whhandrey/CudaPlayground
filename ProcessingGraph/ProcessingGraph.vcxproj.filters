@@ -69,6 +69,15 @@
     <ClInclude Include="ResourceStore\IResourceStore.h">
       <Filter>ResourceStore</Filter>
     </ClInclude>
+    <ClInclude Include="ResourceStore\ResourceDesc.h">
+      <Filter>ResourceStore</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceStore\ResourceStore.h">
+      <Filter>ResourceStore</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceStore\ResourceTraits.h">
+      <Filter>ResourceStore</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Node\Node.cpp">
@@ -88,6 +97,9 @@
     </ClCompile>
     <ClCompile Include="Port\PortBase.cpp">
       <Filter>Port</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceStore\ResourceStore.cpp">
+      <Filter>ResourceStore</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
