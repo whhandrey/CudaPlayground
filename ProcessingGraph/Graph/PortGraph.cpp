@@ -15,7 +15,7 @@ namespace {
 		std::vector<dataflow::PortBase*> inputs;
 
 		// There is always one unique OutputPort with Key(name, category)
-		// std::vector here is to catch duplicates at runtime and throw if they are found
+		// std::vector here is to deliberately catch duplicates at runtime and throw if they are found
 		std::vector<dataflow::PortBase*> outputs;
 	};
 }

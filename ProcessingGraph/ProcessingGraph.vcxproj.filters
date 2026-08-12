@@ -25,6 +25,9 @@
     <Filter Include="ResourceStore">
       <UniqueIdentifier>{2e73aa7f-aafe-407c-93b3-290f5f67f62f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Memory">
+      <UniqueIdentifier>{cbb70972-5136-4857-8a0f-cad5d8795f37}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Port\ParamPort.h">
@@ -78,6 +81,12 @@
     <ClInclude Include="ResourceStore\ResourceTraits.h">
       <Filter>ResourceStore</Filter>
     </ClInclude>
+    <ClInclude Include="Memory\PinnedHostMemory.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\PinnedImagePool.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Node\Node.cpp">
@@ -100,6 +109,9 @@
     </ClCompile>
     <ClCompile Include="ResourceStore\ResourceStore.cpp">
       <Filter>ResourceStore</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\PinnedHostMemory.cpp">
+      <Filter>Memory</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

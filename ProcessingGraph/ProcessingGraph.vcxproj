@@ -145,6 +145,8 @@
     <ClInclude Include="Context\CudaExecutionContext.h" />
     <ClInclude Include="Graph\NodeChangeListener.h" />
     <ClInclude Include="Graph\PortGraph.h" />
+    <ClInclude Include="Memory\PinnedHostMemory.h" />
+    <ClInclude Include="Memory\PinnedImagePool.h" />
     <ClInclude Include="Node\Node.h" />
     <ClInclude Include="Pipeline\Nodes\BlockMatchingNode.h" />
     <ClInclude Include="Pipeline\Nodes\UploadNode.h" />
@@ -172,6 +174,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Graph\PortGraph.cpp" />
+    <ClCompile Include="Memory\PinnedHostMemory.cpp" />
     <ClCompile Include="Node\Node.cpp" />
     <ClCompile Include="Pipeline\Nodes\BlockMatchingNode.cpp" />
     <ClCompile Include="Pipeline\Nodes\UploadNode.cpp" />
