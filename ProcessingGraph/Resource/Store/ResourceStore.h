@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include "IResourceStore.h"
 
-namespace cuda::memory {
+namespace processing::resource {
 	class ResourceStore : public IResourceStore {
 	public:
 		ResourceId RegisterRequest(const std::string& name, const ResourceDesc& desc) override;

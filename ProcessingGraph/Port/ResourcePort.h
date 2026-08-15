@@ -1,14 +1,14 @@
 #pragma once
 #include "PortBase.h"
 #include "IPortListener.h"
-#include "../ResourceStore/IResourceStore.h"
+#include "../Resource/Store/IResourceStore.h"
 #include "../Common/Id.h"
 #include <vector>
 #include <stdexcept>
 
 namespace dataflow {
-	using cuda::memory::IResourceStore;
-	using cuda::memory::ResourceDesc;
+	using processing::resource::IResourceStore;
+	using processing::resource::ResourceDesc;
 
 	class ResourceBasePort : public PortBase {
 	public:

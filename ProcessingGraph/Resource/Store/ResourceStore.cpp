@@ -1,6 +1,6 @@
 #include "ResourceStore.h"
 
-namespace cuda::memory {
+namespace processing::resource {
 	ResourceId ResourceStore::RegisterRequest(const std::string& name, const ResourceDesc& desc) {
 		const auto it = std::find_if(m_requests.begin(), m_requests.end(), [&name, &desc](const auto& entry) {
 			return name == entry.name && desc == entry.desc;

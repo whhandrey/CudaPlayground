@@ -1,10 +1,9 @@
 #pragma once
 #include <Image/ImageTypes.h>
 #include <typeindex>
+#include <string>
 
-namespace cuda::memory {
-	using ResourceId = size_t;
-
+namespace processing::resource {
 	enum class MemoryDomain {
 		Host,
 		HostPinned,

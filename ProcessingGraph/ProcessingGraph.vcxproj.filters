@@ -22,11 +22,17 @@
     <Filter Include="Common">
       <UniqueIdentifier>{3c62d538-69c0-4047-8719-acd696894f59}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ResourceStore">
-      <UniqueIdentifier>{2e73aa7f-aafe-407c-93b3-290f5f67f62f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Memory">
       <UniqueIdentifier>{cbb70972-5136-4857-8a0f-cad5d8795f37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{2e73aa7f-aafe-407c-93b3-290f5f67f62f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource\Store">
+      <UniqueIdentifier>{23869457-a1ad-4c54-a7b4-4757bb3722b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource\Planner">
+      <UniqueIdentifier>{4fdc56de-842e-4f4e-82f4-f9d6bb748bde}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -69,23 +75,29 @@
     <ClInclude Include="Port\PortType.h">
       <Filter>Port</Filter>
     </ClInclude>
-    <ClInclude Include="ResourceStore\IResourceStore.h">
-      <Filter>ResourceStore</Filter>
-    </ClInclude>
-    <ClInclude Include="ResourceStore\ResourceDesc.h">
-      <Filter>ResourceStore</Filter>
-    </ClInclude>
-    <ClInclude Include="ResourceStore\ResourceStore.h">
-      <Filter>ResourceStore</Filter>
-    </ClInclude>
-    <ClInclude Include="ResourceStore\ResourceTraits.h">
-      <Filter>ResourceStore</Filter>
-    </ClInclude>
     <ClInclude Include="Memory\PinnedHostMemory.h">
       <Filter>Memory</Filter>
     </ClInclude>
     <ClInclude Include="Memory\PinnedImagePool.h">
       <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Store\IResourceStore.h">
+      <Filter>Resource\Store</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Store\ResourceDesc.h">
+      <Filter>Resource\Store</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Store\ResourceStore.h">
+      <Filter>Resource\Store</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Store\ResourceTraits.h">
+      <Filter>Resource\Store</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Planner\ResourceLayoutPlanner.h">
+      <Filter>Resource\Planner</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Id.h">
+      <Filter>Resource</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -107,11 +119,14 @@
     <ClCompile Include="Port\PortBase.cpp">
       <Filter>Port</Filter>
     </ClCompile>
-    <ClCompile Include="ResourceStore\ResourceStore.cpp">
-      <Filter>ResourceStore</Filter>
-    </ClCompile>
     <ClCompile Include="Memory\PinnedHostMemory.cpp">
       <Filter>Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\Store\ResourceStore.cpp">
+      <Filter>Resource\Store</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\Planner\ResourceLayoutPlanner.cpp">
+      <Filter>Resource\Planner</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

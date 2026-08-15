@@ -156,10 +156,12 @@
     <ClInclude Include="Port\PortBase.h" />
     <ClInclude Include="Port\PortType.h" />
     <ClInclude Include="Port\ResourcePort.h" />
-    <ClInclude Include="ResourceStore\IResourceStore.h" />
-    <ClInclude Include="ResourceStore\ResourceDesc.h" />
-    <ClInclude Include="ResourceStore\ResourceStore.h" />
-    <ClInclude Include="ResourceStore\ResourceTraits.h" />
+    <ClInclude Include="Resource\Id.h" />
+    <ClInclude Include="Resource\Planner\ResourceLayoutPlanner.h" />
+    <ClInclude Include="Resource\Store\IResourceStore.h" />
+    <ClInclude Include="Resource\Store\ResourceDesc.h" />
+    <ClInclude Include="Resource\Store\ResourceStore.h" />
+    <ClInclude Include="Resource\Store\ResourceTraits.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
@@ -180,7 +182,8 @@
     <ClCompile Include="Pipeline\Nodes\UploadNode.cpp" />
     <ClCompile Include="Port\PortBase.cpp" />
     <ClCompile Include="Port\ResourcePort.cpp" />
-    <ClCompile Include="ResourceStore\ResourceStore.cpp" />
+    <ClCompile Include="Resource\Planner\ResourceLayoutPlanner.cpp" />
+    <ClCompile Include="Resource\Store\ResourceStore.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

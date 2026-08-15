@@ -2,7 +2,7 @@
 #include "ResourceDesc.h"
 #include <Image/ImageView.h>
 
-namespace cuda::memory {
+namespace processing::resource {
     struct UntypedResourceView {
         void* data;
         image::vec2ui dim;

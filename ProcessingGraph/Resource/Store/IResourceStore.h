@@ -2,10 +2,11 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include "../Id.h"
 #include "ResourceDesc.h"
 #include "ResourceTraits.h"
 
-namespace cuda::memory {
+namespace processing::resource {
 	class IResourceStore {
 	public:
 		virtual ~IResourceStore() = default;
