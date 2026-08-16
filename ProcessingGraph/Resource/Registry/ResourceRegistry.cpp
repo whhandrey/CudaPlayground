@@ -1,7 +1,7 @@
-#include "ResourceStore.h"
+#include "ResourceRegistry.h"
 
 namespace processing::resource {
-	ResourceId ResourceStore::RegisterRequest(const std::string& name, const ResourceDesc& desc) {
+	ResourceId ResourceRegistry::RegisterRequest(const std::string& name, const ResourceDesc& desc) {
 		const auto it = std::find_if(m_requests.begin(), m_requests.end(), [&name, &desc](const auto& entry) {
 			return name == entry.name && desc == entry.desc;
 		});
@@ -16,7 +16,7 @@ namespace processing::resource {
 		return m_nextResId++;
 	}
 
-	UntypedResourceView ResourceStore::ResolveRaw(ResourceId id) const {
+	UntypedResourceView ResourceRegistry::ResolveRaw(ResourceId id) const {
 		return {};
 		//auto& entry = m_resources.at(id);
 

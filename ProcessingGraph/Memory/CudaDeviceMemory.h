@@ -4,14 +4,16 @@
 namespace cuda::memory {
 	class LinearDeviceMemory {
 	public:
-		LinearDeviceMemory(size_t sizeBytes);
 		~LinearDeviceMemory();
+
+		void Allocate(size_t sizeBytes);
+		void Release();
 
 		void* Mem() const;
 		size_t SizeBytes() const;
 
 	private:
 		void* m_mem = nullptr;
-		size_t m_sizeBytes;
+		size_t m_sizeBytes = 0;
 	};
 }

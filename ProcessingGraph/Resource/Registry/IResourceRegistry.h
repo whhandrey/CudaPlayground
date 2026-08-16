@@ -1,15 +1,13 @@
 #pragma once
-#include <vector>
 #include <string>
-#include <stdexcept>
 #include "../Id.h"
-#include "ResourceDesc.h"
+#include "../ResourceDesc.h"
 #include "ResourceTraits.h"
 
 namespace processing::resource {
-	class IResourceStore {
+	class IResourceRegistry {
 	public:
-		virtual ~IResourceStore() = default;
+		virtual ~IResourceRegistry() = default;
 		virtual ResourceId RegisterRequest(const std::string& name, const ResourceDesc& desc) = 0;
 
 		template <class ResourceView>

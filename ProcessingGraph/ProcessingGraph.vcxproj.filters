@@ -28,11 +28,11 @@
     <Filter Include="Resource">
       <UniqueIdentifier>{2e73aa7f-aafe-407c-93b3-290f5f67f62f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource\Store">
-      <UniqueIdentifier>{23869457-a1ad-4c54-a7b4-4757bb3722b0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resource\Planner">
       <UniqueIdentifier>{4fdc56de-842e-4f4e-82f4-f9d6bb748bde}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource\Registry">
+      <UniqueIdentifier>{1c06d9a7-06ba-4e0c-a877-7e2bb61119db}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -81,18 +81,6 @@
     <ClInclude Include="Memory\PinnedImagePool.h">
       <Filter>Memory</Filter>
     </ClInclude>
-    <ClInclude Include="Resource\Store\IResourceStore.h">
-      <Filter>Resource\Store</Filter>
-    </ClInclude>
-    <ClInclude Include="Resource\Store\ResourceDesc.h">
-      <Filter>Resource\Store</Filter>
-    </ClInclude>
-    <ClInclude Include="Resource\Store\ResourceStore.h">
-      <Filter>Resource\Store</Filter>
-    </ClInclude>
-    <ClInclude Include="Resource\Store\ResourceTraits.h">
-      <Filter>Resource\Store</Filter>
-    </ClInclude>
     <ClInclude Include="Resource\Planner\ResourceLayoutPlanner.h">
       <Filter>Resource\Planner</Filter>
     </ClInclude>
@@ -101,6 +89,18 @@
     </ClInclude>
     <ClInclude Include="Memory\CudaDeviceMemory.h">
       <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\ResourceDesc.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Registry\ResourceRegistry.h">
+      <Filter>Resource\Registry</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Registry\IResourceRegistry.h">
+      <Filter>Resource\Registry</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Registry\ResourceTraits.h">
+      <Filter>Resource\Registry</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -125,14 +125,14 @@
     <ClCompile Include="Memory\PinnedHostMemory.cpp">
       <Filter>Memory</Filter>
     </ClCompile>
-    <ClCompile Include="Resource\Store\ResourceStore.cpp">
-      <Filter>Resource\Store</Filter>
-    </ClCompile>
     <ClCompile Include="Resource\Planner\ResourceLayoutPlanner.cpp">
       <Filter>Resource\Planner</Filter>
     </ClCompile>
     <ClCompile Include="Memory\CudaDeviceMemory.cpp">
       <Filter>Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\Registry\ResourceRegistry.cpp">
+      <Filter>Resource\Registry</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

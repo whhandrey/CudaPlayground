@@ -1,21 +1,21 @@
 #pragma once
 #include "PortBase.h"
 #include "IPortListener.h"
-#include "../Resource/Store/IResourceStore.h"
+#include "../Resource/Registry/IResourceRegistry.h"
 #include "../Common/Id.h"
 #include <vector>
 #include <stdexcept>
 
 namespace dataflow {
-	using processing::resource::IResourceStore;
+	using processing::resource::IResourceRegistry;
 	using processing::resource::ResourceDesc;
 
 	class ResourceBasePort : public PortBase {
 	public:
-		ResourceBasePort(NodeId ownerId, const std::string& name, IPortRegistry& registry, IResourceStore& store, const ResourceDesc& desc)
+		ResourceBasePort(NodeId ownerId, const std::string& name, IPortRegistry& registry, IResourceRegistry& resRegistry, const ResourceDesc& desc)
 			: PortBase(ownerId, name, registry)
-			, m_store{ store }
-			, m_resourceId{ store.RegisterRequest(name, desc) }
+			, m_resRegistry{ resRegistry }
+			, m_resourceId{ resRegistry.RegisterRequest(name, desc) }
 		{
 		}
 
@@ -29,19 +29,19 @@ namespace dataflow {
 
 	protected:
 		const ResourceId m_resourceId;
-		IResourceStore& m_store;
+		IResourceRegistry& m_resRegistry;
 	};
 
 	template <class ResourceView, PortDirection Dir>
 	class ResourcePort : public ResourceBasePort {
 	public:
-		ResourcePort(NodeId ownerId, const std::string& name, IPortRegistry& registry, IResourceStore& store, const ResourceDesc& desc)
-			: ResourceBasePort(ownerId, name, registry, store, desc)
+		ResourcePort(NodeId ownerId, const std::string& name, IPortRegistry& registry, IResourceRegistry& resRegistry, const ResourceDesc& desc)
+			: ResourceBasePort(ownerId, name, registry, resRegistry, desc)
 		{
 		}
 
 		ResourceView View() const {
-			return m_store.Resolve<ResourceView>(ResId());
+			return m_registry.Resolve<ResourceView>(ResId());
 		}
 
 		PortDirection Direction() const override {

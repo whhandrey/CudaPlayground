@@ -159,10 +159,10 @@
     <ClInclude Include="Port\ResourcePort.h" />
     <ClInclude Include="Resource\Id.h" />
     <ClInclude Include="Resource\Planner\ResourceLayoutPlanner.h" />
-    <ClInclude Include="Resource\Store\IResourceStore.h" />
-    <ClInclude Include="Resource\Store\ResourceDesc.h" />
-    <ClInclude Include="Resource\Store\ResourceStore.h" />
-    <ClInclude Include="Resource\Store\ResourceTraits.h" />
+    <ClInclude Include="Resource\Registry\IResourceRegistry.h" />
+    <ClInclude Include="Resource\Registry\ResourceRegistry.h" />
+    <ClInclude Include="Resource\Registry\ResourceTraits.h" />
+    <ClInclude Include="Resource\ResourceDesc.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
@@ -185,7 +185,7 @@
     <ClCompile Include="Port\PortBase.cpp" />
     <ClCompile Include="Port\ResourcePort.cpp" />
     <ClCompile Include="Resource\Planner\ResourceLayoutPlanner.cpp" />
-    <ClCompile Include="Resource\Store\ResourceStore.cpp" />
+    <ClCompile Include="Resource\Registry\ResourceRegistry.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

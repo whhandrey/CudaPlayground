@@ -3,10 +3,10 @@
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
-#include "IResourceStore.h"
+#include "IResourceRegistry.h"
 
 namespace processing::resource {
-	class ResourceStore : public IResourceStore {
+	class ResourceRegistry : public IResourceRegistry {
 	public:
 		ResourceId RegisterRequest(const std::string& name, const ResourceDesc& desc) override;
 

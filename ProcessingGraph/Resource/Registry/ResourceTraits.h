@@ -1,6 +1,7 @@
 #pragma once
-#include "ResourceDesc.h"
+#include "../ResourceDesc.h"
 #include <Image/ImageView.h>
+#include <stdexcept>
 
 namespace processing::resource {
     struct UntypedResourceView {
