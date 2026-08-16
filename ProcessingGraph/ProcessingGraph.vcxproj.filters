@@ -99,6 +99,9 @@
     <ClInclude Include="Resource\Id.h">
       <Filter>Resource</Filter>
     </ClInclude>
+    <ClInclude Include="Memory\CudaDeviceMemory.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Node\Node.cpp">
@@ -127,6 +130,9 @@
     </ClCompile>
     <ClCompile Include="Resource\Planner\ResourceLayoutPlanner.cpp">
       <Filter>Resource\Planner</Filter>
+    </ClCompile>
+    <ClCompile Include="Memory\CudaDeviceMemory.cpp">
+      <Filter>Memory</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
