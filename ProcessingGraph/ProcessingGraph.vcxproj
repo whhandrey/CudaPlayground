@@ -111,7 +111,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,7 +130,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -158,11 +158,15 @@
     <ClInclude Include="Port\PortType.h" />
     <ClInclude Include="Port\ResourcePort.h" />
     <ClInclude Include="Resource\Id.h" />
+    <ClInclude Include="Resource\Planner\WorkspaceLayout.h" />
     <ClInclude Include="Resource\Planner\ResourceLayoutPlanner.h" />
     <ClInclude Include="Resource\Registry\IResourceRegistry.h" />
     <ClInclude Include="Resource\Registry\ResourceRegistry.h" />
+    <ClInclude Include="Resource\Registry\ResourceRequest.h" />
     <ClInclude Include="Resource\Registry\ResourceTraits.h" />
+    <ClInclude Include="Resource\Registry\UntypedResourceView.h" />
     <ClInclude Include="Resource\ResourceDesc.h" />
+    <ClInclude Include="Resource\Workspace\CudaWorkspace.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
@@ -186,6 +190,7 @@
     <ClCompile Include="Port\ResourcePort.cpp" />
     <ClCompile Include="Resource\Planner\ResourceLayoutPlanner.cpp" />
     <ClCompile Include="Resource\Registry\ResourceRegistry.cpp" />
+    <ClCompile Include="Resource\Workspace\CudaWorkspace.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

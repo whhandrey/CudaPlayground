@@ -19,13 +19,16 @@ namespace processing::resource {
 	}
 
 	ResourceAllocation ResourceLayoutPlanner::PlanResource(const ResourceRequest& request, size_t offsetBytes) const {
-		const size_t rowBytes = request.dim.x * request.elementSizeBytes;
+		const size_t rowBytes = request.dim.x * request.sizeOfElemBytes;
 		const size_t pitchBytes = AlignUp(rowBytes, m_pitchAlignment);
 
 		const size_t sizeBytes = pitchBytes * request.dim.y;
 
 		return {
 			request.id,
+			request.dim,
+			request.sampleType,
+			request.sizeOfElemBytes,
 			offsetBytes,
 			pitchBytes,
 			sizeBytes

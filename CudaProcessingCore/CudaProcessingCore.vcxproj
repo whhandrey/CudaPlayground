@@ -111,7 +111,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)ImgProcCommon;$(SolutionDir)MotionProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)ImgProcCommon;$(SolutionDir)MotionProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,7 +130,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)ImgProcCommon;$(SolutionDir)MotionProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)CudaCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)ImgProcCommon;$(SolutionDir)MotionProcCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

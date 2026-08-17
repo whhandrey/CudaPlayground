@@ -34,6 +34,9 @@
     <Filter Include="Resource\Registry">
       <UniqueIdentifier>{1c06d9a7-06ba-4e0c-a877-7e2bb61119db}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource\Workspace">
+      <UniqueIdentifier>{2c2cae7f-0075-4322-ac97-3a73a7fbadb1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Port\ParamPort.h">
@@ -102,6 +105,18 @@
     <ClInclude Include="Resource\Registry\ResourceTraits.h">
       <Filter>Resource\Registry</Filter>
     </ClInclude>
+    <ClInclude Include="Resource\Planner\WorkspaceLayout.h">
+      <Filter>Resource\Planner</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Workspace\CudaWorkspace.h">
+      <Filter>Resource\Workspace</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Registry\UntypedResourceView.h">
+      <Filter>Resource\Registry</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\Registry\ResourceRequest.h">
+      <Filter>Resource\Registry</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Node\Node.cpp">
@@ -133,6 +148,9 @@
     </ClCompile>
     <ClCompile Include="Resource\Registry\ResourceRegistry.cpp">
       <Filter>Resource\Registry</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\Workspace\CudaWorkspace.cpp">
+      <Filter>Resource\Workspace</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

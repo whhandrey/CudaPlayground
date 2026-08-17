@@ -1,4 +1,6 @@
 #include "ResourceRegistry.h"
+#include <algorithm>
+#include <iterator>
 
 namespace processing::resource {
 	ResourceId ResourceRegistry::RegisterRequest(const std::string& name, const ResourceDesc& desc) {
@@ -14,6 +16,23 @@ namespace processing::resource {
 		m_requests.emplace_back(entry);
 
 		return m_nextResId++;
+	}
+
+	std::vector<ResourceRequest> ResourceRegistry::BuildRequests(MemoryDomain domain) const {
+		std::vector<ResourceRequest> output;
+
+		for (const auto& req : m_requests) {
+			if (req.desc.domain == domain) {
+				output.emplace_back(ResourceRequest {
+					req.id,
+					req.desc.sampleType,
+					req.desc.sizeOfElemBytes,
+					req.desc.dim
+				});
+			}
+		}
+
+		return output;
 	}
 
 	UntypedResourceView ResourceRegistry::ResolveRaw(ResourceId id) const {

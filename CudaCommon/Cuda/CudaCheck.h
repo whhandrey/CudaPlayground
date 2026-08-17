@@ -1,6 +1,6 @@
 #pragma once
-#include <cuda_runtime.h>
 #include <sstream>
+#include <cuda_runtime.h>
 
 #define cudaCheck(err) checkCudaError(err, __FILE__, __LINE__)
 inline void checkCudaError(cudaError error, const char* file, const int line) {
