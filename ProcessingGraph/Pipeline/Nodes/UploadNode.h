@@ -1,18 +1,29 @@
 #pragma once
 #include "../../Node/Node.h"
-#include "../../Port/IPortRegistry.h"
-#include <Cuda/Motion/BlockMatching.h>
+#include "../../Port/ResourcePort.h"
 
 namespace pipeline {
-	using cuda::motion::BlockMatchingParams;
-	using dataflow::NodeId;
-	using dataflow::CudaExecutionContext;
+	using namespace dataflow;
+	using image::PinnedImageView;
+	using image::GpuImageView;
+
+	struct UploadNodeParams {
+		INodeChangeListener& listener;
+		IPortRegistry& registry;
+		IResourceRegistry& resRegistry;
+		ResourceDesc cpuInputDesc;
+		ResourceDesc gpuOutputDesc;
+	};
 
 	class UploadNode : public dataflow::NodeBase {
 	public:
-		UploadNode(NodeId id, dataflow::INodeChangeListener& listener);
+		UploadNode(NodeId id, const std::string& name, const UploadNodeParams& params);
 
 	public:
 		void Execute(const CudaExecutionContext& ctx) override;
+
+	private:
+		ResourceInPort<PinnedImageView<image::vec4uc>> m_cpuInput;
+		ResourceOutPort<GpuImageView<uchar4>> m_gpuOutput;
 	};
 }

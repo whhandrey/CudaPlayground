@@ -1,24 +1,29 @@
 #include "BlockMatchingNode.h"
 
 namespace pipeline {
-	BlockMatchingNode::BlockMatchingNode(NodeId id, dataflow::INodeChangeListener& listener, dataflow::IPortRegistry& registry)
-		: NodeBase(id, listener)
-		, m_params(id, "blockMatchingParams", registry, *this)
+	BlockMatchingNode::BlockMatchingNode(NodeId id, const BlockMatchingNodeParams& params)
+		: NodeBase(id, params.listener)
+		, m_params(id, "blockMatchingParams", params.registry, *this)
+		, m_prev(id, "prev.greyscale", params.registry, params.resRegistry, params.prevImageDesc)
+		, m_curr(id, "curr.greyscale", params.registry, params.resRegistry, params.currImageDesc)
+		, m_stats(id, "blockMatching.stats", params.registry, params.resRegistry, params.statsDesc)
 	{
 	}
 
 	void BlockMatchingNode::Execute(const CudaExecutionContext& ctx) {
-		//cuda::KernelContext kernelCtx {
-		//	ctx.stream,
-		//	ctx.profiler
-		//};
+		cuda::KernelContext kernelCtx {
+			ctx.stream,
+			ctx.profiler
+		};
 
-		//cuda::motion::BlockMatching(
-		//	cuda::gpu_image::MakeImageView(m_prev),
-		//	cuda::gpu_image::MakeImageView(m_curr),
-		//	outView,
-		//	m_params.Value(),
-		//	kernelCtx
-		//);
+		auto outView = m_stats.View();
+
+		cuda::motion::BlockMatching(
+			m_prev.View(),
+			m_curr.View(),
+			outView,
+			m_params.Value(),
+			kernelCtx
+		);
 	}
 }

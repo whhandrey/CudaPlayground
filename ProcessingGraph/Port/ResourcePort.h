@@ -41,7 +41,7 @@ namespace dataflow {
 		}
 
 		ResourceView View() const {
-			return m_registry.Resolve<ResourceView>(ResId());
+			return m_resRegistry.Resolve<ResourceView>(ResId());
 		}
 
 		PortDirection Direction() const override {

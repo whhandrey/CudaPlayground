@@ -1,22 +1,38 @@
 #pragma once
 #include "../../Port/ParamPort.h"
+#include "../../Port/ResourcePort.h"
 #include "../../Node/Node.h"
 #include "../../Port/IPortRegistry.h"
 #include <Cuda/Motion/BlockMatching.h>
+#include <Image/ImageView.h>
 
 namespace pipeline {
 	using cuda::motion::BlockMatchingParams;
-	using dataflow::NodeId;
-	using dataflow::CudaExecutionContext;
+	using cuda::motion::BlockMatchStats;
+	using namespace dataflow;
 
-	class BlockMatchingNode : public dataflow::NodeBase {
+	struct BlockMatchingNodeParams {
+		INodeChangeListener& listener;
+		IPortRegistry& registry;
+		IResourceRegistry& resRegistry;
+		ResourceDesc prevImageDesc;
+		ResourceDesc currImageDesc;
+		ResourceDesc statsDesc;
+	};
+
+	class BlockMatchingNode : public NodeBase {
 	public:
-		BlockMatchingNode(NodeId id, dataflow::INodeChangeListener& listener, dataflow::IPortRegistry& registry);
+		BlockMatchingNode(NodeId id, const BlockMatchingNodeParams& params);
 
 	public:
 		void Execute(const CudaExecutionContext& ctx) override;
 
 	private:
-		dataflow::InParamPort<BlockMatchingParams> m_params;
+		InParamPort<BlockMatchingParams> m_params;
+
+		ResourceInPort<image::GpuImageView<uchar4>> m_prev;
+		ResourceInPort<image::GpuImageView<uchar4>> m_curr;
+
+		ResourceOutPort<image::GpuImageView<BlockMatchStats>> m_stats;
 	};
 }
