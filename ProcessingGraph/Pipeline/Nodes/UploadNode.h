@@ -8,6 +8,8 @@ namespace pipeline {
 	using image::GpuImageView;
 
 	struct UploadNodeParams {
+		std::string cpuInputName;
+		std::string gpuOutputName;
 		INodeChangeListener& listener;
 		IPortRegistry& registry;
 		IResourceRegistry& resRegistry;
@@ -17,7 +19,7 @@ namespace pipeline {
 
 	class UploadNode : public dataflow::NodeBase {
 	public:
-		UploadNode(NodeId id, const std::string& name, const UploadNodeParams& params);
+		UploadNode(NodeId id, const UploadNodeParams& params);
 
 	public:
 		void Execute(const CudaExecutionContext& ctx) override;
