@@ -51,8 +51,8 @@ namespace cuda::motion {
 
 	public:
 		void Analyze(
-			const image::CpuImageView<image::vec4uc>& prev,
-			const image::CpuImageView<image::vec4uc>& curr) override;
+			const image::CpuImageView<const image::vec4uc>& prev,
+			const image::CpuImageView<const image::vec4uc>& curr) override;
 
 		std::map<render::ViewType, image::Image<image::vec4uc>> RenderViews(
 			const std::vector<render::ViewType>& views) override;
@@ -95,8 +95,8 @@ namespace cuda::motion {
 		cudaCheck(cudaStreamDestroy(m_ctx.m_stream));
 	}
 
-	void MotionGpuPipeline::Analyze(const image::CpuImageView<image::vec4uc>& prev,
-		const image::CpuImageView<image::vec4uc>& curr)
+	void MotionGpuPipeline::Analyze(const image::CpuImageView<const image::vec4uc>& prev,
+		const image::CpuImageView<const image::vec4uc>& curr)
 	{
 		if (!EqDim(prev.m_dim, curr.m_dim)) {
 			throw std::logic_error("MotionGpuPipeline::Analyze: prev.dim != curr.dim");

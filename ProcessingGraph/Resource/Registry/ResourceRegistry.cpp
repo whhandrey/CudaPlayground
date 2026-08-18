@@ -18,33 +18,38 @@ namespace processing::resource {
 		return m_nextResId++;
 	}
 
-	std::vector<ResourceRequest> ResourceRegistry::BuildRequests(MemoryDomain domain) const {
-		std::vector<ResourceRequest> output;
+	void ResourceRegistry::ClearRequests() {
+		m_requests.clear();
+		m_nextResId = 0;
+	}
 
-		for (const auto& req : m_requests) {
-			if (req.desc.domain == domain) {
-				output.emplace_back(ResourceRequest {
-					req.id,
-					req.desc.sampleType,
-					req.desc.sizeOfElemBytes,
-					req.desc.dim
-				});
-			}
-		}
+	std::vector<ResourceRequest> ResourceRegistry::BuildRequests() const {
+		std::vector<ResourceRequest> output;
+		output.reserve(m_requests.size());
+
+		std::transform(m_requests.begin(), m_requests.end(), std::back_inserter(output), [](const auto& req) {
+			return ResourceRequest {
+				req.id,
+				req.desc.domain,
+				req.desc.sampleType,
+				req.desc.sizeOfElemBytes,
+				req.desc.dim
+			};
+		});
 
 		return output;
 	}
 
-	UntypedResourceView ResourceRegistry::ResolveRaw(ResourceId id) const {
-		return {};
-		//auto& entry = m_resources.at(id);
+	void ResourceRegistry::SupplyResources(std::map<ResourceId, UntypedResourceView>&& resources) {
+		m_resourceViews = std::move(resources);
+	}
 
-		//return {
-		//	.data = entry.Data(),
-		//	.dim = entry.Dimensions(),
-		//	.strideBytes = entry.StrideBytes(),
-		//	.domain = entry.Domain(),
-		//	.sampleType = entry.SampleType()
-		//};
+	UntypedResourceView ResourceRegistry::ResolveRaw(ResourceId id) const {
+		const auto it = m_resourceViews.find(id);
+		if (it == m_resourceViews.end()) {
+			throw std::logic_error("ResourceRegistry::ResolveRaw: requested unknown resource");
+		}
+
+		return it->second;
 	}
 }

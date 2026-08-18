@@ -7,12 +7,12 @@
 #include <span>
 
 namespace processing::resource {
-	class ResourceLayoutPlanner {
+	class GpuResourceLayoutPlanner {
 	public:
-		ResourceLayoutPlanner(size_t resAlignment, size_t pitchAlignment);
+		GpuResourceLayoutPlanner(size_t resAlignment, size_t pitchAlignment);
 
 	public:
-		WorkspaceLayout Build(std::span<ResourceRequest> requests) const;
+		WorkspaceLayout Build(std::span<const ResourceRequest> requests) const;
 
 	private:
 		ResourceAllocation PlanResource(const ResourceRequest& request, size_t offsetBytes) const;

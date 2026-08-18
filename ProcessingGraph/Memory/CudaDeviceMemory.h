@@ -4,7 +4,14 @@
 namespace cuda::memory {
 	class LinearDeviceMemory {
 	public:
+		LinearDeviceMemory() = default;
 		~LinearDeviceMemory();
+
+		LinearDeviceMemory(const LinearDeviceMemory&) = delete;
+		LinearDeviceMemory& operator=(const LinearDeviceMemory&) = delete;
+
+		LinearDeviceMemory(LinearDeviceMemory&& other) noexcept;
+		LinearDeviceMemory& operator=(LinearDeviceMemory&& other) noexcept;
 
 		void Allocate(size_t sizeBytes);
 		void Release();

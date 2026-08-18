@@ -16,8 +16,8 @@ namespace cuda::motion {
 		virtual ~IMotionViewProcessor() = default;
 
 		virtual void Analyze(
-			const image::CpuImageView<image::vec4uc>& prev,
-			const image::CpuImageView<image::vec4uc>& curr) = 0;
+			const image::CpuImageView<const image::vec4uc>& prev,
+			const image::CpuImageView<const image::vec4uc>& curr) = 0;
 
 		virtual std::map<render::ViewType, image::Image<image::vec4uc>> RenderViews(
 			const std::vector<render::ViewType>& types) = 0;

@@ -12,52 +12,47 @@ namespace cuda::memory {
     template <class SampleType>
     class PinnedImagePool {
     public:
-        PinnedImagePool(image::vec2ui dim, std::size_t imageCount)
-            : m_dim{ dim }
-            , m_imageCount{ imageCount }
-            , m_pitchBytes{ static_cast<std::size_t>(dim.x) * sizeof(SampleType) }
-            , m_imageSizeBytes{ m_pitchBytes * static_cast<std::size_t>(dim.y) }
+        PinnedImagePool(image::vec2ui maxDim, std::size_t maxSlotCount)
+            : m_maxDim{ maxDim }
+            , m_maxSlotCount{ maxSlotCount }
+            , m_slotPitch{ maxDim.x * sizeof(SampleType) }
+            , m_slotSizeBytes{ m_slotPitch * maxDim.y }
         {
-            constexpr size_t maxMemSize = MaxDim.x * MaxDim.y * SlotCount * sizeof(SampleType);
-            if (m_imageSizeBytes * m_imageCount > maxMemSize) {
-                throw std::logic_error("PinnedImagePool: requested larger than supported image dim/count");
-            }
-
+            const size_t maxMemSize = m_slotSizeBytes * m_maxSlotCount;
             m_memory = PinnedHostMemory(maxMemSize);
         }
 
-        image::PinnedImageView<SampleType> View(std::size_t index) {
-            if (index >= m_imageCount) {
+        image::PinnedImageView<SampleType> View(image::vec2ui dim, std::size_t index) {
+            if (index >= SlotCount()) {
                 throw std::out_of_range("PinnedImagePool: invalid image index");
             }
 
-            auto* base = static_cast<std::byte*>(m_memory.Data());
-            auto* imageData = base + index * m_imageSizeBytes;
+            if (dim.x > m_maxDim.x || dim.y > m_maxDim.y) {
+                throw std::logic_error("PinnedImagePool: exceeded max allowed dim");
+            }
+
+            // pitch is the same as dim.x for now
+            const size_t pitchBytes = dim.x * sizeof(SampleType);
+
+            auto* base = static_cast<std::byte*>(m_memory.Mem());
+            auto* imageData = base + index * m_slotSizeBytes;
 
             return {
                 reinterpret_cast<SampleType*>(imageData),
-                m_dim,
-                m_pitchBytes
+                dim,
+                pitchBytes
             };
         }
 
-        std::size_t ImageCount() const noexcept {
-            return m_imageCount;
-        }
-
-        std::size_t ImageSizeBytes() const noexcept {
-            return m_imageSizeBytes;
+        std::size_t SlotCount() const noexcept {
+            return m_maxSlotCount;
         }
 
     private:
-        static constexpr image::vec2ui MaxDim{ 3840, 2160 };
-        static constexpr std::size_t SlotCount = 5;
-
-        image::vec2ui m_dim{};
-
-        std::size_t m_imageCount = 0;
-        std::size_t m_pitchBytes = 0;
-        std::size_t m_imageSizeBytes = 0;
+        const image::vec2ui m_maxDim;
+        const size_t m_maxSlotCount;
+        const size_t m_slotPitch;
+        const size_t m_slotSizeBytes;
 
         PinnedHostMemory m_memory;
     };

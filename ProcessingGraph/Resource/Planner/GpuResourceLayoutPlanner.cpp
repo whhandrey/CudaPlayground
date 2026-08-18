@@ -1,7 +1,11 @@
-#include "ResourceLayoutPlanner.h"
+#include "GpuResourceLayoutPlanner.h"
+#include "../MemoryDomain.h"
 #include <Cuda/KernelCommon.h>
+#include <algorithm>
+#include <stdexcept>
 
 namespace {
+	// TODO: move to imgproc common
 	size_t DivUp(size_t a, size_t b) {
 		return (a + b - 1) / b;
 	}
@@ -12,13 +16,13 @@ namespace {
 }
 
 namespace processing::resource {
-	ResourceLayoutPlanner::ResourceLayoutPlanner(size_t resAlignment, size_t pitchAlignment)
+	GpuResourceLayoutPlanner::GpuResourceLayoutPlanner(size_t resAlignment, size_t pitchAlignment)
 		: m_resAlignment{ resAlignment }
 		, m_pitchAlignment{ pitchAlignment }
 	{
 	}
 
-	ResourceAllocation ResourceLayoutPlanner::PlanResource(const ResourceRequest& request, size_t offsetBytes) const {
+	ResourceAllocation GpuResourceLayoutPlanner::PlanResource(const ResourceRequest& request, size_t offsetBytes) const {
 		const size_t rowBytes = request.dim.x * request.sizeOfElemBytes;
 		const size_t pitchBytes = AlignUp(rowBytes, m_pitchAlignment);
 
@@ -35,7 +39,7 @@ namespace processing::resource {
 		};
 	}
 
-	WorkspaceLayout ResourceLayoutPlanner::Build(std::span<ResourceRequest> requests) const {
+	WorkspaceLayout GpuResourceLayoutPlanner::Build(std::span<const ResourceRequest> requests) const {
 		if (requests.empty()) {
 			return {};
 		}
@@ -46,6 +50,10 @@ namespace processing::resource {
 		size_t nextOffsetBytes = 0;
 
 		for (const auto& req : requests) {
+			if (req.domain != MemoryDomain::CudaDevice) {
+				throw std::logic_error("GpuResourceLayoutPlanner::Build: requested unsupported resource");
+			}
+
 			const auto allocation = PlanResource(req, nextOffsetBytes);
 			nextOffsetBytes = AlignUp(nextOffsetBytes + allocation.sizeBytes, m_resAlignment);
 

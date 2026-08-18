@@ -13,7 +13,7 @@ namespace cuda::memory {
 	}
 
 	PinnedHostMemory::PinnedHostMemory(PinnedHostMemory&& other) noexcept
-		: m_data{ std::exchange(other.m_data, nullptr) }
+		: m_mem{ std::exchange(other.m_mem, nullptr) }
 		, m_sizeBytes{ std::exchange(other.m_sizeBytes, 0) }
 	{
 	}
@@ -22,7 +22,7 @@ namespace cuda::memory {
 		if (this != &other) {
 			Release();
 
-			m_data = std::exchange(other.m_data, nullptr);
+			m_mem = std::exchange(other.m_mem, nullptr);
 			m_sizeBytes = std::exchange(other.m_sizeBytes, 0);
 		}
 
@@ -36,22 +36,22 @@ namespace cuda::memory {
 			return;
 		}
 
-		cudaCheck(cudaMallocHost(&m_data, sizeBytes));
+		cudaCheck(cudaMallocHost(&m_mem, sizeBytes));
 		m_sizeBytes = sizeBytes;
 	}
 
 	void PinnedHostMemory::Release() noexcept {
-		if (m_data) {
+		if (m_mem) {
 			// Destructors should not throw.
-			cudaFreeHost(m_data);
+			cudaFreeHost(m_mem);
 
-			m_data = nullptr;
+			m_mem = nullptr;
 			m_sizeBytes = 0;
 		}
 	}
 
-	void* PinnedHostMemory::Data() const {
-		return m_data;
+	void* PinnedHostMemory::Mem() const {
+		return m_mem;
 	}
 
 	std::size_t PinnedHostMemory::SizeBytes() const {

@@ -18,11 +18,11 @@ namespace cuda::memory {
         void Allocate(std::size_t sizeBytes);
         void Release() noexcept;
 
-        void* Data() const;
+        void* Mem() const;
         std::size_t SizeBytes() const;
 
     private:
-        void* m_data = nullptr;
+        void* m_mem = nullptr;
         std::size_t m_sizeBytes = 0;
     };
 }

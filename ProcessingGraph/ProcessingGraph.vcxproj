@@ -157,9 +157,11 @@
     <ClInclude Include="Port\PortBase.h" />
     <ClInclude Include="Port\PortType.h" />
     <ClInclude Include="Port\ResourcePort.h" />
+    <ClInclude Include="Resource\Facade\GraphResources.h" />
     <ClInclude Include="Resource\Id.h" />
+    <ClInclude Include="Resource\MemoryDomain.h" />
     <ClInclude Include="Resource\Planner\WorkspaceLayout.h" />
-    <ClInclude Include="Resource\Planner\ResourceLayoutPlanner.h" />
+    <ClInclude Include="Resource\Planner\GpuResourceLayoutPlanner.h" />
     <ClInclude Include="Resource\Registry\IResourceRegistry.h" />
     <ClInclude Include="Resource\Registry\ResourceRegistry.h" />
     <ClInclude Include="Resource\Registry\ResourceRequest.h" />
@@ -188,7 +190,8 @@
     <ClCompile Include="Pipeline\Nodes\UploadNode.cpp" />
     <ClCompile Include="Port\PortBase.cpp" />
     <ClCompile Include="Port\ResourcePort.cpp" />
-    <ClCompile Include="Resource\Planner\ResourceLayoutPlanner.cpp" />
+    <ClCompile Include="Resource\Facade\GraphResources.cpp" />
+    <ClCompile Include="Resource\Planner\GpuResourceLayoutPlanner.cpp" />
     <ClCompile Include="Resource\Registry\ResourceRegistry.cpp" />
     <ClCompile Include="Resource\Workspace\CudaWorkspace.cpp" />
   </ItemGroup>

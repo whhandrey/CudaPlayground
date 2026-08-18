@@ -37,6 +37,9 @@
     <Filter Include="Resource\Workspace">
       <UniqueIdentifier>{2c2cae7f-0075-4322-ac97-3a73a7fbadb1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource\Facade">
+      <UniqueIdentifier>{8f2a8582-b1e2-4dbb-8de4-4ac856fcf6fc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Port\ParamPort.h">
@@ -84,7 +87,7 @@
     <ClInclude Include="Memory\PinnedImagePool.h">
       <Filter>Memory</Filter>
     </ClInclude>
-    <ClInclude Include="Resource\Planner\ResourceLayoutPlanner.h">
+    <ClInclude Include="Resource\Planner\GpuResourceLayoutPlanner.h">
       <Filter>Resource\Planner</Filter>
     </ClInclude>
     <ClInclude Include="Resource\Id.h">
@@ -117,6 +120,12 @@
     <ClInclude Include="Resource\Registry\ResourceRequest.h">
       <Filter>Resource\Registry</Filter>
     </ClInclude>
+    <ClInclude Include="Resource\Facade\GraphResources.h">
+      <Filter>Resource\Facade</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource\MemoryDomain.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Node\Node.cpp">
@@ -140,7 +149,7 @@
     <ClCompile Include="Memory\PinnedHostMemory.cpp">
       <Filter>Memory</Filter>
     </ClCompile>
-    <ClCompile Include="Resource\Planner\ResourceLayoutPlanner.cpp">
+    <ClCompile Include="Resource\Planner\GpuResourceLayoutPlanner.cpp">
       <Filter>Resource\Planner</Filter>
     </ClCompile>
     <ClCompile Include="Memory\CudaDeviceMemory.cpp">
@@ -151,6 +160,9 @@
     </ClCompile>
     <ClCompile Include="Resource\Workspace\CudaWorkspace.cpp">
       <Filter>Resource\Workspace</Filter>
+    </ClCompile>
+    <ClCompile Include="Resource\Facade\GraphResources.cpp">
+      <Filter>Resource\Facade</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -18,7 +18,7 @@ namespace app::motion {
 	using image::Image;
 
 	struct VersionedFrame {
-		image::CpuImageView<image::vec4uc> img;
+		image::CpuImageView<const image::vec4uc> img;
 		size_t index = 0;
 		size_t generation = 0;
 	};

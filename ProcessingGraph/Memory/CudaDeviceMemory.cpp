@@ -7,6 +7,23 @@ namespace cuda::memory {
 		Release();
 	}
 
+	LinearDeviceMemory::LinearDeviceMemory(LinearDeviceMemory&& other) noexcept
+		: m_mem{ std::exchange(other.m_mem, nullptr) }
+		, m_sizeBytes{ std::exchange(other.m_sizeBytes, 0) }
+	{
+	}
+
+	LinearDeviceMemory& LinearDeviceMemory::operator=(LinearDeviceMemory&& other) noexcept {
+		if (this != &other) {
+			Release();
+
+			m_mem = std::exchange(other.m_mem, nullptr);
+			m_sizeBytes = std::exchange(other.m_sizeBytes, 0);
+		}
+
+		return *this;
+	}
+
 	void LinearDeviceMemory::Allocate(size_t sizeBytes) {
 		Release();
 

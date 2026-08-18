@@ -1,15 +1,10 @@
 #pragma once
+#include "MemoryDomain.h"
 #include <Image/ImageTypes.h>
 #include <typeindex>
 #include <string>
 
 namespace processing::resource {
-	enum class MemoryDomain {
-		Host,
-		HostPinned,
-		CudaDevice
-	};
-
 	struct ResourceDesc {
 		image::vec2ui dim;
 		size_t sizeOfElemBytes;
