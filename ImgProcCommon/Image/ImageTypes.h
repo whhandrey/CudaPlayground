@@ -28,11 +28,19 @@ namespace image {
 	struct ALIGN(8) vec2ui {
 		unsigned int x;
 		unsigned int y;
+
+		bool operator==(const vec2ui& rhs) const {
+			return x == rhs.x && y == rhs.y;
+		}
 	};
 
 	struct ALIGN(8) vec2i {
 		int x;
 		int y;
+
+		bool operator==(const vec2i& rhs) const {
+			return x == rhs.x && y == rhs.y;
+		}
 	};
 
 	struct ALIGN(16) vec4ui {

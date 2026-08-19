@@ -126,6 +126,12 @@
     <ClInclude Include="Resource\MemoryDomain.h">
       <Filter>Resource</Filter>
     </ClInclude>
+    <ClInclude Include="Pipeline\Nodes\DownloadNode.h">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\Nodes\StatsCollectorNode.h">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Node\Node.cpp">
@@ -163,6 +169,12 @@
     </ClCompile>
     <ClCompile Include="Resource\Facade\GraphResources.cpp">
       <Filter>Resource\Facade</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\Nodes\DownloadNode.cpp">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\Nodes\StatsCollectorNode.cpp">
+      <Filter>Pipeline\Nodes</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

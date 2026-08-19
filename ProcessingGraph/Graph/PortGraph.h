@@ -10,9 +10,10 @@ namespace dataflow {
 		PortId Register(PortBase& port) override;
 		void Unregister(PortId id) override;
 
-		std::span<PortBase* const> GetConnections(PortId id) const override;
+		std::span<PortBase* const> GetConnections(PortId outPortId) const override;
 
 		void ConnectPorts();
+		void Clear();
 
 	private:
 		std::vector<PortBase*> m_ports;

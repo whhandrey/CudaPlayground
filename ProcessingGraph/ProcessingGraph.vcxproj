@@ -111,7 +111,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)MotionProcCommon;$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,7 +130,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)MotionProcCommon;$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,6 +150,8 @@
     <ClInclude Include="Memory\PinnedImagePool.h" />
     <ClInclude Include="Node\Node.h" />
     <ClInclude Include="Pipeline\Nodes\BlockMatchingNode.h" />
+    <ClInclude Include="Pipeline\Nodes\DownloadNode.h" />
+    <ClInclude Include="Pipeline\Nodes\StatsCollectorNode.h" />
     <ClInclude Include="Pipeline\Nodes\UploadNode.h" />
     <ClInclude Include="Port\IPortListener.h" />
     <ClInclude Include="Port\IPortRegistry.h" />
@@ -180,6 +182,9 @@
     <ProjectReference Include="..\ImgProcCommon\ImgProcCommon.vcxproj">
       <Project>{3ead4a8c-e561-4b95-9d26-c8478b90f41c}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\MotionProcCommon\MotionProcCommon.vcxproj">
+      <Project>{726a5571-bf4c-4363-b8d4-cd05986f0b1f}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Graph\PortGraph.cpp" />
@@ -187,6 +192,8 @@
     <ClCompile Include="Memory\PinnedHostMemory.cpp" />
     <ClCompile Include="Node\Node.cpp" />
     <ClCompile Include="Pipeline\Nodes\BlockMatchingNode.cpp" />
+    <ClCompile Include="Pipeline\Nodes\DownloadNode.cpp" />
+    <ClCompile Include="Pipeline\Nodes\StatsCollectorNode.cpp" />
     <ClCompile Include="Pipeline\Nodes\UploadNode.cpp" />
     <ClCompile Include="Port\PortBase.cpp" />
     <ClCompile Include="Port\ResourcePort.cpp" />

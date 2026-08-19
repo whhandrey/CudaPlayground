@@ -25,6 +25,12 @@ namespace motion::debug {
 		std::string name;
 		StatsValue value;
 		Unit unit;
+
+		bool operator==(const StatsField& rhs) const {
+			return name == rhs.name
+				&& value == rhs.value
+				&& unit == rhs.unit;
+		}
 	};
 
 	using StatsPacket = std::map<std::string, std::vector<StatsField>>;

@@ -50,10 +50,10 @@ namespace dataflow {
 		m_ports.erase(portIt);
 	}
 
-	std::span<PortBase* const> PortGraph::GetConnections(PortId id) const {
-		const auto it = m_connections.find(id);
+	std::span<PortBase* const> PortGraph::GetConnections(PortId outPortId) const {
+		const auto it = m_connections.find(outPortId);
 		if (it == m_connections.end()) {
-			throw std::logic_error("PortGraph::GetConnections: no output port connected with PortId: " + std::to_string(id));
+			throw std::logic_error("PortGraph::GetConnections: no output port connected with PortId: " + std::to_string(outPortId));
 		}
 
 		return it->second;
@@ -98,5 +98,11 @@ namespace dataflow {
 			auto* outputPort = group.outputs.front();
 			m_connections.emplace(outputPort->Id(), std::move(group.inputs));
 		}
+	}
+
+	void PortGraph::Clear() {
+		m_connections.clear();
+		m_ports.clear();
+		m_nextPortId = 0;
 	}
 }
