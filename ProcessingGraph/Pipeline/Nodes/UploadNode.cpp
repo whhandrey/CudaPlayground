@@ -4,7 +4,7 @@
 
 namespace pipeline {
 	UploadNode::UploadNode(NodeId id, const UploadNodeParams& params)
-		: NodeBase(id, params.listener)
+		: NodeBase(id, "GpuUploadNode", params.listener)
 		, m_cpuInput(id, params.cpuInputName, params.registry, params.resRegistry, params.cpuInputDesc)
 		, m_gpuOutput(id, params.gpuOutputName, params.registry, params.resRegistry, params.gpuOutputDesc)
 	{

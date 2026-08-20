@@ -13,7 +13,7 @@ namespace {
 
 namespace pipeline {
 	StatsCollectorNode::StatsCollectorNode(NodeId id, INodeChangeListener& listener, IPortRegistry& registry)
-		: NodeBase(id, listener)
+		: NodeBase(id, "StatsCollectorNode", listener)
 		, m_params(id, "blockMatchingParams", registry, *this)
 		, m_statsOut(id, "executionStats", registry)
 	{

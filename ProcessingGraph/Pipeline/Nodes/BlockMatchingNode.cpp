@@ -2,7 +2,7 @@
 
 namespace pipeline {
 	BlockMatchingNode::BlockMatchingNode(NodeId id, const BlockMatchingNodeParams& params)
-		: NodeBase(id, params.listener)
+		: NodeBase(id, "BlockMatchingNode", params.listener)
 		, m_params(id, "blockMatchingParams", params.registry, *this)
 		, m_prev(id, "prev.greyscale", params.registry, params.resRegistry, params.prevImageDesc)
 		, m_curr(id, "curr.greyscale", params.registry, params.resRegistry, params.currImageDesc)
