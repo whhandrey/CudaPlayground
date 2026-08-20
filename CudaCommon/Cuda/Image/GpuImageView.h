@@ -1,6 +1,6 @@
 #pragma once
 #include <Image/ImageView.h>
-#include "../DeviceImage/ImageGPU.h"
+#include "ImageGPU.h"
 
 namespace cuda::gpu_image {
 	template <class T>

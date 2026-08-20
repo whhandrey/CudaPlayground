@@ -2,8 +2,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
-#include <DeviceImage/ImageGPU.h>
-#include <DeviceImage/GpuImageTransfer.h>
+#include <Cuda/Image/ImageGPU.h>
+#include <Cuda/Image/GpuImageTransfer.h>
 #include <Image/ImageView.h>
 #include <Cuda/Context.h>
 #include <Cuda/Filter.h>
@@ -177,10 +177,10 @@ int main() {
 
 	image::Image<uchar4> img = image::LoadFromFile<uchar4>(file);
 
-	cuda::ImageGPU<uchar4> prevFrame = cuda::gpu_image::Create(img, stream);
-	cuda::ImageGPU<uchar4> currFrame = cuda::gpu_image::Create(img, stream);
-	cuda::ImageGPU<uchar4> currFrameShifted(img.Dim());
-	cuda::ImageGPU<cuda::motion::BlockMatchStats> output(img.Dim());
+	cuda::gpu_image::ImageGPU<uchar4> prevFrame = cuda::gpu_image::Create(img, stream);
+	cuda::gpu_image::ImageGPU<uchar4> currFrame = cuda::gpu_image::Create(img, stream);
+	cuda::gpu_image::ImageGPU<uchar4> currFrameShifted(img.Dim());
+	cuda::gpu_image::ImageGPU<cuda::motion::BlockMatchStats> output(img.Dim());
 
 	image::GpuImageView<uchar4> prevView{ prevFrame.Data(), prevFrame.Dim(), prevFrame.Pitch() };
 	image::GpuImageView<uchar4> currView{ currFrame.Data(), currFrame.Dim(), currFrame.Pitch() };

@@ -1,8 +1,8 @@
 #pragma once
 #include <Image/ImageTypes.h>
-#include <Cuda/CudaCheck.h>
+#include "../CudaCheck.h"
 
-namespace cuda {
+namespace cuda::gpu_image {
 	template <class T>
 	class ImageGPU {
 	public:

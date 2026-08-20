@@ -1,12 +1,11 @@
 #include "IMotionViewProcessor.h"
 #include "State/MotionGpuPipelineState.h"
 #include "ViewRenderer/IMotionViewRenderer.h"
-#include "../DeviceImage/GpuImageView.h"
-#include "../DeviceImage/GpuImageTransfer.h"
 #include "../Motion/Debug/Collector.h"
 
 #include <Cuda/MathUtils.h>
 #include <Cuda/TimedCudaCall.h>
+#include <Cuda/Image/GpuImageTransfer.h>
 #include <Profiler/Profiler.h>
 
 namespace {
@@ -17,7 +16,7 @@ namespace {
 	}
 	
 	template <class T>
-	bool Valid(const cuda::ImageGPU<T>& img) {
+	bool Valid(const cuda::gpu_image::ImageGPU<T>& img) {
 		return img.Dim().x != 0 && img.Dim().y != 0;
 	}
 
@@ -44,6 +43,8 @@ namespace {
 }
 
 namespace cuda::motion {
+	using cuda::gpu_image::ImageGPU;
+
 	class MotionGpuPipeline : public IMotionViewProcessor {
 	public:
 		MotionGpuPipeline(std::unique_ptr<debug::Collector> collector);

@@ -7,6 +7,9 @@
     <Filter Include="Profiler">
       <UniqueIdentifier>{b40df68d-6da4-4e12-9e7e-9793cf41d125}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Cuda\Image">
+      <UniqueIdentifier>{e04f62f0-be9b-47e4-9895-6304275f4497}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Cuda\Context.h">
@@ -26,6 +29,15 @@
     </ClInclude>
     <ClInclude Include="Profiler\IProfiler.h">
       <Filter>Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Image\GpuImageTransfer.h">
+      <Filter>Cuda\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Image\GpuImageView.h">
+      <Filter>Cuda\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Image\ImageGPU.h">
+      <Filter>Cuda\Image</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

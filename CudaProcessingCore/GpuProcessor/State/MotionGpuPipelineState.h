@@ -1,9 +1,8 @@
 #pragma once
 #include <map>
 #include <Image/ImageTypes.h>
-
+#include <Cuda/Image/ImageGPU.h>
 #include "IMotionGpuPipelineState.h"
-#include "../../DeviceImage/ImageGPU.h"
 
 namespace cuda::motion::state {
 	class MotionGpuPipelineState : public IMotionGpuPipelineState {
@@ -18,6 +17,6 @@ namespace cuda::motion::state {
 
 	private:
 		GpuImageView<BlockMatchStats> m_stats;
-		std::map<render::ViewType, ImageGPU<uchar4>> m_renderedViews;
+		std::map<render::ViewType, cuda::gpu_image::ImageGPU<uchar4>> m_renderedViews;
 	};
 }

@@ -143,6 +143,9 @@
   <ItemGroup>
     <ClInclude Include="Cuda\Context.h" />
     <ClInclude Include="Cuda\CudaCheck.h" />
+    <ClInclude Include="Cuda\Image\GpuImageTransfer.h" />
+    <ClInclude Include="Cuda\Image\GpuImageView.h" />
+    <ClInclude Include="Cuda\Image\ImageGPU.h" />
     <ClInclude Include="Cuda\MathUtils.h" />
     <ClInclude Include="Cuda\TimedCudaCall.h" />
     <ClInclude Include="Profiler\IProfiler.h" />
