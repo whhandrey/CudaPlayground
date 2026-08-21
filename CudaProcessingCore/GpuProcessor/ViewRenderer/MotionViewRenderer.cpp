@@ -1,6 +1,6 @@
 #include "IMotionViewRenderer.h"
 #include "../State/IMotionGpuPipelineState.h"
-#include <Cuda/Context.h>
+#include <Cuda/KernelContext.h>
 #include <Cuda/Motion/Visualization/Visualization.h>
 #include <Cuda/Motion/Visualization/ArrowsMap.h>
 #include <stdexcept>
@@ -107,18 +107,18 @@ namespace cuda::motion::render {
 		cuda::motion::visualization::ArrowsMap(m_state.Stats(), output_view, m_ctx, m_macroBlockDim, m_groupSize, m_thickness);
 	}
 
-	IMotionViewRenderer::Ptr IMotionViewRenderer::Create(const ViewRendererParams& params, ViewType type)
+	IMotionViewRenderer::Ptr IMotionViewRenderer::Create(cuda::KernelContext& ctx, const ViewRendererParams& params, ViewType type)
 	{
 		switch (type)
 		{
 		case cuda::motion::render::ViewType::ConfMap:
-			return std::make_unique<ConfidenceViewRenderer>(params.ctx, params.state);
+			return std::make_unique<ConfidenceViewRenderer>(ctx, params.state);
 		case cuda::motion::render::ViewType::MotionMap:
-			return std::make_unique<StatsViewRenderer>(params.ctx, params.state, params.search_halfsize, ViewType::MotionMap, cuda::motion::visualization::MotionMap);
+			return std::make_unique<StatsViewRenderer>(ctx, params.state, params.search_halfsize, ViewType::MotionMap, cuda::motion::visualization::MotionMap);
 		case cuda::motion::render::ViewType::MagnitudeMap:
-			return std::make_unique<StatsViewRenderer>(params.ctx, params.state, params.search_halfsize, ViewType::MagnitudeMap, cuda::motion::visualization::MagMap);
+			return std::make_unique<StatsViewRenderer>(ctx, params.state, params.search_halfsize, ViewType::MagnitudeMap, cuda::motion::visualization::MagMap);
 		case cuda::motion::render::ViewType::ArrowsMap:
-			return std::make_unique<ArrowsMapViewRenderer>(params.ctx, params.state, params.macroBlockDim, params.groupSize, params.thickness);
+			return std::make_unique<ArrowsMapViewRenderer>(ctx, params.state, params.macroBlockDim, params.groupSize, params.thickness);
 		}
 
 		throw std::logic_error("IMotionViewRenderer::Create: invalid renderer type");

@@ -179,7 +179,7 @@ namespace cuda {
             image::vec2i macroBlockInt = { int(p.macroBlockDim.x), int(p.macroBlockDim.y) };
 
             cuda::TimedCall("BlockMatchingWarpKernel", ctx, [&]() {
-                BlockMatchingWarpKernel<<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.m_stream>>> (
+                BlockMatchingWarpKernel<<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.stream>>> (
                     prevFrame.m_ptr,
                     prevFrame.m_pitch,
                     currFrame.m_ptr,

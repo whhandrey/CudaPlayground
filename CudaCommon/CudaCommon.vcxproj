@@ -141,15 +141,17 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Cuda\Context.h" />
+    <ClInclude Include="Cuda\KernelContext.h" />
     <ClInclude Include="Cuda\CudaCheck.h" />
     <ClInclude Include="Cuda\Image\GpuImageTransfer.h" />
     <ClInclude Include="Cuda\Image\GpuImageView.h" />
     <ClInclude Include="Cuda\Image\ImageGPU.h" />
     <ClInclude Include="Cuda\MathUtils.h" />
+    <ClInclude Include="Cuda\Profiler\GpuEvent.h" />
+    <ClInclude Include="Cuda\Profiler\GpuProfiler.h" />
+    <ClInclude Include="Cuda\Profiler\GpuProfileResult.h" />
+    <ClInclude Include="Cuda\Profiler\IGpuProfiler.h" />
     <ClInclude Include="Cuda\TimedCudaCall.h" />
-    <ClInclude Include="Profiler\IProfiler.h" />
-    <ClInclude Include="Profiler\Profiler.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ImgProcCommon\ImgProcCommon.vcxproj">
@@ -157,7 +159,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Profiler\Profiler.cpp" />
+    <ClCompile Include="Cuda\Profiler\GpuEvent.cpp" />
+    <ClCompile Include="Cuda\Profiler\GpuProfiler.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

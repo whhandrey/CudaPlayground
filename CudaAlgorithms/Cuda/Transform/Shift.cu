@@ -45,7 +45,7 @@ namespace cuda {
             dim3 gridSize = cuda::math::Div(image.m_dim, blockSize);
 
             cuda::TimedCall("ShiftImageKernel", ctx, [&]() {
-                ShiftImageKernel << <gridSize, cuda::math::vec2Todim3(blockSize), 0, ctx.m_stream >> > (
+                ShiftImageKernel << <gridSize, cuda::math::vec2Todim3(blockSize), 0, ctx.stream >> > (
                     image.m_ptr,
                     image.m_pitch,
                     output.m_ptr,

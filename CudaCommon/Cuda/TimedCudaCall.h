@@ -1,5 +1,5 @@
 #pragma once
-#include "Context.h"
+#include "KernelContext.h"
 #include "CudaCheck.h"
 
 namespace cuda {
@@ -44,17 +44,17 @@ namespace cuda {
     };
 
 	template <class Fn>
-	void TimedCall(const std::string& name, cuda::KernelContext& ctx, Fn&& cudaKernel) {
-
-		{
-			Timer timer(ctx.m_stream);
+	void TimedCall(const std::string& kernelName, cuda::KernelContext& ctx, Fn&& cudaKernel) {
+        const auto id = ctx.profiler->BeginSample(kernelName, ctx.stream);
 			
-			cudaKernel();
+        std::forward<Fn>(cudaKernel)();
 
-            // Ignore errors for now, needed to test different blockDim sizes which might be invalid in some cases.
-            if (cudaGetLastError() == cudaSuccess) {
-                ctx.m_profiler->Profile(name, timer.EndMs());
-            }
-		}
+        // Ignore errors for now, needed to test different blockDim sizes which might be invalid in some cases.
+        if (cudaGetLastError() == cudaSuccess) {
+            ctx.profiler->EndSample(id, ctx.stream);
+        }
+        else {
+            ctx.profiler->CancelSample(id);
+        }
 	}
 }

@@ -420,7 +420,7 @@ namespace detail {
         image::vec2i macroBlockInt = { int(p.macroBlockDim.x), int(p.macroBlockDim.y) };
 
         cuda::TimedCall("BlockMatchingGenericKernel", ctx, [&]() {
-            BlockMatchingKernel <<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.m_stream>>> (
+            BlockMatchingKernel <<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.stream>>> (
                 prevFrame.m_ptr,
                 prevFrame.m_pitch,
                 currFrame.m_ptr,
@@ -470,7 +470,7 @@ namespace detail {
         constexpr size_t sharedMemSize = prevTileSize + currTileSize + sadTileSize;
 
         cuda::TimedCall("BlockMatchingKernelT", ctx, [&]() {
-            BlockMatchingKernelT<macroBlockW, macroBlockH, search_halfsizeX, search_halfsizeY> <<<gridSize, cuda::math::vec2Todim3(cudaBlockDim), sharedMemSize, ctx.m_stream>>> (
+            BlockMatchingKernelT<macroBlockW, macroBlockH, search_halfsizeX, search_halfsizeY> <<<gridSize, cuda::math::vec2Todim3(cudaBlockDim), sharedMemSize, ctx.stream>>> (
                 prevFrame.m_ptr,
                 prevFrame.m_pitch,
                 currFrame.m_ptr,

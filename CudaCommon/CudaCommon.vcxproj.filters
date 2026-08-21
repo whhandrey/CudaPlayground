@@ -4,15 +4,15 @@
     <Filter Include="Cuda">
       <UniqueIdentifier>{d43448ba-b26b-4048-bdc3-a028eeb8bb90}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Profiler">
-      <UniqueIdentifier>{b40df68d-6da4-4e12-9e7e-9793cf41d125}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Cuda\Image">
       <UniqueIdentifier>{e04f62f0-be9b-47e4-9895-6304275f4497}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Cuda\Profiler">
+      <UniqueIdentifier>{a850caf2-64b0-4280-b541-3259c3ed784b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Cuda\Context.h">
+    <ClInclude Include="Cuda\KernelContext.h">
       <Filter>Cuda</Filter>
     </ClInclude>
     <ClInclude Include="Cuda\CudaCheck.h">
@@ -24,12 +24,6 @@
     <ClInclude Include="Cuda\MathUtils.h">
       <Filter>Cuda</Filter>
     </ClInclude>
-    <ClInclude Include="Profiler\Profiler.h">
-      <Filter>Profiler</Filter>
-    </ClInclude>
-    <ClInclude Include="Profiler\IProfiler.h">
-      <Filter>Profiler</Filter>
-    </ClInclude>
     <ClInclude Include="Cuda\Image\GpuImageTransfer.h">
       <Filter>Cuda\Image</Filter>
     </ClInclude>
@@ -39,10 +33,25 @@
     <ClInclude Include="Cuda\Image\ImageGPU.h">
       <Filter>Cuda\Image</Filter>
     </ClInclude>
+    <ClInclude Include="Cuda\Profiler\GpuEvent.h">
+      <Filter>Cuda\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Profiler\GpuProfiler.h">
+      <Filter>Cuda\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Profiler\GpuProfileResult.h">
+      <Filter>Cuda\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\Profiler\IGpuProfiler.h">
+      <Filter>Cuda\Profiler</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Profiler\Profiler.cpp">
-      <Filter>Profiler</Filter>
+    <ClCompile Include="Cuda\Profiler\GpuEvent.cpp">
+      <Filter>Cuda\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="Cuda\Profiler\GpuProfiler.cpp">
+      <Filter>Cuda\Profiler</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

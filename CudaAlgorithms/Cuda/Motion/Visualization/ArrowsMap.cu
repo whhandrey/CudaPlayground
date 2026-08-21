@@ -294,7 +294,7 @@ namespace cuda {
                 int2 renderDim = { int(macroBlockDim.x) * groupSize, int(macroBlockDim.y) * groupSize };
 
                 cuda::TimedCall("ArrowsMapKernel", ctx, [&]() {
-                    ArrowsMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
+                    ArrowsMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.stream>>> (
                         stats.m_ptr,
                         stats.m_pitch,
                         output.m_ptr,

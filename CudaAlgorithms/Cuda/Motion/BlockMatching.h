@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Image/ImageView.h>
-#include <Cuda/Context.h>
+#include <Cuda/KernelContext.h>
 #include "BlockMatchingParams.h"
 
 namespace cuda {

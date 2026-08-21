@@ -164,7 +164,7 @@ namespace cuda {
                 dim3 gridSize = cuda::math::Div(stats.m_dim, blockDim);
 
                 cuda::TimedCall("ConfKernel", ctx, [&]() {
-                    ConfVisualizationKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
+                    ConfVisualizationKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.stream>>> (
                         stats.m_ptr,
                         stats.m_pitch,
                         output.m_ptr,
@@ -188,7 +188,7 @@ namespace cuda {
                 maxMag = maxMag < 1e-5f ? 1.0f : maxMag;
 
                 cuda::TimedCall("MotionMapKernel", ctx, [&]() {
-                    MotionMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
+                    MotionMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.stream>>> (
                         stats.m_ptr,
                         stats.m_pitch,
                         output.m_ptr,
@@ -213,7 +213,7 @@ namespace cuda {
                 maxMag = maxMag < 1e-5f ? 1.0f : maxMag;
 
                 cuda::TimedCall("MagMapKernel", ctx, [&]() {
-                    MagMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.m_stream>>> (
+                    MagMapKernel <<<gridSize, cuda::math::vec2Todim3(blockDim), 0, ctx.stream>>> (
                         stats.m_ptr,
                         stats.m_pitch,
                         output.m_ptr,

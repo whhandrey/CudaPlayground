@@ -5,11 +5,11 @@
 #include <Cuda/Image/ImageGPU.h>
 #include <Cuda/Image/GpuImageTransfer.h>
 #include <Image/ImageView.h>
-#include <Cuda/Context.h>
+#include <Cuda/KernelContext.h>
 #include <Cuda/Filter.h>
 #include <Cuda/Motion/BlockMatching.h>
 #include <Cuda/Transform/Shift.h>
-#include <Profiler/Profiler.h>
+#include <Cuda/Profiler/GpuProfiler.h>
 
 #include <Image/Image.h>
 #include <iostream>
@@ -20,8 +20,31 @@
 #include <vector>
 #include <map>
 
-#include "Profiler/Profiler.h"
 #include "Image/ImageIO.h"
+
+namespace {
+	template <class Vec>
+	std::string DimToString(Vec v) {
+		return "(" + std::to_string(v.x) + "; " + std::to_string(v.y) + ")";
+	}
+
+	using cuda::profile::ProfileSampleId;
+
+	class DummyProfiler : public cuda::profile::IGpuProfiler {
+	public:
+		ProfileSampleId BeginSample(const std::string& /*kernelName*/, cudaStream_t /*stream*/) {
+			return ProfileSampleId{};
+		}
+
+		void EndSample(ProfileSampleId /*id*/, cudaStream_t /*stream*/) {
+
+		}
+
+		void CancelSample(ProfileSampleId /*id*/) {
+
+		}
+	};
+}
 
 namespace stats {
 	struct KernelRunStats {
@@ -65,10 +88,9 @@ namespace stats {
 }
 
 namespace print {
-	void PrintKernelStats(
-		const std::map<std::string, std::vector<float>>& runs,
-		std::ostream& os = std::cout)
-	{
+	using cuda::profile::GpuProfileResult;
+
+	void PrintKernelStats(const std::vector<GpuProfileResult>& runs, std::ostream& os = std::cout) {
 		os << std::fixed << std::setprecision(4);
 
 		os << "\nCUDA kernel timings:\n\n";
@@ -166,14 +188,12 @@ int main() {
 	cudaStream_t stream;
 	cudaCheck(cudaStreamCreate(&stream));
 
-	auto profiler = std::make_unique<cuda::profile::SampledProfiler>();
+	auto dummyProfiler = DummyProfiler();
+	auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
 
-	cuda::KernelContext ctx {
-		stream,
-		profiler.get()
-	};
+	auto profiler = std::make_unique<cuda::profile::BasicGpuProfiler>();
 
-	const std::string file = "C:\\AY\\Code\\ImgTest\\1.jpg";
+	const std::string file = "C:\\AY\\Proj\\TestImages\\ImgTest\\1.jpg";
 
 	image::Image<uchar4> img = image::LoadFromFile<uchar4>(file);
 
@@ -187,12 +207,12 @@ int main() {
 	image::GpuImageView<uchar4> currShiftedView{ currFrameShifted.Data(), currFrameShifted.Dim(), currFrameShifted.Pitch() };
 	image::GpuImageView<cuda::motion::BlockMatchStats> outView{ output.Data(), output.Dim(), output.Pitch() };
 
-	cuda::transform::ShiftImage(currView, currShiftedView, { -3, 2 }, ctx);
+	cuda::transform::ShiftImage(currView, currShiftedView, { -3, 2 }, ctxNoProfile);
 
 	PrintCudaDevice();
 	PrintSharedMemStats();
 
-	std::cout << std::endl << "Testing image of (" << img.Dim().x << "; " << img.Dim().y << ")" << std::endl;
+	std::cout << std::endl << "Testing image of " << DimToString(img.Dim()) << std::endl;
 
 	image::vec2i search_halfsize = { 3, 3 };
 	image::vec2ui macroBlockDim = { 16, 16 };
@@ -229,6 +249,7 @@ int main() {
 	};
 
 	{
+		// warm-up
 		{
 			const auto p = cuda::motion::BlockMatchingParams {
 				{ 16, 16 },
@@ -237,13 +258,12 @@ int main() {
 			};
 
 			for (int i = 0; i < warmUpRuns; ++i) {
-				cuda::motion::BlockMatching(prevView, currView, outView, p, ctx);
+				cuda::motion::BlockMatching(prevView, currView, outView, p, ctxNoProfile);
 			}
 		}
 
 
-		cudaStreamSynchronize(stream);
-		profiler->Clear();
+		cudaCheck(cudaStreamSynchronize(stream));
 
 
 		//{
@@ -284,15 +304,22 @@ int main() {
 					search_halfsize
 				};
 
-				for (int i = 0; i < runs; ++i) {
-					cuda::motion::BlockMatching(prevView, currView, outView, p, ctx);
+				{
+					auto session = profiler->CreateSession(DimToString(blockDim));
+					auto kernelCtx = cuda::KernelContext{ stream, &session };
+
+					for (int i = 0; i < runs; ++i) {
+						cuda::motion::BlockMatching(prevView, currView, outView, p, kernelCtx);
+					}
 				}
 			}
 		}
 	}
 
 	cudaCheck(cudaStreamSynchronize(stream));
-	print::PrintKernelStats(profiler->GetRuns());
+	print::PrintKernelStats(profiler->GetResults());
+
+	profiler->Clear();
 
 	//const auto img_motion = motion::BlockMatchingWarp(prevFrame, currFrame, { 16, 16 }, { 3, 3 }, { 16, 16 }, ctx);
 	//const auto img_motion_cpu = image::ImageGpuToCpu(img_motion, stream);

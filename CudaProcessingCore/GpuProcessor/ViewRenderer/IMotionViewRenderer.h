@@ -13,7 +13,6 @@ namespace cuda {
 
 namespace cuda::motion::render {
 	struct ViewRendererParams {
-		cuda::KernelContext& ctx;
 		state::IMotionGpuPipelineState& state;
 		image::vec2i search_halfsize;
 		image::vec2ui macroBlockDim;
@@ -28,6 +27,6 @@ namespace cuda::motion::render {
 		virtual ~IMotionViewRenderer() = default;
 		virtual void Render() = 0;
 
-		static Ptr Create(const ViewRendererParams& params, ViewType type);
+		static Ptr Create(cuda::KernelContext& ctx, const ViewRendererParams& params, ViewType type);
 	};
 }

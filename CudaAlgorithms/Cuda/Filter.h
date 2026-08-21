@@ -1,4 +1,4 @@
-#include <Cuda/Context.h>
+#include <Cuda/KernelContext.h>
 #include <Image/ImageTypes.h>
 #include <Image/ImageView.h>
 

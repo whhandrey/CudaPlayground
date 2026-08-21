@@ -1,5 +1,5 @@
 #pragma once
-#include <Cuda/Context.h>
+#include <Cuda/KernelContext.h>
 #include <Image/ImageView.h>
 #include "BlockMatchingParams.h"
 
