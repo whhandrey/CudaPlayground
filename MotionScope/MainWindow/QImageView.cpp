@@ -9,14 +9,12 @@ namespace app {
         setMinimumSize(100, 100);
     }
 
-    void QImageView::SetImage(QImage image)
-    {
+    void QImageView::SetImage(QImage image) {
         m_image = std::move(image);
         update();
     }
 
-    void QImageView::paintEvent(QPaintEvent*)
-    {
+    void QImageView::paintEvent(QPaintEvent*) {
         QPainter painter(this);
         painter.fillRect(rect(), Qt::black);
 

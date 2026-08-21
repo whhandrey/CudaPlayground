@@ -7,8 +7,8 @@ namespace app {
 	using cuda::motion::render::ViewType;
 
 	enum class ViewSlot {
-		View1,
-		View2
+		First,
+		Second
 	};
 
 	enum class PlayMode {
@@ -34,7 +34,7 @@ namespace app {
 	};
 
 	struct SlottedView {
-		app::ViewSlot slot;
+		ViewSlot slot;
 		ViewType view;
 	};
 }

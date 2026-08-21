@@ -17,7 +17,7 @@ namespace app::motion {
 		size_t generation;
 		QImage prev;
 		QImage curr;
-		std::vector<ViewType> requestedViews;
+		std::vector<SlottedView> requestedViews;
 	};
 
 	struct AnalyseResult {
@@ -25,7 +25,7 @@ namespace app::motion {
 		size_t generation;
 		QImage prev;
 		QImage curr;
-		std::map<ViewType, QImage> views;
+		std::vector<SlottedImage> views;
 		StatsPacket stats;
 	};
 

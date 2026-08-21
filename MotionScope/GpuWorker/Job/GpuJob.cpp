@@ -95,20 +95,40 @@ namespace app::motion {
 	{
 	}
 
-	void AnalyseRenderJobAsync::Execute(MotionViewProcessor& proc)
-	{
+	void AnalyseRenderJobAsync::Execute(MotionViewProcessor& proc) {
+		std::vector<ViewType> viewsRequest;
+		const auto& request = m_input.requestedViews;
+
+		std::transform(request.begin(), request.end(), std::back_inserter(viewsRequest), [](const auto& slotView) {
+			return slotView.view;
+		});
+
 		auto views = proc.AnalyzeAndRenderViews(
 			MakeView(m_input.prev, m_input.framePair.first, m_input.generation),
 			MakeView(m_input.curr, m_input.framePair.second, m_input.generation),
-			m_input.requestedViews
+			viewsRequest
 		);
+
+		auto images = ToQImages(std::move(views));
+
+		std::vector<SlottedImage> slottedImages;
+
+		for (const auto& requestedView : request) {
+			const auto it = images.find(requestedView.view);
+
+			if (it == images.end()) {
+				throw std::logic_error("AnalyseRenderJobAsync::Execute: processor did not return a requested view");
+			}
+
+			slottedImages.emplace_back(SlottedImage{ requestedView.slot, it->second });
+		}
 
 		auto result = AnalyseResult {
 			m_input.framePair,
 			m_input.generation,
 			m_input.prev,
 			m_input.curr,
-			ToQImages(std::move(views)),
+			std::move(slottedImages),
 			proc.TakeLastStats()
 		};
 
@@ -135,7 +155,7 @@ namespace app::motion {
 		auto result = RenderViewsResult {
 			m_input.framePair,
 			m_input.generation,
-			output,
+			std::move(output),
 			proc.TakeLastStats()
 		};
 

@@ -202,11 +202,11 @@ namespace app {
             });
 
             connect(m_view1Combo, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
-                m_controller->SetView(app::ViewSlot::View1, GetSelectedViewId(m_view1Combo));
+                m_controller->SetView(app::ViewSlot::First, GetSelectedViewId(m_view1Combo));
             });
 
             connect(m_view2Combo, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) {
-                m_controller->SetView(app::ViewSlot::View2, GetSelectedViewId(m_view2Combo));
+                m_controller->SetView(app::ViewSlot::Second, GetSelectedViewId(m_view2Combo));
             });
 
             connect(m_offsetSelector, qOverload<int>(&QSpinBox::valueChanged), this, [this](int offset) {
@@ -221,8 +221,8 @@ namespace app {
             connect(m_controller.get(), &Controller::DebugStatsReady, this, &MainWindow::ShowDebugStats);
         }
 
-        m_controller->SetView(app::ViewSlot::View1, GetSelectedViewId(m_view1Combo));
-        m_controller->SetView(app::ViewSlot::View2, GetSelectedViewId(m_view2Combo));
+        m_controller->SetView(app::ViewSlot::First, GetSelectedViewId(m_view1Combo));
+        m_controller->SetView(app::ViewSlot::Second, GetSelectedViewId(m_view2Combo));
 
         InitOffsetCtrl(m_offsetSelector);
 
@@ -356,10 +356,10 @@ namespace app {
     {
         switch (view.slot)
         {
-        case app::ViewSlot::View1:
+        case app::ViewSlot::First:
             m_view1ImgLabel->SetImage(view.image);
             break;
-        case app::ViewSlot::View2:
+        case app::ViewSlot::Second:
             m_view2ImgLabel->SetImage(view.image);
             break;
         }

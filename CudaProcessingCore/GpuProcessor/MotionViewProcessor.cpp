@@ -47,15 +47,15 @@ namespace cuda::motion {
 	using profile::BasicGpuProfiler;
 
 	template <class Fn>
-	void TimedCall(const std::string& name, BasicGpuProfiler& profiler, cudaStream_t stream, Fn&& fn) {
-		WithGpuProfileSession(profiler, stream, [&](cuda::KernelContext& ctx) {
+	void TimedCall(const std::string& scope, const std::string& name, BasicGpuProfiler& profiler, cudaStream_t stream, Fn&& fn) {
+		WithGpuProfileSession(scope, profiler, stream, [&](cuda::KernelContext& ctx) {
 			cuda::TimedCall(name, ctx, std::forward<Fn>(fn));
 		});
 	}
 
 	template<class Fn>
-	void WithGpuProfileSession(BasicGpuProfiler& profiler, cudaStream_t stream, Fn&& fn) {
-		auto session = profiler.CreateSession();
+	void WithGpuProfileSession(const std::string& scope, BasicGpuProfiler& profiler, cudaStream_t stream, Fn&& fn) {
+		auto session = profiler.CreateSession(scope, std::string());
 
 		cuda::KernelContext kernelCtx {
 			stream,
@@ -82,7 +82,7 @@ namespace cuda::motion {
 
 	private:
 		void AllocMem(image::vec2ui dim);
-		void WriteGpuStats(const std::string& scope, const std::string& group);
+		void CollectStats();
 
 	private:
 		cudaStream_t m_stream;
@@ -122,18 +122,18 @@ namespace cuda::motion {
 
 		AllocMem(prev.m_dim);
 
-		TimedCall("UploadCompatible(prev)", *m_gpuProfiler, m_stream, [this, &prev]() {
+		TimedCall("Upload", "UploadCompatible(prev)", *m_gpuProfiler, m_stream, [this, &prev]() {
 			cuda::gpu_image::UploadCompatible(prev, m_prev, m_stream);
 		});
 
-		TimedCall("UploadCompatible(curr)", *m_gpuProfiler, m_stream, [this, &curr]() {
+		TimedCall("Upload", "UploadCompatible(curr)", *m_gpuProfiler, m_stream, [this, &curr]() {
 			cuda::gpu_image::UploadCompatible(curr, m_curr, m_stream);
 		});
 
 		auto outView = cuda::gpu_image::MakeImageView(m_stats);
 		m_state.SetStats(outView);
 
-		WithGpuProfileSession(*m_gpuProfiler, m_stream, [&](cuda::KernelContext& kernelCtx) {
+		WithGpuProfileSession("Algo/GpuStats", *m_gpuProfiler, m_stream, [&](cuda::KernelContext& kernelCtx) {
 			cuda::motion::BlockMatching(
 				cuda::gpu_image::MakeImageView(m_prev),
 				cuda::gpu_image::MakeImageView(m_curr),
@@ -142,9 +142,6 @@ namespace cuda::motion {
 				kernelCtx
 			);
 		});
-
-		m_collector->AddParams(m_params);
-		//WriteGpuStats("Algo", "GpuStats");
 	}
 
 	std::map<render::ViewType, image::Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
@@ -167,11 +164,13 @@ namespace cuda::motion {
 
 		std::map<render::ViewType, image::Image<image::vec4uc>> output;
 
-		int viewIndex = 0;
+		size_t viewIndex = 0;
 		for (const auto view : views) {
 			m_state.ClearView(view, m_stream);
 
-			WithGpuProfileSession(*m_gpuProfiler, m_stream, [&](cuda::KernelContext& kernelCtx) {
+			const std::string scope = "RenderView" + std::to_string(viewIndex++) + "/GpuStats";
+
+			WithGpuProfileSession(scope, *m_gpuProfiler, m_stream, [&](cuda::KernelContext& kernelCtx) {
 				auto renderer = render::IMotionViewRenderer::Create(kernelCtx, params, view);
 				renderer->Render();
 			});
@@ -181,8 +180,7 @@ namespace cuda::motion {
 
 		cudaCheck(cudaStreamSynchronize(m_stream));
 
-		// TODO: with fixed timer stats are now broken
-		WriteGpuStats("RenderView" + std::to_string(viewIndex++), "GpuStats");
+		CollectStats();
 		return output;
 	}
 
@@ -207,9 +205,13 @@ namespace cuda::motion {
 		}
 	}
 
-	void MotionGpuPipeline::WriteGpuStats(const std::string& scope, const std::string& group) {
-		for (const auto& [name, sampleDurationsMs] : m_gpuProfiler->GetResults()) {
-			m_collector->AddStat(scope, group, name, sampleDurationsMs.front());
+	void MotionGpuPipeline::CollectStats() {
+		m_collector->AddParams(m_params);
+
+		for (const auto& [scope, kernelName, sampleDurationsMs] : m_gpuProfiler->GetResults()) {
+			// each kernel runs once, therefore take the first sample duration
+			// multiple runs are supported but used currently in benchmark
+			m_collector->AddStat(scope, kernelName, sampleDurationsMs.front());
 		}
 
 		m_gpuProfiler->Clear();

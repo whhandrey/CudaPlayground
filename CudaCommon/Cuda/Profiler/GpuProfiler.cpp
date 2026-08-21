@@ -3,8 +3,8 @@
 #include <cassert>
 
 namespace cuda::profile {
-	BasicGpuProfiler::ProfileSession BasicGpuProfiler::CreateSession(const std::string& kernelLabel) {
-		m_sessionsById.emplace(m_nextSessionId, SessionInfo{ std::string(), kernelLabel, {} });
+	BasicGpuProfiler::ProfileSession BasicGpuProfiler::CreateSession(const std::string& scope, const std::string& kernelLabel) {
+		m_sessionsById.emplace(m_nextSessionId, SessionInfo{ scope, std::string{}, kernelLabel, {} });
 		return ProfileSession(m_nextSessionId++, *this);
 	}
 
@@ -72,6 +72,7 @@ namespace cuda::profile {
 			assert(info.finished);
 
 			GpuProfileResult result {
+				.scope = info.scope,
 				.kernelName = info.kernelName + info.kernelLabel
 			};
 

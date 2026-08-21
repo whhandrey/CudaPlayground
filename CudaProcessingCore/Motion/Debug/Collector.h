@@ -9,7 +9,7 @@ namespace cuda::motion::debug {
 	class Collector {
 	public:
 		void AddParams(const BlockMatchingParams& p);
-		void AddStat(const std::string& scope, const std::string& group, const std::string& name, float time);
+		void AddStat(const std::string& scope, const std::string& name, float time);
 
 		StatsPacket TakeStats();
 

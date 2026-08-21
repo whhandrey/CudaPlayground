@@ -4,6 +4,7 @@
 
 namespace cuda::profile {
 	struct GpuProfileResult {
+		std::string scope;
 		std::string kernelName;
 		std::vector<float> sampleDurationsMs;
 	};

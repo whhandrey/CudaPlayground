@@ -96,7 +96,7 @@ namespace print {
 		os << "\nCUDA kernel timings:\n\n";
 
 		int kernelW = 0;
-		for (const auto& [name, _] : runs) {
+		for (const auto& [scope, name, _] : runs) {
 			kernelW = std::max(kernelW, static_cast<int>(name.size()));
 		}
 
@@ -122,7 +122,7 @@ namespace print {
 
 		os << std::string(totalW, '-') << '\n';
 
-		for (const auto& [name, times] : runs) {
+		for (const auto& [_, name, times] : runs) {
 			stats::KernelRunStats stats = stats::CalcStats(times);
 
 			os << std::left
@@ -305,7 +305,7 @@ int main() {
 				};
 
 				{
-					auto session = profiler->CreateSession(DimToString(blockDim));
+					auto session = profiler->CreateSession("benchmark", DimToString(blockDim));
 					auto kernelCtx = cuda::KernelContext{ stream, &session };
 
 					for (int i = 0; i < runs; ++i) {

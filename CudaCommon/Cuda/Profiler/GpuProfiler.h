@@ -19,6 +19,8 @@ namespace cuda::profile {
 		};
 
 		struct SessionInfo {
+			std::string scope;
+
 			std::string kernelName;
 			std::string kernelLabel;
 
@@ -48,7 +50,7 @@ namespace cuda::profile {
 			BasicGpuProfiler& m_parent;
 		};
 
-		ProfileSession CreateSession(const std::string& kernelLabel = std::string());
+		ProfileSession CreateSession(const std::string& scope, const std::string& kernelLabel);
 
 		std::vector<GpuProfileResult> GetResults() const;
 		void Clear();

@@ -153,7 +153,7 @@ namespace app {
 		}
 
 		void UpdateViewStats(ViewSlot slot, StatsPacket&& stats) {
-			const std::string viewName = slot == ViewSlot::View1 ? "RenderView0/GpuStats" : "RenderView1/GpuStats";
+			const std::string viewName = slot == ViewSlot::First ? "RenderView0/GpuStats" : "RenderView1/GpuStats";
 			m_stats[viewName] = std::move(stats["RenderView0/GpuStats"]);
 		}
 
@@ -299,10 +299,10 @@ namespace app {
 
 		switch (slot)
 		{
-		case app::ViewSlot::View1:
+		case app::ViewSlot::First:
 			m_views.view1 = view;
 			break;
-		case app::ViewSlot::View2:
+		case app::ViewSlot::Second:
 			m_views.view2 = view;
 			break;
 		}
@@ -378,12 +378,17 @@ namespace app {
 		if (m_requestPairSubmitted)
 			return;
 
+		std::vector<SlottedView> requestedViews {
+			{ ViewSlot::First, m_views.view1 },
+			{ ViewSlot::Second, m_views.view2 }
+		};
+
 		auto jobInput = motion::AnalyseInput {
 			m_requestedPair,
 			m_generation,
 			m_cache[m_requestedPair.first],
 			m_cache[m_requestedPair.second],
-			{ m_views.view1, m_views.view2 }
+			requestedViews
 		};
 
 		auto job = motion::CreateAnalyzeAndRenderJob(jobInput, [this](motion::AnalyseResult&& result) mutable {
@@ -452,8 +457,8 @@ namespace app {
 		emit ImagesReady(
 			result.prev,
 			result.curr,
-			result.views[m_views.view1],
-			result.views[m_views.view2]
+			result.views[0].image,
+			result.views[1].image
 		);
 
 		emit DebugStatsReady(StatsProvider(m_statsState->Stats()));
