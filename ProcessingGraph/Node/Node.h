@@ -3,6 +3,7 @@
 #include "../Context/CudaExecutionContext.h"
 #include "../Graph/NodeChangeListener.h"
 #include "../Common/Id.h"
+#include <memory>
 
 namespace dataflow {
 	class INode : public IPortListener {
@@ -14,6 +15,8 @@ namespace dataflow {
 
 	class NodeBase : public INode {
 	public:
+		using Ptr = std::unique_ptr<NodeBase>;
+
 		NodeBase(NodeId id, const std::string& name, INodeChangeListener& listener);
 
 		NodeId Id() const;

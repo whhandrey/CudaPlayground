@@ -143,12 +143,15 @@
   <ItemGroup>
     <ClInclude Include="Common\Id.h" />
     <ClInclude Include="Context\CudaExecutionContext.h" />
+    <ClInclude Include="Graph\Graph.h" />
+    <ClInclude Include="Graph\GraphBuilder.h" />
     <ClInclude Include="Graph\NodeChangeListener.h" />
     <ClInclude Include="Graph\PortGraph.h" />
     <ClInclude Include="Memory\CudaDeviceMemory.h" />
     <ClInclude Include="Memory\PinnedHostMemory.h" />
     <ClInclude Include="Memory\PinnedImagePool.h" />
     <ClInclude Include="Node\Node.h" />
+    <ClInclude Include="Node\NodeBuildContext.h" />
     <ClInclude Include="Pipeline\Nodes\BlockMatchingNode.h" />
     <ClInclude Include="Pipeline\Nodes\DownloadNode.h" />
     <ClInclude Include="Pipeline\Nodes\StatsCollectorNode.h" />
@@ -187,6 +190,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Graph\Graph.cpp" />
+    <ClCompile Include="Graph\GraphBuilder.cpp" />
     <ClCompile Include="Graph\PortGraph.cpp" />
     <ClCompile Include="Memory\CudaDeviceMemory.cpp" />
     <ClCompile Include="Memory\PinnedHostMemory.cpp" />

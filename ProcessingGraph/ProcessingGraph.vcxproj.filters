@@ -132,6 +132,15 @@
     <ClInclude Include="Pipeline\Nodes\StatsCollectorNode.h">
       <Filter>Pipeline\Nodes</Filter>
     </ClInclude>
+    <ClInclude Include="Graph\GraphBuilder.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\Graph.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Node\NodeBuildContext.h">
+      <Filter>Node</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Node\Node.cpp">
@@ -175,6 +184,12 @@
     </ClCompile>
     <ClCompile Include="Pipeline\Nodes\StatsCollectorNode.cpp">
       <Filter>Pipeline\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\GraphBuilder.cpp">
+      <Filter>Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\Graph.cpp">
+      <Filter>Graph</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
