@@ -6,14 +6,14 @@
 #include <memory>
 
 namespace dataflow {
-	class INode : public IPortListener {
+	class INode {
 	public:
 		virtual ~INode() = default;
 
 		virtual void Execute(const CudaExecutionContext& ctx) = 0;
 	};
 
-	class NodeBase : public INode {
+	class NodeBase : public INode, public IPortListener {
 	public:
 		using Ptr = std::unique_ptr<NodeBase>;
 

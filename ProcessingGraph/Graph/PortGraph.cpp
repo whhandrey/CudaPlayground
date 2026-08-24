@@ -23,7 +23,7 @@ namespace {
 namespace dataflow {
 	PortId PortGraph::Register(PortBase& port) {
 		m_ports.emplace_back(&port);
-		return ++m_nextPortId;
+		return m_nextPortId++;
 	}
 
 	void PortGraph::Unregister(PortId id) {
@@ -57,6 +57,24 @@ namespace dataflow {
 		}
 
 		return it->second;
+	}
+
+	std::map<PortBase* const, std::span<PortBase* const>> PortGraph::GetConnections(PortCategory category) const {
+		std::vector<PortBase*> outPorts;
+
+		for (auto* port : m_ports) {
+			if (port->Direction() == PortDirection::Output && port->Category() == category) {
+				outPorts.push_back(port);
+			}
+		}
+
+		std::map<PortBase* const, std::span<PortBase* const>> output;
+
+		std::transform(outPorts.begin(), outPorts.end(), std::inserter(output, output.end()), [this](auto* port) {
+			return std::pair{ port, m_connections.at(port->Id()) };
+		});
+
+		return output;
 	}
 
 	void PortGraph::ConnectPorts() {

@@ -42,7 +42,7 @@ namespace processing::resource {
 	{
 	}
 
-	std::map<ResourceId, UntypedResourceView> GraphResources::Build(const std::vector<ResourceRequest>& requests) {
+	std::map<ResourceId, UntypedResourceView> GraphResources::Allocate(const std::vector<ResourceRequest>& requests) {
 		std::map<ResourceId, UntypedResourceView> output;
 
 		const auto reqMap = SplitRequestsByDomain(requests);

@@ -132,13 +132,19 @@
     <ClInclude Include="Pipeline\Nodes\StatsCollectorNode.h">
       <Filter>Pipeline\Nodes</Filter>
     </ClInclude>
-    <ClInclude Include="Graph\GraphBuilder.h">
-      <Filter>Graph</Filter>
-    </ClInclude>
     <ClInclude Include="Graph\Graph.h">
       <Filter>Graph</Filter>
     </ClInclude>
     <ClInclude Include="Node\NodeBuildContext.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\GraphComposer.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph\GraphRuntime.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Node\NodeDefinition.h">
       <Filter>Node</Filter>
     </ClInclude>
   </ItemGroup>
@@ -185,10 +191,13 @@
     <ClCompile Include="Pipeline\Nodes\StatsCollectorNode.cpp">
       <Filter>Pipeline\Nodes</Filter>
     </ClCompile>
-    <ClCompile Include="Graph\GraphBuilder.cpp">
+    <ClCompile Include="Graph\Graph.cpp">
       <Filter>Graph</Filter>
     </ClCompile>
-    <ClCompile Include="Graph\Graph.cpp">
+    <ClCompile Include="Graph\GraphComposer.cpp">
+      <Filter>Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Graph\GraphRuntime.cpp">
       <Filter>Graph</Filter>
     </ClCompile>
   </ItemGroup>

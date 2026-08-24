@@ -11,6 +11,7 @@ namespace dataflow {
 		void Unregister(PortId id) override;
 
 		std::span<PortBase* const> GetConnections(PortId outPortId) const override;
+		std::map<PortBase* const, std::span<PortBase* const>> GetConnections(PortCategory category) const;
 
 		void ConnectPorts();
 		void Clear();

@@ -17,7 +17,7 @@ namespace processing::resource {
 		GraphResources();
 
 	public:
-		std::map<ResourceId, UntypedResourceView> Build(const std::vector<ResourceRequest>& requests);
+		std::map<ResourceId, UntypedResourceView> Allocate(const std::vector<ResourceRequest>& requests);
 
 	private:
 		std::map<ResourceId, UntypedResourceView> MakePinnedCpuViews(const std::vector<ResourceRequest>& requests);
