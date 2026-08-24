@@ -2,11 +2,12 @@
 #include "GraphComposer.h"
 
 namespace dataflow {
-	void GraphRuntime::Construct() {
+	void GraphRuntime::Construct(const std::vector<NodeDefinition>& nodesDefs) {
 		auto composer = GraphComposer(Graph::CreateEmpty(), *m_portGraph, *m_resRegistry);
 
-		//composer.AddNode();
-		//composer.AddNode();
+		for (const auto& def : nodesDefs) {
+			composer.AddNode(def);
+		}
 
 		auto graph = std::move(composer).Compile();
 

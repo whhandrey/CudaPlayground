@@ -1,7 +1,7 @@
 #pragma once
 #include "../Resource/Registry/ResourceRegistry.h"
-#include "../Node/Node.h"
 #include "../Resource/Facade/GraphResources.h"
+#include "../Node/NodeDefinition.h"
 #include "PortGraph.h"
 #include "Graph.h"
 
@@ -11,7 +11,7 @@ namespace dataflow {
 
 	class GraphRuntime {
 	public:
-		void Construct();
+		void Construct(const std::vector<NodeDefinition>& nodesDefs);
 
 	private:
 		std::unique_ptr<PortGraph> m_portGraph;
