@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Pipeline">
+      <UniqueIdentifier>{ce310539-4bb1-4443-a4d7-390489732ab3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pipeline\Nodes">
+      <UniqueIdentifier>{9093bc79-9e3e-4d7c-9110-a50a9e1b87ed}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Pipeline\Nodes\BlockMatchingNode.cpp">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\Nodes\DownloadNode.cpp">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\Nodes\StatsCollectorNode.cpp">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\Nodes\UploadNode.cpp">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="Pipeline\CudaMotionPipeline.cpp">
+      <Filter>Pipeline</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Pipeline\Nodes\BlockMatchingNode.h">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\Nodes\DownloadNode.h">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\Nodes\StatsCollectorNode.h">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\Nodes\UploadNode.h">
+      <Filter>Pipeline\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\CudaMotionPipeline.h">
+      <Filter>Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipeline\MotionPipelineConfig.h">
+      <Filter>Pipeline</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

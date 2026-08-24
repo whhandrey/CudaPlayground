@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{8484b442-ad0c-4030-a51e-cd3a96e1db1d}</ProjectGuid>
-    <RootNamespace>ProcessingGraph</RootNamespace>
+    <ProjectGuid>{9deb2d14-bc60-4e38-a939-ab002213fef2}</ProjectGuid>
+    <RootNamespace>CudaMotionGraph</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -111,7 +111,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)MotionProcCommon;$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ProcessingGraph;$(SolutionDir)MotionProcCommon;$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,7 +130,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)MotionProcCommon;$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ProcessingGraph;$(SolutionDir)MotionProcCommon;$(SolutionDir)ImgProcCommon;$(SolutionDir)CudaAlgorithms;$(SolutionDir)CudaCommon;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.3\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,39 +141,9 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Common\Id.h" />
-    <ClInclude Include="Context\CudaExecutionContext.h" />
-    <ClInclude Include="Graph\Graph.h" />
-    <ClInclude Include="Graph\GraphComposer.h" />
-    <ClInclude Include="Graph\GraphRuntime.h" />
-    <ClInclude Include="Graph\NodeChangeListener.h" />
-    <ClInclude Include="Graph\PortGraph.h" />
-    <ClInclude Include="Memory\CudaDeviceMemory.h" />
-    <ClInclude Include="Memory\PinnedHostMemory.h" />
-    <ClInclude Include="Memory\PinnedImagePool.h" />
-    <ClInclude Include="Node\Node.h" />
-    <ClInclude Include="Node\NodeBuildContext.h" />
-    <ClInclude Include="Node\NodeDefinition.h" />
-    <ClInclude Include="Port\IPortListener.h" />
-    <ClInclude Include="Port\IPortRegistry.h" />
-    <ClInclude Include="Port\ParamPort.h" />
-    <ClInclude Include="Port\PortBase.h" />
-    <ClInclude Include="Port\PortType.h" />
-    <ClInclude Include="Port\ResourcePort.h" />
-    <ClInclude Include="Resource\Facade\GraphResources.h" />
-    <ClInclude Include="Resource\Id.h" />
-    <ClInclude Include="Resource\MemoryDomain.h" />
-    <ClInclude Include="Resource\Planner\WorkspaceLayout.h" />
-    <ClInclude Include="Resource\Planner\GpuResourceLayoutPlanner.h" />
-    <ClInclude Include="Resource\Registry\IResourceRegistry.h" />
-    <ClInclude Include="Resource\Registry\ResourceRegistry.h" />
-    <ClInclude Include="Resource\Registry\ResourceRequest.h" />
-    <ClInclude Include="Resource\Registry\ResourceTraits.h" />
-    <ClInclude Include="Resource\Registry\UntypedResourceView.h" />
-    <ClInclude Include="Resource\ResourceDesc.h" />
-    <ClInclude Include="Resource\Workspace\CudaWorkspace.h" />
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
+      <Project>{b32cb206-5441-4209-a31a-17a3f5f7ff6d}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\CudaCommon\CudaCommon.vcxproj">
       <Project>{cf70d966-aae0-4b46-86fc-353cbc927957}</Project>
     </ProjectReference>
@@ -183,21 +153,24 @@
     <ProjectReference Include="..\MotionProcCommon\MotionProcCommon.vcxproj">
       <Project>{726a5571-bf4c-4363-b8d4-cd05986f0b1f}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\ProcessingGraph\ProcessingGraph.vcxproj">
+      <Project>{8484b442-ad0c-4030-a51e-cd3a96e1db1d}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Graph\Graph.cpp" />
-    <ClCompile Include="Graph\GraphComposer.cpp" />
-    <ClCompile Include="Graph\GraphRuntime.cpp" />
-    <ClCompile Include="Graph\PortGraph.cpp" />
-    <ClCompile Include="Memory\CudaDeviceMemory.cpp" />
-    <ClCompile Include="Memory\PinnedHostMemory.cpp" />
-    <ClCompile Include="Node\Node.cpp" />
-    <ClCompile Include="Port\PortBase.cpp" />
-    <ClCompile Include="Port\ResourcePort.cpp" />
-    <ClCompile Include="Resource\Facade\GraphResources.cpp" />
-    <ClCompile Include="Resource\Planner\GpuResourceLayoutPlanner.cpp" />
-    <ClCompile Include="Resource\Registry\ResourceRegistry.cpp" />
-    <ClCompile Include="Resource\Workspace\CudaWorkspace.cpp" />
+    <ClCompile Include="Pipeline\CudaMotionPipeline.cpp" />
+    <ClCompile Include="Pipeline\Nodes\BlockMatchingNode.cpp" />
+    <ClCompile Include="Pipeline\Nodes\DownloadNode.cpp" />
+    <ClCompile Include="Pipeline\Nodes\StatsCollectorNode.cpp" />
+    <ClCompile Include="Pipeline\Nodes\UploadNode.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Pipeline\CudaMotionPipeline.h" />
+    <ClInclude Include="Pipeline\MotionPipelineConfig.h" />
+    <ClInclude Include="Pipeline\Nodes\BlockMatchingNode.h" />
+    <ClInclude Include="Pipeline\Nodes\DownloadNode.h" />
+    <ClInclude Include="Pipeline\Nodes\StatsCollectorNode.h" />
+    <ClInclude Include="Pipeline\Nodes\UploadNode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

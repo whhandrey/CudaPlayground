@@ -13,12 +13,6 @@
     <Filter Include="Graph">
       <UniqueIdentifier>{1d032175-c349-4a30-988a-0a13329a420c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Pipeline">
-      <UniqueIdentifier>{b4440476-ce48-4a6f-a6c4-19d85770e738}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Pipeline\Nodes">
-      <UniqueIdentifier>{057ca679-b74b-4aad-8f41-fbb9b4e3b0d3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Common">
       <UniqueIdentifier>{3c62d538-69c0-4047-8719-acd696894f59}</UniqueIdentifier>
     </Filter>
@@ -57,9 +51,6 @@
     <ClInclude Include="Graph\NodeChangeListener.h">
       <Filter>Graph</Filter>
     </ClInclude>
-    <ClInclude Include="Pipeline\Nodes\BlockMatchingNode.h">
-      <Filter>Pipeline\Nodes</Filter>
-    </ClInclude>
     <ClInclude Include="Port\IPortRegistry.h">
       <Filter>Port</Filter>
     </ClInclude>
@@ -68,9 +59,6 @@
     </ClInclude>
     <ClInclude Include="Graph\PortGraph.h">
       <Filter>Graph</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipeline\Nodes\UploadNode.h">
-      <Filter>Pipeline\Nodes</Filter>
     </ClInclude>
     <ClInclude Include="Port\ResourcePort.h">
       <Filter>Port</Filter>
@@ -126,12 +114,6 @@
     <ClInclude Include="Resource\MemoryDomain.h">
       <Filter>Resource</Filter>
     </ClInclude>
-    <ClInclude Include="Pipeline\Nodes\DownloadNode.h">
-      <Filter>Pipeline\Nodes</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipeline\Nodes\StatsCollectorNode.h">
-      <Filter>Pipeline\Nodes</Filter>
-    </ClInclude>
     <ClInclude Include="Graph\Graph.h">
       <Filter>Graph</Filter>
     </ClInclude>
@@ -152,14 +134,8 @@
     <ClCompile Include="Node\Node.cpp">
       <Filter>Node</Filter>
     </ClCompile>
-    <ClCompile Include="Pipeline\Nodes\BlockMatchingNode.cpp">
-      <Filter>Pipeline\Nodes</Filter>
-    </ClCompile>
     <ClCompile Include="Graph\PortGraph.cpp">
       <Filter>Graph</Filter>
-    </ClCompile>
-    <ClCompile Include="Pipeline\Nodes\UploadNode.cpp">
-      <Filter>Pipeline\Nodes</Filter>
     </ClCompile>
     <ClCompile Include="Port\ResourcePort.cpp">
       <Filter>Port</Filter>
@@ -184,12 +160,6 @@
     </ClCompile>
     <ClCompile Include="Resource\Facade\GraphResources.cpp">
       <Filter>Resource\Facade</Filter>
-    </ClCompile>
-    <ClCompile Include="Pipeline\Nodes\DownloadNode.cpp">
-      <Filter>Pipeline\Nodes</Filter>
-    </ClCompile>
-    <ClCompile Include="Pipeline\Nodes\StatsCollectorNode.cpp">
-      <Filter>Pipeline\Nodes</Filter>
     </ClCompile>
     <ClCompile Include="Graph\Graph.cpp">
       <Filter>Graph</Filter>

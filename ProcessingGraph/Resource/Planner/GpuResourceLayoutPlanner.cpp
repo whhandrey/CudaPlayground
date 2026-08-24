@@ -1,6 +1,5 @@
 #include "GpuResourceLayoutPlanner.h"
 #include "../MemoryDomain.h"
-#include <Cuda/KernelCommon.h>
 #include <algorithm>
 #include <stdexcept>
 

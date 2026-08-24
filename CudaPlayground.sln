@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MotionProcCommon", "MotionP
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessingGraph", "ProcessingGraph\ProcessingGraph.vcxproj", "{8484B442-AD0C-4030-A51E-CD3A96E1DB1D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CudaMotionGraph", "CudaMotionGraph\CudaMotionGraph.vcxproj", "{9DEB2D14-BC60-4E38-A939-AB002213FEF2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -91,6 +93,14 @@ Global
 		{8484B442-AD0C-4030-A51E-CD3A96E1DB1D}.Release|x64.Build.0 = Release|x64
 		{8484B442-AD0C-4030-A51E-CD3A96E1DB1D}.Release|x86.ActiveCfg = Release|Win32
 		{8484B442-AD0C-4030-A51E-CD3A96E1DB1D}.Release|x86.Build.0 = Release|Win32
+		{9DEB2D14-BC60-4E38-A939-AB002213FEF2}.Debug|x64.ActiveCfg = Debug|x64
+		{9DEB2D14-BC60-4E38-A939-AB002213FEF2}.Debug|x64.Build.0 = Debug|x64
+		{9DEB2D14-BC60-4E38-A939-AB002213FEF2}.Debug|x86.ActiveCfg = Debug|Win32
+		{9DEB2D14-BC60-4E38-A939-AB002213FEF2}.Debug|x86.Build.0 = Debug|Win32
+		{9DEB2D14-BC60-4E38-A939-AB002213FEF2}.Release|x64.ActiveCfg = Release|x64
+		{9DEB2D14-BC60-4E38-A939-AB002213FEF2}.Release|x64.Build.0 = Release|x64
+		{9DEB2D14-BC60-4E38-A939-AB002213FEF2}.Release|x86.ActiveCfg = Release|Win32
+		{9DEB2D14-BC60-4E38-A939-AB002213FEF2}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
