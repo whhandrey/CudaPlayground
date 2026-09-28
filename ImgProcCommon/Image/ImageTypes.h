@@ -101,3 +101,16 @@ namespace image {
 	CHECK_STANDARD_LAYOUT(vec4i);
 	CHECK_STANDARD_LAYOUT(vec4f);
 }
+
+// 3d
+namespace image {
+	struct vec3ui {
+		unsigned int x;
+		unsigned int y;
+		unsigned int z;
+
+		bool operator==(const vec3ui & rhs) const {
+			return x == rhs.x && y == rhs.y && z == rhs.z;
+		}
+	};
+}

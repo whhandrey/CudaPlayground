@@ -28,4 +28,32 @@ namespace image {
 		image::vec2ui m_dim;
 		size_t m_pitch;
 	};
+
+	// 3d
+	template <class T>
+	struct GpuVolumeView {
+		using SampleType = T;
+
+		T* m_ptr;
+		image::vec3ui m_dim;
+		size_t m_pitch;
+	};
+
+	template <class T>
+	struct CpuVolumeView {
+		using SampleType = T;
+
+		T* m_ptr;
+		image::vec3ui m_dim;
+		size_t m_pitch;
+	};
+
+	template <class T>
+	struct PinnedVolumeView {
+		using SampleType = T;
+
+		T* m_ptr;
+		image::vec3ui m_dim;
+		size_t m_pitch;
+	};
 }
