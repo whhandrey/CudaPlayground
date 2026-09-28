@@ -17,6 +17,6 @@ namespace cuda::motion::state {
 
 	private:
 		GpuImageView<BlockMatchStats> m_stats;
-		std::map<render::ViewType, cuda::gpu_image::ImageGPU<uchar4>> m_renderedViews;
+		std::map<render::ViewType, cuda::gpu_image::GpuImage<uchar4>> m_renderedViews;
 	};
 }

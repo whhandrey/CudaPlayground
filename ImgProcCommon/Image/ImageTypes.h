@@ -113,4 +113,14 @@ namespace image {
 			return x == rhs.x && y == rhs.y && z == rhs.z;
 		}
 	};
+
+	struct vec3i {
+		int x;
+		int y;
+		int z;
+
+		bool operator==(const vec3ui& rhs) const {
+			return x == rhs.x && y == rhs.y && z == rhs.z;
+		}
+	};
 }

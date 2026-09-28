@@ -49,21 +49,21 @@ namespace image {
 	}
 
 	template <class T>
-	inline image::Image<T> LoadFromFile(const std::string& file) {
+	inline image::CpuImage<T> LoadFromFile(const std::string& file) {
 		int width, height, channels;
 
 		int channelsToRead = traits::PixelTraits<T>::channels;
 		unsigned char* img = stbi_load(file.c_str(), &width, &height, &channels, channelsToRead);
 
 		const image::vec2ui dim{ static_cast<unsigned int>(width), static_cast<unsigned int>(height) };
-		image::Image<T> output(img, dim);
+		image::CpuImage<T> output(img, dim);
 
 		stbi_image_free(img);
 		return output;
 	}
 
 	template <class T>
-	inline void WriteToFile(const image::Image<T>& img, const std::string& file) {
+	inline void WriteToFile(const image::CpuImage<T>& img, const std::string& file) {
 		const int numChannels = traits::PixelTraits<T>::channels;
 		stbi_write_png(file.c_str(), img.Dim().x, img.Dim().y, numChannels, img.Data(), img.Dim().x * sizeof(T));
 	}

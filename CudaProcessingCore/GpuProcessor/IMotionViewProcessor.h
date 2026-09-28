@@ -19,7 +19,7 @@ namespace cuda::motion {
 			const image::CpuImageView<const image::vec4uc>& prev,
 			const image::CpuImageView<const image::vec4uc>& curr) = 0;
 
-		virtual std::map<render::ViewType, image::Image<image::vec4uc>> RenderViews(
+		virtual std::map<render::ViewType, image::CpuImage<image::vec4uc>> RenderViews(
 			const std::vector<render::ViewType>& types) = 0;
 
 		virtual StatsPacket TakeLastStats() = 0;

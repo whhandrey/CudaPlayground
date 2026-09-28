@@ -19,7 +19,7 @@ namespace cuda::motion::state {
 	}
 
 	void MotionGpuPipelineState::Resize(render::ViewType viewType, image::vec2ui view_dim) {
-		m_renderedViews[viewType] = cuda::gpu_image::ImageGPU<uchar4>(view_dim);
+		m_renderedViews[viewType] = cuda::gpu_image::GpuImage<uchar4>(view_dim);
 	}
 
 	void MotionGpuPipelineState::SetStats(const GpuImageView<BlockMatchStats>& stats) {

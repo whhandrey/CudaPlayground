@@ -16,6 +16,9 @@
     <Filter Include="Cuda\Motion\Visualization">
       <UniqueIdentifier>{364207d1-3d55-4395-9669-585066f2c20e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Cuda\3d">
+      <UniqueIdentifier>{48e70229-b143-48cf-bfd1-9112c9ef369e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Cuda\KernelCommon.cpp">
@@ -80,6 +83,9 @@
     <ClInclude Include="Common\Common.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Cuda\3d\Sobel.h">
+      <Filter>Cuda\3d</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\Filter.cu">
@@ -105,6 +111,9 @@
     </CudaCompile>
     <CudaCompile Include="Cuda\Motion\Visualization\ArrowsMap.cu">
       <Filter>Cuda\Motion\Visualization</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\3d\Sobel.cu">
+      <Filter>Cuda\3d</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

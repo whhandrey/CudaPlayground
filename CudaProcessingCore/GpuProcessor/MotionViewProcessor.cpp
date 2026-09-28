@@ -16,7 +16,7 @@ namespace {
 	}
 	
 	template <class T>
-	bool Valid(const cuda::gpu_image::ImageGPU<T>& img) {
+	bool Valid(const cuda::gpu_image::GpuImage<T>& img) {
 		return img.Dim().x != 0 && img.Dim().y != 0;
 	}
 
@@ -43,7 +43,7 @@ namespace {
 }
 
 namespace cuda::motion {
-	using cuda::gpu_image::ImageGPU;
+	using cuda::gpu_image::GpuImage;
 	using profile::BasicGpuProfiler;
 
 	template <class Fn>
@@ -75,7 +75,7 @@ namespace cuda::motion {
 			const image::CpuImageView<const image::vec4uc>& prev,
 			const image::CpuImageView<const image::vec4uc>& curr) override;
 
-		std::map<render::ViewType, image::Image<image::vec4uc>> RenderViews(
+		std::map<render::ViewType, image::CpuImage<image::vec4uc>> RenderViews(
 			const std::vector<render::ViewType>& views) override;
 
 		StatsPacket TakeLastStats() override;
@@ -93,10 +93,10 @@ namespace cuda::motion {
 		
 		BlockMatchingParams m_params;
 
-		ImageGPU<uchar4> m_prev;
-		ImageGPU<uchar4> m_curr;
+		GpuImage<uchar4> m_prev;
+		GpuImage<uchar4> m_curr;
 
-		ImageGPU<BlockMatchStats> m_stats;
+		GpuImage<BlockMatchStats> m_stats;
 	};
 }
 
@@ -144,7 +144,7 @@ namespace cuda::motion {
 		});
 	}
 
-	std::map<render::ViewType, image::Image<image::vec4uc>> MotionGpuPipeline::RenderViews(
+	std::map<render::ViewType, image::CpuImage<image::vec4uc>> MotionGpuPipeline::RenderViews(
 		const std::vector<render::ViewType>& views)
 	{
 		if (!Valid(m_stats)) {
@@ -162,7 +162,7 @@ namespace cuda::motion {
 			thickness
 		};
 
-		std::map<render::ViewType, image::Image<image::vec4uc>> output;
+		std::map<render::ViewType, image::CpuImage<image::vec4uc>> output;
 
 		size_t viewIndex = 0;
 		for (const auto view : views) {
@@ -191,11 +191,11 @@ namespace cuda::motion {
 			return;
 		}
 
-		m_prev = ImageGPU<uchar4>(dim);
-		m_curr = ImageGPU<uchar4>(dim);
+		m_prev = GpuImage<uchar4>(dim);
+		m_curr = GpuImage<uchar4>(dim);
 
 		const auto motion_dim = cuda::motion::MotionOutputDim(dim, m_params.macroBlockDim);
-		m_stats = ImageGPU<BlockMatchStats>(motion_dim);
+		m_stats = GpuImage<BlockMatchStats>(motion_dim);
 
 		const auto arrows_dim = dim;
 		const auto viewsDims = RenderViewsDims(motion_dim, arrows_dim);

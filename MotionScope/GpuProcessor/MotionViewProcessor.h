@@ -15,7 +15,7 @@ namespace app::motion {
 	using cuda::motion::IMotionViewProcessor;
 	using ::motion::debug::StatsPacket;
 
-	using image::Image;
+	using image::CpuImage;
 
 	struct VersionedFrame {
 		image::CpuImageView<const image::vec4uc> img;
@@ -32,12 +32,12 @@ namespace app::motion {
 	public:
 		MotionViewProcessor(IMotionViewProcessor::Ptr&& proc);
 
-		std::map<ViewType, Image<image::vec4uc>> AnalyzeAndRenderViews(
+		std::map<ViewType, CpuImage<image::vec4uc>> AnalyzeAndRenderViews(
 			const VersionedFrame& prev,
 			const VersionedFrame& curr,
 			const std::vector<ViewType>& views);
 
-		std::map<ViewType, Image<image::vec4uc>> RenderViews(const std::vector<ViewType>& views);
+		std::map<ViewType, CpuImage<image::vec4uc>> RenderViews(const std::vector<ViewType>& views);
 
 		StatsPacket TakeLastStats();
 

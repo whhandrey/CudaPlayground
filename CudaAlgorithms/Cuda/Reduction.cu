@@ -78,13 +78,13 @@
 //
 //namespace tile {
 //    namespace reduction {
-//        ImageGPU<float> Avg(const ImageGPU<uchar4>& input, image::vec2ui tileSize) {
+//        GpuImage<float> Avg(const GpuImage<uchar4>& input, image::vec2ui tileSize) {
 //            assert(tileSize.x == tileSize.y);
 //            assert((tileSize.x & (tileSize.x - 1)) == 0);
 //
 //            dim3 gridSize = cuda::math::DivUp(input.Dim(), tileSize);
 //
-//            ImageGPU<float> output(image::vec2ui{ gridSize.x, gridSize.y });
+//            GpuImage<float> output(image::vec2ui{ gridSize.x, gridSize.y });
 //            return output;
 //        }
 //    }

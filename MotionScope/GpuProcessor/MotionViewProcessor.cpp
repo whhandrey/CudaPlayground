@@ -13,7 +13,7 @@ namespace app::motion {
 	{
 	}
 
-	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::AnalyzeAndRenderViews(
+	std::map<ViewType, CpuImage<image::vec4uc>> MotionViewProcessor::AnalyzeAndRenderViews(
 		const VersionedFrame& prev,
 		const VersionedFrame& curr,
 		const std::vector<ViewType>& views)
@@ -29,7 +29,7 @@ namespace app::motion {
 		return RenderViews(views);
 	}
 
-	std::map<ViewType, Image<image::vec4uc>> MotionViewProcessor::RenderViews(const std::vector<ViewType>& views)
+	std::map<ViewType, CpuImage<image::vec4uc>> MotionViewProcessor::RenderViews(const std::vector<ViewType>& views)
 	{
 		if (m_prev.index == m_curr.index) {
 			throw std::logic_error("MotionViewProcessor::RenderViews: analysis has not been run");

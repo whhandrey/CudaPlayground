@@ -7,7 +7,7 @@
 namespace {
 	using cuda::motion::render::ViewType;
 
-	QImage ToQImage(image::Image<image::vec4uc>&& img) {
+	QImage ToQImage(image::CpuImage<image::vec4uc>&& img) {
 		if (img.Dim().x <= 0 || img.Dim().y <= 0) {
 			return {};
 		}
@@ -39,7 +39,7 @@ namespace {
 		return qimg;
 	}
 
-	std::map<ViewType, QImage> ToQImages(std::map<ViewType, image::Image<image::vec4uc>>&& views) {
+	std::map<ViewType, QImage> ToQImages(std::map<ViewType, image::CpuImage<image::vec4uc>>&& views) {
 		std::map<ViewType, QImage> output;
 
 		for (auto& img : views) {

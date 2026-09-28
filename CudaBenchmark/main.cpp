@@ -195,12 +195,12 @@ int main() {
 
 	const std::string file = "C:\\AY\\Proj\\TestImages\\ImgTest\\1.jpg";
 
-	image::Image<uchar4> img = image::LoadFromFile<uchar4>(file);
+	image::CpuImage<uchar4> img = image::LoadFromFile<uchar4>(file);
 
-	cuda::gpu_image::ImageGPU<uchar4> prevFrame = cuda::gpu_image::Create(img, stream);
-	cuda::gpu_image::ImageGPU<uchar4> currFrame = cuda::gpu_image::Create(img, stream);
-	cuda::gpu_image::ImageGPU<uchar4> currFrameShifted(img.Dim());
-	cuda::gpu_image::ImageGPU<cuda::motion::BlockMatchStats> output(img.Dim());
+	cuda::gpu_image::GpuImage<uchar4> prevFrame = cuda::gpu_image::Create(img, stream);
+	cuda::gpu_image::GpuImage<uchar4> currFrame = cuda::gpu_image::Create(img, stream);
+	cuda::gpu_image::GpuImage<uchar4> currFrameShifted(img.Dim());
+	cuda::gpu_image::GpuImage<cuda::motion::BlockMatchStats> output(img.Dim());
 
 	image::GpuImageView<uchar4> prevView{ prevFrame.Data(), prevFrame.Dim(), prevFrame.Pitch() };
 	image::GpuImageView<uchar4> currView{ currFrame.Data(), currFrame.Dim(), currFrame.Pitch() };
@@ -322,10 +322,10 @@ int main() {
 	profiler->Clear();
 
 	//const auto img_motion = motion::BlockMatchingWarp(prevFrame, currFrame, { 16, 16 }, { 3, 3 }, { 16, 16 }, ctx);
-	//const auto img_motion_cpu = image::ImageGpuToCpu(img_motion, stream);
+	//const auto img_motion_cpu = image::GpuImageToCpu(img_motion, stream);
 
 	//const auto img_motion_s = motion::BlockMatchingSimple(prevFrame, currFrame, { 16, 16 }, { 3, 3 }, { 16, 16 }, ctx);
-	//const auto img_motion_cpu_s = image::ImageGpuToCpu(img_motion_s, stream);
+	//const auto img_motion_cpu_s = image::GpuImageToCpu(img_motion_s, stream);
 
 	//cudaCheck(cudaStreamSynchronize(stream));
 

@@ -36,7 +36,9 @@ namespace image {
 
 		T* m_ptr;
 		image::vec3ui m_dim;
+
 		size_t m_pitch;
+		size_t m_slicePitch;
 	};
 
 	template <class T>
@@ -45,7 +47,9 @@ namespace image {
 
 		T* m_ptr;
 		image::vec3ui m_dim;
+
 		size_t m_pitch;
+		size_t m_slicePitch;
 	};
 
 	template <class T>
@@ -54,6 +58,8 @@ namespace image {
 
 		T* m_ptr;
 		image::vec3ui m_dim;
+
 		size_t m_pitch;
+		size_t m_slicePitch;
 	};
 }
