@@ -4,26 +4,21 @@
 namespace pipeline {
 	using processing::resource::MemoryDomain;
 
-	void CudaMotionPipeline::Create(const MotionPipelineConfig& config) {
-
+	template <class T>
+	ResourceDesc MakeResourceDesc(image::vec2ui dim, MemoryDomain domain) {
+		return {
+			.dim = dim,
+			.sizeOfElemBytes = sizeof(T),
+			.sampleType = typeid(T),
+			.domain = domain
+		};
 	}
 
-	std::vector<NodeDefinition> CudaMotionPipeline::CreateNodesDefs(const MotionPipelineConfig& config) {
-		ResourceDesc cpuInputDesc {
-			.dim = config.dim,
-			.sizeOfElemBytes = sizeof(image::vec4uc),
-			.sampleType = typeid(image::vec4uc),
-			.domain = MemoryDomain::HostPinned
-		};
+	NodeDefinition MakeUploadNodeDef(image::vec2ui dim) {
+		ResourceDesc cpuInputDesc = MakeResourceDesc<image::vec4uc>(dim, MemoryDomain::HostPinned);
+		ResourceDesc gpuInputDesc = MakeResourceDesc<uchar4>(dim, MemoryDomain::CudaDevice);
 
-		ResourceDesc gpuInputDesc {
-			.dim = config.dim,
-			.sizeOfElemBytes = sizeof(uchar4),
-			.sampleType = typeid(uchar4),
-			.domain = MemoryDomain::CudaDevice
-		};
-
-		UploadNodeParams params {
+		UploadNodeParams params{
 			.cpuInputName = "cpu.firstFrame",
 			.gpuOutputName = "gpu.firstFrame",
 			.cpuInputDesc = cpuInputDesc,
@@ -34,11 +29,17 @@ namespace pipeline {
 			return std::make_unique<UploadNode>(id, ctx, params);
 		};
 
-		NodeDefinition uploadDef {
+		return {
 			"uploadNode",
 			createUploadNode
 		};
+	}
 
-		return { uploadDef };
+	void CudaMotionPipeline::Create(const MotionPipelineConfig& config) {
+
+	}
+
+	std::vector<NodeDefinition> CudaMotionPipeline::CreateNodesDefs(const MotionPipelineConfig& config) {
+		return { MakeUploadNodeDef(config.dim) };
 	}
 }
