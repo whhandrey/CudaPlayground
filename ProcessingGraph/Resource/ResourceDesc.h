@@ -6,13 +6,15 @@
 
 namespace processing::resource {
 	struct ResourceDesc {
+		std::string name;
 		image::vec2ui dim;
 		size_t sizeOfElemBytes;
 		std::type_index sampleType;
 		MemoryDomain domain;
 
 		bool operator== (const ResourceDesc& desc) const {
-			return dim.x == desc.dim.x
+			return desc.name == name
+				&& dim.x == desc.dim.x
 				&& dim.y == desc.dim.y
 				&& sizeOfElemBytes == desc.sizeOfElemBytes
 				&& sampleType == desc.sampleType

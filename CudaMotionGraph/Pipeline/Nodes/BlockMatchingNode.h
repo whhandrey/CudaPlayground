@@ -1,5 +1,6 @@
 #pragma once
 #include <Node/Node.h>
+#include <Node/NodeBuildContext.h>
 #include <Port/ResourcePort.h>
 #include <Port/ParamPort.h>
 #include <Cuda/Motion/BlockMatching.h>
@@ -11,9 +12,6 @@ namespace pipeline {
 	using namespace dataflow;
 
 	struct BlockMatchingNodeParams {
-		INodeChangeListener& listener;
-		IPortRegistry& registry;
-		IResourceRegistry& resRegistry;
 		ResourceDesc prevImageDesc;
 		ResourceDesc currImageDesc;
 		ResourceDesc statsDesc;
@@ -21,7 +19,7 @@ namespace pipeline {
 
 	class BlockMatchingNode : public NodeBase {
 	public:
-		BlockMatchingNode(NodeId id, const BlockMatchingNodeParams& params);
+		BlockMatchingNode(NodeId id, const NodeBuildContext& ctx, const BlockMatchingNodeParams& params);
 
 	public:
 		void Execute(const CudaExecutionContext& ctx) override;

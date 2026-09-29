@@ -8,7 +8,7 @@
 namespace processing::resource {
 	class ResourceRegistry : public IResourceRegistry {
 	public:
-		ResourceId RegisterRequest(const std::string& name, const ResourceDesc& desc) override;
+		ResourceId RegisterRequest(const ResourceDesc& desc) override;
 		void ClearRequests();
 
 		std::vector<ResourceRequest> BuildRequests() const;
@@ -20,7 +20,6 @@ namespace processing::resource {
 	private:
 		struct ResourceEntry {
 			ResourceId id;
-			std::string name;
 			ResourceDesc desc;
 		};
 

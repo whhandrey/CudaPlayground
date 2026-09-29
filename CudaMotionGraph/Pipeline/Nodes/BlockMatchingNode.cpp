@@ -1,12 +1,12 @@
 #include "BlockMatchingNode.h"
 
 namespace pipeline {
-	BlockMatchingNode::BlockMatchingNode(NodeId id, const BlockMatchingNodeParams& params)
-		: NodeBase(id, "BlockMatchingNode", params.listener)
-		, m_params(id, "blockMatchingParams", params.registry, *this)
-		, m_prev(id, "prev.greyscale", params.registry, params.resRegistry, params.prevImageDesc)
-		, m_curr(id, "curr.greyscale", params.registry, params.resRegistry, params.currImageDesc)
-		, m_stats(id, "blockMatching.stats", params.registry, params.resRegistry, params.statsDesc)
+	BlockMatchingNode::BlockMatchingNode(NodeId id, const NodeBuildContext& ctx, const BlockMatchingNodeParams& params)
+		: NodeBase(id, "BlockMatchingNode", ctx.listener)
+		, m_params(id, "blockMatchingParams", ctx.registry, *this)
+		, m_prev(id, ctx.registry, ctx.resRegistry, params.prevImageDesc)
+		, m_curr(id, ctx.registry, ctx.resRegistry, params.currImageDesc)
+		, m_stats(id, ctx.registry, ctx.resRegistry, params.statsDesc)
 	{
 	}
 

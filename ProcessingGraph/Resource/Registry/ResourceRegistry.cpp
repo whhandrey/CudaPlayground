@@ -3,16 +3,16 @@
 #include <iterator>
 
 namespace processing::resource {
-	ResourceId ResourceRegistry::RegisterRequest(const std::string& name, const ResourceDesc& desc) {
-		const auto it = std::find_if(m_requests.begin(), m_requests.end(), [&name, &desc](const auto& entry) {
-			return name == entry.name && desc == entry.desc;
+	ResourceId ResourceRegistry::RegisterRequest(const ResourceDesc& desc) {
+		const auto it = std::find_if(m_requests.begin(), m_requests.end(), [&desc](const auto& req) {
+			return req.desc == desc;
 		});
 
 		if (it != m_requests.end()) {
 			return it->id;
 		}
 
-		const auto entry = ResourceEntry { m_nextResId, name, desc };
+		const auto entry = ResourceEntry { m_nextResId, desc };
 		m_requests.emplace_back(entry);
 
 		return m_nextResId++;

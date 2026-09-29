@@ -12,10 +12,10 @@ namespace dataflow {
 
 	class ResourceBasePort : public PortBase {
 	public:
-		ResourceBasePort(NodeId ownerId, const std::string& name, IPortRegistry& registry, IResourceRegistry& resRegistry, const ResourceDesc& desc)
-			: PortBase(ownerId, name, registry)
+		ResourceBasePort(NodeId ownerId, IPortRegistry& registry, IResourceRegistry& resRegistry, const ResourceDesc& desc)
+			: PortBase(ownerId, desc.name, registry)
 			, m_resRegistry{ resRegistry }
-			, m_resourceId{ resRegistry.RegisterRequest(name, desc) }
+			, m_resourceId{ resRegistry.RegisterRequest(desc) }
 		{
 		}
 
@@ -35,8 +35,8 @@ namespace dataflow {
 	template <class ResourceView, PortDirection Dir>
 	class ResourcePort : public ResourceBasePort {
 	public:
-		ResourcePort(NodeId ownerId, const std::string& name, IPortRegistry& registry, IResourceRegistry& resRegistry, const ResourceDesc& desc)
-			: ResourceBasePort(ownerId, name, registry, resRegistry, desc)
+		ResourcePort(NodeId ownerId, IPortRegistry& registry, IResourceRegistry& resRegistry, const ResourceDesc& desc)
+			: ResourceBasePort(ownerId, registry, resRegistry, desc)
 		{
 		}
 

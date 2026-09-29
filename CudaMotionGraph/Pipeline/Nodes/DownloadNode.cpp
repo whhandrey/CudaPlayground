@@ -4,10 +4,10 @@
 #include <Image/Image.h>
 
 namespace pipeline {
-	DownloadNode::DownloadNode(NodeId id, const DownloadNodeParams& params)
-		: NodeBase(id, "DownloadNode", params.listener)
-		, m_gpuInput(id, params.gpuInputName, params.registry, params.resRegistry, params.gpuInputDesc)
-		, m_cpuOutput(id, params.cpuOutputName, params.registry, params.resRegistry, params.cpuOutputDesc)
+	DownloadNode::DownloadNode(NodeId id, const NodeBuildContext& ctx, const DownloadNodeParams& params)
+		: NodeBase(id, "DownloadNode", ctx.listener)
+		, m_gpuInput(id, ctx.registry, ctx.resRegistry, params.gpuInputDesc)
+		, m_cpuOutput(id, ctx.registry, ctx.resRegistry, params.cpuOutputDesc)
 	{
 	}
 

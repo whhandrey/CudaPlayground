@@ -9,8 +9,6 @@ namespace pipeline {
 	using image::GpuImageView;
 
 	struct UploadNodeParams {
-		std::string cpuInputName;
-		std::string gpuOutputName;
 		ResourceDesc cpuInputDesc;
 		ResourceDesc gpuOutputDesc;
 	};

@@ -3,6 +3,7 @@
 
 namespace pipeline {
 	struct MotionPipelineConfig {
-		image::vec2ui dim;
+		image::vec2ui imageDim;
+		image::vec2ui statsDim;
 	};
 }

@@ -8,7 +8,7 @@ namespace processing::resource {
 	class IResourceRegistry {
 	public:
 		virtual ~IResourceRegistry() = default;
-		virtual ResourceId RegisterRequest(const std::string& name, const ResourceDesc& desc) = 0;
+		virtual ResourceId RegisterRequest(const ResourceDesc& desc) = 0;
 
 		template <class ResourceView>
 		ResourceView Resolve(ResourceId id) {
