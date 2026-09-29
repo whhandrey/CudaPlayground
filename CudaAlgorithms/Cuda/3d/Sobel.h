@@ -6,8 +6,8 @@
 namespace cuda {
 	namespace grad3d {
 		void SobelMagnitude(
-			const image::GpuImageView<uchar4>& input,
-			image::GpuImageView<uchar4>& output,
+			const image::GpuVolumeView<float>& input,
+			image::GpuVolumeView<float>& output,
 			cuda::KernelContext& ctx
 		);
 	}
