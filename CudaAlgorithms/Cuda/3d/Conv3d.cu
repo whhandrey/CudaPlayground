@@ -92,18 +92,101 @@ __global__  void Conv3dNaiveSharedMemKernel(
 	row[x] = sampleOut;
 }
 
+__global__  void Conv3dSeparableFusedKernel(
+	const float* __restrict__ input,
+	size_t inPitch,
+	size_t inSlicePitch,
+	float* __restrict__ output,
+	size_t outPitch,
+	size_t outSlicePitch,
+	const float* __restrict__ coeffsX,
+	const float* __restrict__ coeffsY,
+	const float* __restrict__ coeffsZ,
+	image::vec3i filter_halfsize,
+	int3 dim)
+{
+	extern __shared__ float tile[];
+
+	const int tileWidth = blockDim.x;
+	const int tileHeight = blockDim.y + filter_halfsize.y * 2;
+
+	const int tileSize = tileWidth * tileHeight;
+	const int blockSize = blockDim.x * blockDim.y;
+
+	const int originX = blockIdx.x * blockDim.x;
+	const int originY = blockIdx.y * blockDim.y;
+	const int originZ = blockIdx.z;
+
+	const int tid = threadIdx.x + threadIdx.y * blockDim.x;
+
+	float result = 0.0f;
+	for (int dz = -filter_halfsize.z; dz <= filter_halfsize.z; ++dz) {
+		int z = clamp(originZ + dz, 0, dim.z - 1);
+
+		// x-pass without shared mem using cooperative convolution (to include halo rows for y pass)
+		for (int i = tid; i < tileSize; i += blockSize) {
+			const int tileX = i % tileWidth;
+			const int tileY = i / tileWidth;
+
+			const int y = clamp(originY + tileY - filter_halfsize.y, 0, dim.y - 1);
+
+			const size_t offsetBytesToRow = OffsetToRowPitched(y, z, inPitch, inSlicePitch);
+			const float* row = (const float*)((const char*)input + offsetBytesToRow);
+
+			float convX = 0.0f;
+			for (int dx = -filter_halfsize.x; dx <= filter_halfsize.x; ++dx) {
+				int x = clamp(originX + tileX + dx, 0, dim.x - 1);
+				convX += row[x] * coeffsX[dx + filter_halfsize.x];
+			}
+
+			tile[i] = convX;
+		}
+
+		__syncthreads();
+
+		const int tileX = threadIdx.x;
+		const int tileY = threadIdx.y + filter_halfsize.y;
+
+		float convY = 0.0f;
+		for (int dy = -filter_halfsize.y; dy <= filter_halfsize.y; ++dy) {
+			convY += tile[tileX + (tileY + dy) * tileWidth] * coeffsY[dy + filter_halfsize.y];
+		}
+
+		// ensure you don't override tile on the next iteration while some warp is still reading data in y-pass
+		// on last iteration not necessary
+		if (dz < filter_halfsize.z) {
+			__syncthreads();
+		}
+
+		result += convY * coeffsZ[dz + filter_halfsize.z];
+	}
+
+	const int x = originX + int(threadIdx.x);
+	const int y = originY + int(threadIdx.y);
+	const int z = originZ;
+
+	if (x >= dim.x || y >= dim.y || z >= dim.z) {
+		return;
+	}
+
+	const size_t offsetBytesToRow = OffsetToRowPitched(y, z, outPitch, outSlicePitch);
+	float* row = (float*)((char*)output + offsetBytesToRow);
+
+	row[x] = result;
+}
+
 namespace cuda {
 	namespace conv3d {
 		void Conv3dNaiveSharedMem(
 			image::GpuVolumeView<const float> input,
-			memory::GpuSpan<const float> weights,
+			memory::GpuSpan<const float> coeffs3d,
 			image::GpuVolumeView<float> output,
 			image::vec3i filter_halfsize,
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim)
 		{
 			const int coeffsSize = (filter_halfsize.x * 2 + 1) * (filter_halfsize.y * 2 + 1) * (filter_halfsize.z * 2 + 1);
-			if (weights.m_size != size_t(coeffsSize)) {
+			if (coeffs3d.m_size != size_t(coeffsSize)) {
 				throw std::logic_error("CudaAlgoritms::Conv3d: invalid coeffs3d size");
 			}
 
@@ -119,7 +202,7 @@ namespace cuda {
 
 			const size_t sharedMemSize = tileWidth * tileHeight * tileDepth * sizeof(float);
 
-			int3 dim = {
+			const int3 dim = {
 				static_cast<int>(input.m_dim.x),
 				static_cast<int>(input.m_dim.y),
 				static_cast<int>(input.m_dim.z),
@@ -133,7 +216,64 @@ namespace cuda {
 					output.m_ptr,
 					output.m_pitch,
 					output.m_slicePitch,
-					weights.m_ptr,
+					coeffs3d.m_ptr,
+					filter_halfsize,
+					dim
+				);
+			});
+		}
+
+		void Conv3dFusedSeparable(
+			image::GpuVolumeView<const float> input,
+			memory::GpuSpan<const float> coeffsX,
+			memory::GpuSpan<const float> coeffsY,
+			memory::GpuSpan<const float> coeffsZ,
+			image::GpuVolumeView<float> output,
+			image::vec3i filter_halfsize,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim)
+		{
+			if (coeffsX.m_size != size_t(filter_halfsize.x * 2 + 1)) {
+				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparable: invalid coeffsX size");
+			}
+
+			if (coeffsY.m_size != size_t(filter_halfsize.y * 2 + 1)) {
+				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparable: invalid coeffsY size");
+			}
+
+			if (coeffsZ.m_size != size_t(filter_halfsize.z * 2 + 1)) {
+				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparable: invalid coeffsZ size");
+			}
+
+			if (input.m_dim != output.m_dim) {
+				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparable: input/output dim mismatch");
+			}
+
+			const auto blockDimPlanewise = image::vec3ui{ blockDim.x, blockDim.y, 1u };
+			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDimPlanewise);
+
+			const size_t tileWidth = blockDim.x;
+			const size_t tileHeight = blockDim.y + filter_halfsize.y * 2;
+
+			const size_t sharedMemSize = tileWidth * tileHeight * sizeof(float);
+
+			const int3 dim = {
+				static_cast<int>(input.m_dim.x),
+				static_cast<int>(input.m_dim.y),
+				static_cast<int>(input.m_dim.z),
+			};
+
+			cuda::TimedCall("Conv3dSeparableFusedKernel", ctx, [&]() {
+				Conv3dSeparableFusedKernel <<<gridSize, cuda::math::vecTodim3(blockDimPlanewise), sharedMemSize, ctx.stream>>> (
+					input.m_ptr,
+					input.m_pitch,
+					input.m_slicePitch,
+					output.m_ptr,
+					output.m_pitch,
+					output.m_slicePitch,
+					coeffsX.m_ptr,
+					coeffsY.m_ptr,
+					coeffsZ.m_ptr,
 					filter_halfsize,
 					dim
 				);

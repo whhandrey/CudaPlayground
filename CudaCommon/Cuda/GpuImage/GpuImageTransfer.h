@@ -103,7 +103,7 @@ namespace cuda::gpu_image {
 
 		cudaMemcpy3DParms params{};
 
-		params.srcPtr = make_cudaPitchedPtr(gpu_in.m_ptr, gpu_in.m_pitch, gpu_in.m_dim.x * sizeof(SrcSample), gpu_in.m_dim.y);
+		params.srcPtr = make_cudaPitchedPtr((void*)gpu_in.m_ptr, gpu_in.m_pitch, gpu_in.m_dim.x * sizeof(SrcSample), gpu_in.m_dim.y);
 		params.dstPtr = make_cudaPitchedPtr(cpu_out.m_ptr, cpu_out.m_pitch, cpu_out.m_dim.x * sizeof(DstSample), cpu_out.m_dim.y);
 
 		params.extent = make_cudaExtent(gpu_in.m_dim.x * sizeof(SrcSample), gpu_in.m_dim.y, gpu_in.m_dim.z);
@@ -113,7 +113,7 @@ namespace cuda::gpu_image {
 	}
 
 	template <class DstSample, class SrcSample>
-	image::CpuImage<DstSample> DownloadCompatible(
+	image::CpuVolume<DstSample> DownloadCompatible(
 		const image::GpuVolumeView<SrcSample>& gpu_in,
 		cudaStream_t stream)
 	{
@@ -137,7 +137,7 @@ namespace cuda::gpu_image {
 
 	template <class T>
 	inline image::CpuVolume<T> Download(const GpuVolume<T>& vol, cudaStream_t stream) {
-		return DownloadCompatible<T>(cuda::gpu_image::MakeImageView(vol), stream);
+		return DownloadCompatible<T>(cuda::gpu_image::MakeVolumeView<T>(vol), stream);
 	}
 
 	template<class Dst, class Src>

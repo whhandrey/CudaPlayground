@@ -1,6 +1,6 @@
 #include "UploadNode.h"
 #include <Cuda/CudaCheck.h>
-#include <Cuda/Image/GpuImageTransfer.h>
+#include <Cuda/GpuImage/GpuImageTransfer.h>
 
 namespace pipeline {
 	UploadNode::UploadNode(NodeId id, const NodeBuildContext& ctx, const UploadNodeParams& params)
