@@ -2,15 +2,52 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Common\RandomData.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Benchmarks\BenchOutput.cpp">
+      <Filter>Benchmarks</Filter>
+    </ClCompile>
+    <ClCompile Include="Benchmarks\3d\Conv3dBenchmark.cpp">
+      <Filter>Benchmarks\3d</Filter>
+    </ClCompile>
+    <ClCompile Include="main_old_block_match.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Image">
       <UniqueIdentifier>{ff8fa174-fdf5-4dd7-8b37-c48006444135}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{c11268bb-2a13-4cf7-aeed-ef55cc9583f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Benchmarks">
+      <UniqueIdentifier>{fe2d16bc-4e81-41a6-b307-0c4cf5e12703}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Benchmarks\2d">
+      <UniqueIdentifier>{e76de8f1-8f6c-46b0-b26b-eb09c8d7da69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Benchmarks\3d">
+      <UniqueIdentifier>{cbf5dce0-44ff-43ff-9242-2e9e49ff5026}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Image\ImageIO.h">
       <Filter>Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\CudaStream.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\RandomData.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Benchmarks\BenchOutput.h">
+      <Filter>Benchmarks</Filter>
+    </ClInclude>
+    <ClInclude Include="Benchmarks\3d\Conv3dBenchmark.h">
+      <Filter>Benchmarks\3d</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\NullProfiler.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,6 +1,6 @@
 #include "DownloadNode.h"
 #include <Cuda/CudaCheck.h>
-#include <Cuda/Image/GpuImageTransfer.h>
+#include <Cuda/GpuImage/GpuImageTransfer.h>
 #include <Image/Image.h>
 
 namespace pipeline {

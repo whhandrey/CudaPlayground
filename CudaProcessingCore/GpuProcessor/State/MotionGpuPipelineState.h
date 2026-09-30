@@ -1,7 +1,7 @@
 #pragma once
 #include <map>
 #include <Image/ImageTypes.h>
-#include <Cuda/Image/ImageGPU.h>
+#include <Cuda/GpuImage/GpuImage.h>
 #include "IMotionGpuPipelineState.h"
 
 namespace cuda::motion::state {

@@ -86,6 +86,12 @@
     <ClInclude Include="Cuda\3d\Sobel.h">
       <Filter>Cuda\3d</Filter>
     </ClInclude>
+    <ClInclude Include="Cuda\3d\Conv3d.h">
+      <Filter>Cuda\3d</Filter>
+    </ClInclude>
+    <ClInclude Include="Cuda\3d\Common.cuh">
+      <Filter>Cuda\3d</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\Filter.cu">
@@ -113,6 +119,9 @@
       <Filter>Cuda\Motion\Visualization</Filter>
     </CudaCompile>
     <CudaCompile Include="Cuda\3d\Sobel.cu">
+      <Filter>Cuda\3d</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\3d\Conv3d.cu">
       <Filter>Cuda\3d</Filter>
     </CudaCompile>
   </ItemGroup>

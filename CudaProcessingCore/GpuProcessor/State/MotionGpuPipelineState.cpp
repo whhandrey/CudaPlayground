@@ -1,6 +1,6 @@
 #include "MotionGpuPipelineState.h"
 #include "../ViewRenderer/ViewType.h"
-#include <Cuda/Image/GpuImageView.h>
+#include <Cuda/GpuImage/GpuImageView.h>
 #include <array>
 
 namespace cuda::motion::state {

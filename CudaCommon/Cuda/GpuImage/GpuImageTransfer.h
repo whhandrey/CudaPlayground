@@ -3,7 +3,7 @@
 #include <Image/Image.h>
 #include <Image/ImageView.h>
 #include "GpuImageView.h"
-#include "ImageGPU.h"
+#include "GpuImage.h"
 #include "../CudaCheck.h"
 
 namespace cuda::gpu_image {
@@ -245,7 +245,7 @@ namespace cuda::gpu_image {
 
 		cudaMemcpy3DParms params{};
 
-		params.srcPtr = make_cudaPitchedPtr(in_cpu.m_ptr, in_cpu.m_pitch, in_cpu.m_dim.x * sizeof(SrcSample), in_cpu.m_dim.y);
+		params.srcPtr = make_cudaPitchedPtr((void*)in_cpu.m_ptr, in_cpu.m_pitch, in_cpu.m_dim.x * sizeof(SrcSample), in_cpu.m_dim.y);
 		params.dstPtr = make_cudaPitchedPtr(out_gpu.m_ptr, out_gpu.m_pitch, out_gpu.m_dim.x * sizeof(DstSample), out_gpu.m_dim.y);
 
 		params.extent = make_cudaExtent(in_cpu.m_dim.x * sizeof(SrcSample), in_cpu.m_dim.y, in_cpu.m_dim.z);

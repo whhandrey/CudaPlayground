@@ -141,12 +141,15 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Cuda\GpuImage\GpuImage.h" />
+    <ClInclude Include="Cuda\GpuImage\GpuImageTransfer.h" />
+    <ClInclude Include="Cuda\GpuImage\GpuImageView.h" />
     <ClInclude Include="Cuda\KernelContext.h" />
     <ClInclude Include="Cuda\CudaCheck.h" />
-    <ClInclude Include="Cuda\Image\GpuImageTransfer.h" />
-    <ClInclude Include="Cuda\Image\GpuImageView.h" />
-    <ClInclude Include="Cuda\Image\ImageGPU.h" />
     <ClInclude Include="Cuda\MathUtils.h" />
+    <ClInclude Include="Cuda\Memory\GpuBuffer.h" />
+    <ClInclude Include="Cuda\Memory\GpuBufferSpan.h" />
+    <ClInclude Include="Cuda\Memory\GpuBufferTransfer.h" />
     <ClInclude Include="Cuda\Profiler\GpuEvent.h" />
     <ClInclude Include="Cuda\Profiler\GpuProfiler.h" />
     <ClInclude Include="Cuda\Profiler\GpuProfileResult.h" />

@@ -32,6 +32,10 @@ namespace image {
 		bool operator==(const vec2ui& rhs) const {
 			return x == rhs.x && y == rhs.y;
 		}
+
+		bool operator!=(const vec2ui& rhs) const {
+			return !(*this == rhs);
+		}
 	};
 
 	struct ALIGN(8) vec2i {
@@ -40,6 +44,10 @@ namespace image {
 
 		bool operator==(const vec2i& rhs) const {
 			return x == rhs.x && y == rhs.y;
+		}
+
+		bool operator!=(const vec2i& rhs) const {
+			return !(*this == rhs);
 		}
 	};
 
@@ -112,6 +120,10 @@ namespace image {
 		bool operator==(const vec3ui & rhs) const {
 			return x == rhs.x && y == rhs.y && z == rhs.z;
 		}
+
+		bool operator!=(const vec3ui& rhs) const {
+			return !(*this == rhs);
+		}
 	};
 
 	struct vec3i {
@@ -121,6 +133,10 @@ namespace image {
 
 		bool operator==(const vec3ui& rhs) const {
 			return x == rhs.x && y == rhs.y && z == rhs.z;
+		}
+
+		bool operator!=(const vec3ui& rhs) const {
+			return !(*this == rhs);
 		}
 	};
 }

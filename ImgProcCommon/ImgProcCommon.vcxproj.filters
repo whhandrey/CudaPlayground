@@ -4,6 +4,9 @@
     <Filter Include="Image">
       <UniqueIdentifier>{28b92e09-dabd-49d8-9640-af6ffa24b52a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Memory">
+      <UniqueIdentifier>{10ffc89a-a0d1-4311-a4c0-076613bd40fd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Image\Image.h">
@@ -14,6 +17,9 @@
     </ClInclude>
     <ClInclude Include="Image\ImageView.h">
       <Filter>Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory\GpuSpan.h">
+      <Filter>Memory</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

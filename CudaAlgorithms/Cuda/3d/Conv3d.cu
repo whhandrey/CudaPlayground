@@ -1,4 +1,4 @@
-#include "Sobel.h"
+#include "Conv3d.h"
 #include "Common.cuh"
 #include "../Math.cuh"
 #include <vector>
@@ -6,17 +6,18 @@
 #include <Cuda/TimedCudaCall.h>
 #include <Cuda/MathUtils.h>
 
-__global__  void SobelMagnitude3dKernel(
+__global__  void Conv3dNaiveSharedMemKernel(
 	const float* __restrict__ input,
+	size_t inPitch,
+	size_t inSlicePitch,
 	float* output,
-	const float* sobelX,
-	const float* sobelY,
-	const float* sobelZ,
+	size_t outPitch,
+	size_t outSlicePitch,
+	const float* __restrict__ coeffs3d,
+	image::vec3i filter_halfsize,
 	int3 dim)
 {
 	extern __shared__ float tile[];
-
-	const int3 filter_halfsize = { 1, 1, 1 };
 
 	const int tileWidth = blockDim.x + filter_halfsize.x * 2;
 	const int tileHeight = blockDim.y + filter_halfsize.y * 2;
@@ -44,14 +45,13 @@ __global__  void SobelMagnitude3dKernel(
 		const int sampleY = clamp(blockOrigin.y + tileY - filter_halfsize.y, 0, dim.y - 1);
 		const int sampleZ = clamp(blockOrigin.z + tileZ - filter_halfsize.z, 0, dim.z - 1);
 
-		tile[i] = input[FlatIdx(sampleX, sampleY, sampleZ, dim.x, dim.y)];
+		const size_t offsetBytesToRow = OffsetToRowPitched(sampleY, sampleZ, inPitch, inSlicePitch);
+
+		const float* row = (const float*)((const char*)input + offsetBytesToRow);
+		tile[i] = row[sampleX];
 	}
 
 	__syncthreads();
-
-	float gx = 0.0f;
-	float gy = 0.0f;
-	float gz = 0.0f;
 
 	const int x = blockOrigin.x + threadIdx.x;
 	const int y = blockOrigin.y + threadIdx.y;
@@ -67,6 +67,8 @@ __global__  void SobelMagnitude3dKernel(
 	const int filterArea = filterWidth * filterHeight;
 	const int tileArea = tileWidth * tileHeight;
 
+	float sampleOut = 0.0f;
+
 	for (int dz = -filter_halfsize.z; dz <= filter_halfsize.z; dz++) {
 		for (int dy = -filter_halfsize.y; dy <= filter_halfsize.y; dy++) {
 			for (int dx = -filter_halfsize.x; dx <= filter_halfsize.x; dx++) {
@@ -79,55 +81,63 @@ __global__  void SobelMagnitude3dKernel(
 					+ (dy + filter_halfsize.y) * filterWidth
 					+ (dz + filter_halfsize.z) * filterArea;
 
-				gx += tile[tileIndex] * sobelX[coeffIndex];
-				gy += tile[tileIndex] * sobelY[coeffIndex];
-				gz += tile[tileIndex] * sobelZ[coeffIndex];
+				sampleOut += tile[tileIndex] * coeffs3d[coeffIndex];
 			}
 		}
 	}
 
-	const float gradMag = sqrtf(gx * gx + gy * gy + gz * gz);
-	output[FlatIdx(x, y, z, dim.x, dim.y)] = gradMag;
-}
+	const size_t offsetBytesToRow = OffsetToRowPitched(y, z, outPitch, outSlicePitch);
 
-namespace {
-	struct SobelKernels {
-		std::vector<float> sobelX;
-		std::vector<float> sobelY;
-		std::vector<float> sobelZ;
-	};
-
-	SobelKernels SobelKernels3d() {
-		constexpr float smooth[] = { 0.25f, 0.5f, 0.25f };
-		constexpr float derivative[] = { -0.5f, 0.0f, 0.5f };
-		const int sobelSize = 3;
-
-		std::vector<float> sobelX;
-		std::vector<float> sobelY;
-		std::vector<float> sobelZ;
-
-		for (int z = 0; z < sobelSize; ++z) {
-			for (int y = 0; y < sobelSize; ++y) {
-				for (int x = 0; x < sobelSize; ++x) {
-					sobelX.push_back(derivative[x] * smooth[y] * smooth[z]);
-					sobelY.push_back(smooth[x] * derivative[y] * smooth[z]);
-					sobelZ.push_back(smooth[x] * smooth[y] * derivative[z]);
-				}
-			}
-		}
-
-		return { sobelX, sobelY, sobelZ };
-	}
+	float* row = (float*)((char*)output + offsetBytesToRow);
+	row[x] = sampleOut;
 }
 
 namespace cuda {
-	namespace grad3d {
-		void SobelMagnitude(
-			const image::GpuVolumeView<float>& input,
-			image::GpuVolumeView<float>& output,
-			cuda::KernelContext& ctx)
+	namespace conv3d {
+		void Conv3dNaiveSharedMem(
+			image::GpuVolumeView<const float> input,
+			memory::GpuSpan<const float> weights,
+			image::GpuVolumeView<float> output,
+			image::vec3i filter_halfsize,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim)
 		{
+			const int coeffsSize = (filter_halfsize.x * 2 + 1) * (filter_halfsize.y * 2 + 1) * (filter_halfsize.z * 2 + 1);
+			if (weights.m_size != size_t(coeffsSize)) {
+				throw std::logic_error("CudaAlgoritms::Conv3d: invalid coeffs3d size");
+			}
 
+			if (input.m_dim != output.m_dim) {
+				throw std::logic_error("CudaAlgoritms::Conv3d: input/output dim mismatch");
+			}
+
+			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDim);
+
+			const size_t tileWidth = blockDim.x + filter_halfsize.x * 2;
+			const size_t tileHeight = blockDim.y + filter_halfsize.y * 2;
+			const size_t tileDepth = blockDim.z + filter_halfsize.z * 2;
+
+			const size_t sharedMemSize = tileWidth * tileHeight * tileDepth * sizeof(float);
+
+			int3 dim = {
+				static_cast<int>(input.m_dim.x),
+				static_cast<int>(input.m_dim.y),
+				static_cast<int>(input.m_dim.z),
+			};
+			
+			cuda::TimedCall("Conv3dNaiveSharedMemKernel", ctx, [&]() {
+				Conv3dNaiveSharedMemKernel <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					input.m_ptr,
+					input.m_pitch,
+					input.m_slicePitch,
+					output.m_ptr,
+					output.m_pitch,
+					output.m_slicePitch,
+					weights.m_ptr,
+					filter_halfsize,
+					dim
+				);
+			});
 		}
 	}
 }

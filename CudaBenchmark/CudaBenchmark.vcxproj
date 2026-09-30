@@ -19,7 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Benchmarks\3d\Conv3dBenchmark.cpp" />
+    <ClCompile Include="Benchmarks\BenchOutput.cpp" />
+    <ClCompile Include="Common\RandomData.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="main_old_block_match.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CudaAlgorithms\CudaAlgorithms.vcxproj">
@@ -30,6 +34,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Benchmarks\3d\Conv3dBenchmark.h" />
+    <ClInclude Include="Benchmarks\BenchOutput.h" />
+    <ClInclude Include="Common\CudaStream.h" />
+    <ClInclude Include="Common\NullProfiler.h" />
+    <ClInclude Include="Common\RandomData.h" />
     <ClInclude Include="Image\ImageIO.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

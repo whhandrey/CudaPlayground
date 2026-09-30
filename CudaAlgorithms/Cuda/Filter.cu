@@ -532,7 +532,7 @@ namespace cuda {
             cudaCheck(cudaMemcpyToSymbolAsync(c_weightsGauss, weights_cpu.data(), weights_cpu.size() * sizeof(float), 0, cudaMemcpyHostToDevice, ctx.stream));
 
             cuda::TimedCall("GaussianBlurX+Y", ctx, [&]() {
-                GaussianBlurX<<<gridSize, cuda::math::vec2Todim3(p.blockDim), 0, ctx.stream>>> (
+                GaussianBlurX<<<gridSize, cuda::math::vecTodim3(p.blockDim), 0, ctx.stream>>> (
                     input.m_ptr,
                     input.m_pitch,
                     tmp_buffer.m_ptr,
@@ -542,7 +542,7 @@ namespace cuda {
                     p.filter_halfsize
                 );
 
-                GaussianBlurY<<<gridSize, cuda::math::vec2Todim3(p.blockDim), 0, ctx.stream>>> (
+                GaussianBlurY<<<gridSize, cuda::math::vecTodim3(p.blockDim), 0, ctx.stream>>> (
                     tmp_buffer.m_ptr,
                     tmp_buffer.m_pitch,
                     output.m_ptr,
@@ -575,7 +575,7 @@ namespace cuda {
             gridSize.y = (input.m_dim.y + outputPerBlockY - 1) / outputPerBlockY;
 
             cuda::TimedCall("GaussianBlurTileV1", ctx, [&]() {
-                GaussianBlurTile<<<gridSize, cuda::math::vec2Todim3(blockSize), sharedMemSize, ctx.stream>>> (
+                GaussianBlurTile<<<gridSize, cuda::math::vecTodim3(blockSize), sharedMemSize, ctx.stream>>> (
                     input.m_ptr,
                     input.m_pitch,
                     output.m_ptr,
@@ -604,7 +604,7 @@ namespace cuda {
             dim3 gridSize = cuda::math::DivUp(input.m_dim, outputBlock);
 
             cuda::TimedCall("GaussianBlurTileV2", ctx, [&]() {
-                GaussianBlurTile<<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.stream>>> (
+                GaussianBlurTile<<<gridSize, cuda::math::vecTodim3(p.blockDim), sharedMemSize, ctx.stream>>> (
                     input.m_ptr,
                     input.m_pitch,
                     output.m_ptr,
@@ -637,7 +637,7 @@ namespace cuda {
             const size_t sharedMemSize = tileWidth * tileHeight * sizeof(int4);
 
             cuda::TimedCall("BilateralKernel", ctx, [&]() {
-                BilateralKernel<<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.stream>>> (
+                BilateralKernel<<<gridSize, cuda::math::vecTodim3(p.blockDim), sharedMemSize, ctx.stream>>> (
                     input.m_ptr,
                     input.m_pitch,
                     output.m_ptr,
@@ -683,14 +683,14 @@ namespace cuda {
             const size_t sharedMemSize = tileWidth * tileHeight * typeSize;
 
             if (debugInfo) {
-                cuda::PrintOccupancyForBilateral<filter_halfsize>(cuda::math::vec2Todim3(p.blockDim), sharedMemSize);
+                cuda::PrintOccupancyForBilateral<filter_halfsize>(cuda::math::vecTodim3(p.blockDim), sharedMemSize);
                 std::cout << std::endl;
             }
 
             // Quadro T1000/T2000
             if (gpuArch == cuda::gpu::Arch::Turing) {
                 cuda::TimedCall("BilateralKernel_Uchar4", ctx, [&]() {
-                    BilateralKernelT_Uchar<filter_halfsize> <<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.stream>>> (
+                    BilateralKernelT_Uchar<filter_halfsize> <<<gridSize, cuda::math::vecTodim3(p.blockDim), sharedMemSize, ctx.stream>>> (
                         input.m_ptr,
                         input.m_pitch,
                         output.m_ptr,
@@ -707,7 +707,7 @@ namespace cuda {
             // Idk if this is better on rtx 2/3, tested on rtx 4050 and rtx 5060.
             else {
                 cuda::TimedCall("BilateralKernel_Int4", ctx, [&]() {
-                    BilateralKernelT<filter_halfsize> <<<gridSize, cuda::math::vec2Todim3(p.blockDim), sharedMemSize, ctx.stream>>> (
+                    BilateralKernelT<filter_halfsize> <<<gridSize, cuda::math::vecTodim3(p.blockDim), sharedMemSize, ctx.stream>>> (
                         input.m_ptr,
                         input.m_pitch,
                         output.m_ptr,

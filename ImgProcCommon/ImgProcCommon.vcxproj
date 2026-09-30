@@ -142,6 +142,7 @@
     <ClInclude Include="Image\Image.h" />
     <ClInclude Include="Image\ImageTypes.h" />
     <ClInclude Include="Image\ImageView.h" />
+    <ClInclude Include="Memory\GpuSpan.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

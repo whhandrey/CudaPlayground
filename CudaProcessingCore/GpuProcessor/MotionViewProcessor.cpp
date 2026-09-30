@@ -5,7 +5,7 @@
 
 #include <Cuda/MathUtils.h>
 #include <Cuda/TimedCudaCall.h>
-#include <Cuda/Image/GpuImageTransfer.h>
+#include <Cuda/GpuImage/GpuImageTransfer.h>
 #include <Cuda/Profiler/GpuProfiler.h>
 
 namespace {
