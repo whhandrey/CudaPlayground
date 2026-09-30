@@ -1,7 +1,7 @@
 #include "Conv3d.h"
 #include "Common.cuh"
 #include "../Math.cuh"
-#include <vector>
+#include <stdexcept>
 
 #include <Cuda/TimedCudaCall.h>
 #include <Cuda/MathUtils.h>
@@ -10,7 +10,7 @@ __global__  void Conv3dNaiveSharedMemKernel(
 	const float* __restrict__ input,
 	size_t inPitch,
 	size_t inSlicePitch,
-	float* output,
+	float* __restrict__ output,
 	size_t outPitch,
 	size_t outSlicePitch,
 	const float* __restrict__ coeffs3d,
