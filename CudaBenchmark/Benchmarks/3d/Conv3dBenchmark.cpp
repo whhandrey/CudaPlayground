@@ -366,10 +366,10 @@ namespace bench {
 		auto dummyProfiler = bench::NullProfiler();
 		auto ctxNoProfile = cuda::KernelContext{ stream.Get(), &dummyProfiler };
 
-		image::vec3ui inputDim = { 601, 310, 168 };
+		image::vec3ui inputDim = { 601, 310, 169 };
 		image::CpuVolume<float> input = bench::data::GenerateRandomVolume(inputDim);
 
-		image::vec3i filter_halfsize = { 7, 5, 1 };
+		image::vec3i filter_halfsize = { 7, 5, 3 };
 		std::vector<float> weights = bench::data::GenerateRandomWeights3d(filter_halfsize);
 
 		bench::output::PrintCudaDevice();
@@ -406,10 +406,10 @@ namespace bench {
 		auto dummyProfiler = bench::NullProfiler();
 		auto ctxNoProfile = cuda::KernelContext{ stream.Get(), &dummyProfiler };
 
-		image::vec3ui inputDim = { 601, 310, 168 };
+		image::vec3ui inputDim = { 601, 310, 169 };
 		image::CpuVolume<float> input = bench::data::GenerateRandomVolume(inputDim);
 
-		image::vec3i filter_halfsize = { 7, 5, 1 };
+		image::vec3i filter_halfsize = { 7, 5, 3 };
 
 		std::vector<float> weightsX = bench::data::GenerateRandomWeights(filter_halfsize.x);
 		std::vector<float> weightsY = bench::data::GenerateRandomWeights(filter_halfsize.y);
@@ -458,7 +458,7 @@ namespace bench {
 		image::vec3ui inputDim = { 601, 310, 169 };
 		image::CpuVolume<float> input = bench::data::GenerateRandomVolume(inputDim);
 
-		image::vec3i filter_halfsize = { 7, 5, 1 };
+		image::vec3i filter_halfsize = { 7, 5, 3 };
 
 		std::vector<float> weightsX = bench::data::GenerateRandomWeights(filter_halfsize.x);
 		std::vector<float> weightsY = bench::data::GenerateRandomWeights(filter_halfsize.y);
