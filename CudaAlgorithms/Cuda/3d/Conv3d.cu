@@ -175,6 +175,99 @@ __global__  void Conv3dSeparableFusedKernel(
 	row[x] = result;
 }
 
+template <int numOutputs>
+__global__  void Conv3dSeparableFusedMultipleOutKernel(
+	const float* __restrict__ input,
+	size_t inPitch,
+	size_t inSlicePitch,
+	float* __restrict__ output,
+	size_t outPitch,
+	size_t outSlicePitch,
+	const float* __restrict__ coeffsX,
+	const float* __restrict__ coeffsY,
+	const float* __restrict__ coeffsZ,
+	image::vec3i filter_halfsize,
+	int3 dim)
+{
+	extern __shared__ float tile[];
+
+	const int tileWidth = blockDim.x;
+	const int tileHeight = blockDim.y + filter_halfsize.y * 2;
+
+	const int tileSize = tileWidth * tileHeight;
+	const int blockSize = blockDim.x * blockDim.y;
+
+	const int originX = blockIdx.x * blockDim.x;
+	const int originY = blockIdx.y * blockDim.y;
+	const int baseZ = blockIdx.z * numOutputs;
+
+	const int tid = threadIdx.x + threadIdx.y * blockDim.x;
+
+	float results[numOutputs] = {};
+	for (int p = -filter_halfsize.z; p < filter_halfsize.z + numOutputs; ++p) {
+		int z = clamp(baseZ + p, 0, dim.z - 1);
+
+		// x-pass without shared mem using cooperative convolution (to include halo rows for y pass)
+		for (int i = tid; i < tileSize; i += blockSize) {
+			const int tileX = i % tileWidth;
+			const int tileY = i / tileWidth;
+
+			const int y = clamp(originY + tileY - filter_halfsize.y, 0, dim.y - 1);
+
+			const size_t offsetBytesToRow = OffsetToRowPitched(y, z, inPitch, inSlicePitch);
+			const float* row = (const float*)((const char*)input + offsetBytesToRow);
+
+			float convX = 0.0f;
+			for (int dx = -filter_halfsize.x; dx <= filter_halfsize.x; ++dx) {
+				int x = clamp(originX + tileX + dx, 0, dim.x - 1);
+				convX += row[x] * coeffsX[dx + filter_halfsize.x];
+			}
+
+			tile[i] = convX;
+		}
+
+		__syncthreads();
+
+		const int tileX = threadIdx.x;
+		const int tileY = threadIdx.y + filter_halfsize.y;
+
+		float convY = 0.0f;
+		for (int dy = -filter_halfsize.y; dy <= filter_halfsize.y; ++dy) {
+			convY += tile[tileX + (tileY + dy) * tileWidth] * coeffsY[dy + filter_halfsize.y];
+		}
+
+		// ensure you don't override tile on the next iteration while some warp is still reading data in y-pass
+		// on last iteration not necessary
+		if (p < filter_halfsize.z + numOutputs - 1) {
+			__syncthreads();
+		}
+
+		for (int i = 0; i < numOutputs; ++i) {
+			int relativeZ = p - i;
+			if (relativeZ >= -filter_halfsize.z && relativeZ <= filter_halfsize.z) {
+				results[i] += convY * coeffsZ[relativeZ + filter_halfsize.z];
+			}
+		}
+	}
+
+	const int x = originX + int(threadIdx.x);
+	const int y = originY + int(threadIdx.y);
+	const int z = baseZ;
+
+	if (x >= dim.x || y >= dim.y || z >= dim.z) {
+		return;
+	}
+
+	for (int i = 0; i < numOutputs; ++i) {
+		if (baseZ + i < dim.z) {
+			const size_t offsetBytesToRow = OffsetToRowPitched(y, baseZ + i, outPitch, outSlicePitch);
+			float* row = (float*)((char*)output + offsetBytesToRow);
+
+			row[x] = results[i];
+		}
+	}
+}
+
 namespace cuda {
 	namespace conv3d {
 		void Conv3dNaiveSharedMem(
@@ -278,6 +371,140 @@ namespace cuda {
 					dim
 				);
 			});
+		}
+
+		void Conv3dFusedSeparableMultipleOutputs(
+			image::GpuVolumeView<const float> input,
+			memory::GpuSpan<const float> coeffsX,
+			memory::GpuSpan<const float> coeffsY,
+			memory::GpuSpan<const float> coeffsZ,
+			image::GpuVolumeView<float> output,
+			image::vec3i filter_halfsize,
+			int numOutputs,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim)
+		{
+			if (coeffsX.m_size != size_t(filter_halfsize.x * 2 + 1)) {
+				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparableMultipleOutputs: invalid coeffsX size");
+			}
+
+			if (coeffsY.m_size != size_t(filter_halfsize.y * 2 + 1)) {
+				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparableMultipleOutputs: invalid coeffsY size");
+			}
+
+			if (coeffsZ.m_size != size_t(filter_halfsize.z * 2 + 1)) {
+				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparableMultipleOutputs: invalid coeffsZ size");
+			}
+
+			if (input.m_dim != output.m_dim) {
+				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparableMultipleOutputs: input/output dim mismatch");
+			}
+
+			if (numOutputs < 2 || numOutputs > 6) {
+				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparableMultipleOutputs: unsupported numOutputs");
+			}
+
+			const auto blockDimForGrid = image::vec3ui{ blockDim.x, blockDim.y, unsigned int(numOutputs * 1) };
+			const auto blockDimLaunch = image::vec3ui{ blockDim.x, blockDim.y, 1u };
+
+			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDimForGrid);
+
+			const size_t tileWidth = blockDim.x;
+			const size_t tileHeight = blockDim.y + filter_halfsize.y * 2;
+
+			const size_t sharedMemSize = tileWidth * tileHeight * sizeof(float);
+
+			const int3 dim = {
+				static_cast<int>(input.m_dim.x),
+				static_cast<int>(input.m_dim.y),
+				static_cast<int>(input.m_dim.z),
+			};
+
+			if (numOutputs == 2) {
+				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<2> <<<gridSize, cuda::math::vecTodim3(blockDimLaunch), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 3) {
+				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<3> <<<gridSize, cuda::math::vecTodim3(blockDimLaunch), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 4) {
+				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<4> <<<gridSize, cuda::math::vecTodim3(blockDimLaunch), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 5) {
+				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<5> <<<gridSize, cuda::math::vecTodim3(blockDimLaunch), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 6) {
+				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<6> <<<gridSize, cuda::math::vecTodim3(blockDimLaunch), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
 		}
 	}
 }
