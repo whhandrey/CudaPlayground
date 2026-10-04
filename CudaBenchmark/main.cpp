@@ -1,6 +1,7 @@
 #include "Benchmarks/3d/Conv3dBenchmark.h"
+#include "Benchmarks/3d/Sobel3dBenchmark.h"
 
 int main() {
-	bench::Conv3dFusedSeparableMultipleOutputsBench(10);
+	bench::SobelMag3dNaiveSharedMemBench();
 	return 0;
 }

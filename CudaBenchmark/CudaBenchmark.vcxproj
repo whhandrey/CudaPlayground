@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Benchmarks\3d\Conv3dBenchmark.cpp" />
+    <ClCompile Include="Benchmarks\3d\Sobel3dBenchmark.cpp" />
     <ClCompile Include="Benchmarks\BenchOutput.cpp" />
     <ClCompile Include="Common\RandomData.cpp" />
     <ClCompile Include="main.cpp" />
@@ -35,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Benchmarks\3d\Conv3dBenchmark.h" />
+    <ClInclude Include="Benchmarks\3d\Sobel3dBenchmark.h" />
     <ClInclude Include="Benchmarks\BenchOutput.h" />
     <ClInclude Include="Common\CudaStream.h" />
     <ClInclude Include="Common\NullProfiler.h" />

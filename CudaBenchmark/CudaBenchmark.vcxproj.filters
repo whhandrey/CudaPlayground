@@ -12,6 +12,9 @@
       <Filter>Benchmarks\3d</Filter>
     </ClCompile>
     <ClCompile Include="main_old_block_match.cpp" />
+    <ClCompile Include="Benchmarks\3d\Sobel3dBenchmark.cpp">
+      <Filter>Benchmarks\3d</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Image">
@@ -48,6 +51,9 @@
     </ClInclude>
     <ClInclude Include="Common\NullProfiler.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Benchmarks\3d\Sobel3dBenchmark.h">
+      <Filter>Benchmarks\3d</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

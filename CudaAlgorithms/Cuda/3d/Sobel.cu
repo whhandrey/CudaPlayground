@@ -6,16 +6,16 @@
 #include <Cuda/TimedCudaCall.h>
 #include <Cuda/MathUtils.h>
 
-__global__  void SobelMagnitude3dKernel(
+__global__  void SobelMag3dNaiveSharedMemKernel(
 	const float* __restrict__ input,
 	size_t inPitch,
 	size_t inSlicePitch,
 	float* __restrict__ output,
 	size_t outPitch,
 	size_t outSlicePitch,
-	const float* sobelX,
-	const float* sobelY,
-	const float* sobelZ,
+	const float* __restrict__ sobelX,
+	const float* __restrict__ sobelY,
+	const float* __restrict__ sobelZ,
 	int3 dim)
 {
 	extern __shared__ float tile[];
@@ -101,36 +101,6 @@ __global__  void SobelMagnitude3dKernel(
 	row[x] = gradMag;
 }
 
-namespace {
-	struct SobelKernels {
-		std::vector<float> sobelX;
-		std::vector<float> sobelY;
-		std::vector<float> sobelZ;
-	};
-
-	SobelKernels SobelKernels3d() {
-		constexpr float smooth[] = { 0.25f, 0.5f, 0.25f };
-		constexpr float derivative[] = { -0.5f, 0.0f, 0.5f };
-		const int sobelSize = 3;
-
-		std::vector<float> sobelX;
-		std::vector<float> sobelY;
-		std::vector<float> sobelZ;
-
-		for (int z = 0; z < sobelSize; ++z) {
-			for (int y = 0; y < sobelSize; ++y) {
-				for (int x = 0; x < sobelSize; ++x) {
-					sobelX.push_back(derivative[x] * smooth[y] * smooth[z]);
-					sobelY.push_back(smooth[x] * derivative[y] * smooth[z]);
-					sobelZ.push_back(smooth[x] * smooth[y] * derivative[z]);
-				}
-			}
-		}
-
-		return { sobelX, sobelY, sobelZ };
-	}
-}
-
 namespace cuda {
 	namespace grad3d {
 		void SobelMagNaiveSharedMem(
@@ -176,8 +146,8 @@ namespace cuda {
 				static_cast<int>(input.m_dim.z),
 			};
 
-			cuda::TimedCall("SobelMagnitude3dKernel", ctx, [&]() {
-				SobelMagnitude3dKernel << <gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream >> > (
+			cuda::TimedCall("SobelMag3dNaiveSharedMemKernel", ctx, [&]() {
+				SobelMag3dNaiveSharedMemKernel <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 					input.m_ptr,
 					input.m_pitch,
 					input.m_slicePitch,
