@@ -242,7 +242,7 @@ namespace {
 }
 
 namespace bench {
-	void CheckIfBothMatch() {
+	void Conv3dCheckIfMatchWithNaive(Conv3dType type) {
 		CudaStream stream;
 
 		auto dummyProfiler = bench::NullProfiler();
@@ -289,16 +289,31 @@ namespace bench {
 		const auto weightsY_buf = cuda::gpu_buffer::Upload(weightsY, stream.Get());
 		const auto weightsZ_buf = cuda::gpu_buffer::Upload(weightsZ, stream.Get());
 
-		cuda::conv3d::Conv3dFusedSeparable(
-			cuda::gpu_image::MakeVolumeView(input_gpu),
-			cuda::gpu_buffer::MakeSpan(weightsX_buf),
-			cuda::gpu_buffer::MakeSpan(weightsY_buf),
-			cuda::gpu_buffer::MakeSpan(weightsZ_buf),
-			cuda::gpu_image::MakeVolumeView(output_fused),
-			filter_halfsize,
-			ctxNoProfile,
-			{ 16, 32, 1 }
-		);
+		if (type == Conv3dType::FusedSeparable) {
+			cuda::conv3d::Conv3dFusedSeparable(
+				cuda::gpu_image::MakeVolumeView(input_gpu),
+				cuda::gpu_buffer::MakeSpan(weightsX_buf),
+				cuda::gpu_buffer::MakeSpan(weightsY_buf),
+				cuda::gpu_buffer::MakeSpan(weightsZ_buf),
+				cuda::gpu_image::MakeVolumeView(output_fused),
+				filter_halfsize,
+				ctxNoProfile,
+				{ 16, 32, 1 }
+			);
+		}
+		else if (type == Conv3dType::FusedSeparableMultipleOutputs) {
+			cuda::conv3d::Conv3dFusedSeparableMultipleOutputs(
+				cuda::gpu_image::MakeVolumeView(input_gpu),
+				cuda::gpu_buffer::MakeSpan(weightsX_buf),
+				cuda::gpu_buffer::MakeSpan(weightsY_buf),
+				cuda::gpu_buffer::MakeSpan(weightsZ_buf),
+				cuda::gpu_image::MakeVolumeView(output_fused),
+				filter_halfsize,
+				7,
+				ctxNoProfile,
+				{ 16, 32, 1 }
+			);
+		}
 
 		const auto naive_cpu = cuda::gpu_image::Download(output_naive, stream.Get());
 		const auto fused_cpu = cuda::gpu_image::Download(output_fused, stream.Get());
