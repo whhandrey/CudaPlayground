@@ -184,54 +184,56 @@ __global__  void SobelMag3dSeparableFusedKernel(
 
 	const int tileWidth = blockDim.x + filter_halfsize.x * 2;
 	const int tileHeight = blockDim.y + filter_halfsize.y * 2;
+	const int tileDepth = blockDim.z + filter_halfsize.z * 2;
 
-	const int tileSize = tileWidth * tileHeight;
-	const int blockSize = blockDim.x * blockDim.y;
+	const int tileSize = tileWidth * tileHeight * tileDepth;
+	const int tilePlaneSize = tileWidth * tileHeight;
+
+	const int blockSize = blockDim.x * blockDim.y * blockDim.z;
 
 	const int originX = blockIdx.x * blockDim.x;
 	const int originY = blockIdx.y * blockDim.y;
-	const int originZ = blockIdx.z;
+	const int originZ = blockIdx.z * blockDim.z;
 
-	const int tid = threadIdx.x + threadIdx.y * blockDim.x;
+	const int tid = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * (blockDim.x * blockDim.y);
 
-	SobelPlane planes[3] = {};
-	for (int dz = -filter_halfsize.z; dz <= filter_halfsize.z; ++dz) {
-		int z = clamp(originZ + dz, 0, dim.z - 1);
+	// cooperative tile load into shared mem
+	for (int i = tid; i < tileSize; i += blockSize) {
+		const int tileZ = i / tilePlaneSize;
+		const int tileXY = i % tilePlaneSize;
 
-		// cooperative tile load into shared mem of XY blockDim plane
-		for (int i = tid; i < tileSize; i += blockSize) {
-			const int tileX = i % tileWidth;
-			const int tileY = i / tileWidth;
+		const int tileY = tileXY / tileWidth;
+		const int tileX = tileXY % tileWidth;
 
-			int x = clamp(originX + tileX - filter_halfsize.x, 0, dim.x - 1);
-			int y = clamp(originY + tileY - filter_halfsize.y, 0, dim.y - 1);
+		int x = clamp(originX + tileX - filter_halfsize.x, 0, dim.x - 1);
+		int y = clamp(originY + tileY - filter_halfsize.y, 0, dim.y - 1);
+		int z = clamp(originZ + tileZ - filter_halfsize.z, 0, dim.z - 1);
 
-			const size_t offsetBytesToRow = OffsetToRowPitched(y, z, inPitch, inSlicePitch);
-			const float* row = (const float*)((const char*)input + offsetBytesToRow);
+		const size_t offsetBytesToRow = OffsetToRowPitched(y, z, inPitch, inSlicePitch);
+		const float* row = (const float*)((const char*)input + offsetBytesToRow);
 
-			tile[i] = row[x];
-		}
+		tile[i] = row[x];
+	}
 
-		__syncthreads();
+	__syncthreads();
 
-		const int centerX = threadIdx.x + filter_halfsize.x;
-		const int centerY = threadIdx.y + filter_halfsize.y;
+	const int centerX = threadIdx.x + filter_halfsize.x;
+	const int centerY = threadIdx.y + filter_halfsize.y;
 
-		const SubPlane3x3 subPlane = ReadSubPlaneFromTile(tile, centerX, centerY, tileWidth);
+	SobelPlane planes[3];
+	for (int i = 0; i < 3; ++i) {
+		const int tileZ = threadIdx.z + i;
+		const float* tilePlane = tile + tileZ * tilePlaneSize;
+
+		const SubPlane3x3 subPlane = ReadSubPlaneFromTile(tilePlane, centerX, centerY, tileWidth);
 		const SobelPlane plane = CalculateSobelPlane(subPlane);
 
-		planes[dz + filter_halfsize.z] = plane;
-
-		// Wait until everybody has finished reading before some
-		// threads overwrite tile with the next Z plane.
-		if (dz < filter_halfsize.z) {
-			__syncthreads();
-		}
+		planes[i] = plane;
 	}
 
 	const int x = originX + int(threadIdx.x);
 	const int y = originY + int(threadIdx.y);
-	const int z = originZ;
+	const int z = originZ + int(threadIdx.z);
 
 	if (x >= dim.x || y >= dim.y || z >= dim.z) {
 		return;
@@ -315,14 +317,13 @@ namespace cuda {
 			}
 
 			const image::vec3ui filter_halfsize{ 1, 1, 1 };
-
-			const image::vec3ui blockDimPlanewise = { blockDim.x, blockDim.y, 1u };
-			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDimPlanewise);
+			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDim);
 
 			const size_t tileWidth = blockDim.x + filter_halfsize.x * 2;
 			const size_t tileHeight = blockDim.y + filter_halfsize.y * 2;
+			const size_t tileDepth = blockDim.z + filter_halfsize.z * 2;
 
-			const size_t sharedMemSize = tileWidth * tileHeight * sizeof(float);
+			const size_t sharedMemSize = tileWidth * tileHeight * tileDepth * sizeof(float);
 
 			const int3 dim = {
 				static_cast<int>(input.m_dim.x),
@@ -331,7 +332,7 @@ namespace cuda {
 			};
 
 			cuda::TimedCall("SobelMag3dSeparableFusedKernel", ctx, [&]() {
-				SobelMag3dSeparableFusedKernel <<<gridSize, cuda::math::vecTodim3(blockDimPlanewise), sharedMemSize, ctx.stream>>> (
+				SobelMag3dSeparableFusedKernel <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 					input.m_ptr,
 					input.m_pitch,
 					input.m_slicePitch,

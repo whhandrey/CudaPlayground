@@ -2,6 +2,6 @@
 #include "Benchmarks/3d/Sobel3dBenchmark.h"
 
 int main() {
-	bench::Conv3dCheckIfMatchWithNaive(bench::Conv3dType::FusedSeparableMultipleOutputs);
+	bench::SobelMag3dFusedSeparableBench();
 	return 0;
 }

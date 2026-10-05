@@ -50,7 +50,7 @@ namespace {
 }
 
 namespace {
-	size_t CalcSharedMemSize(image::vec3ui blockDim, image::vec3i filter_halfsize) {
+	size_t CalcSharedMemNaive(image::vec3ui blockDim, image::vec3i filter_halfsize) {
 		const size_t tileWidth = blockDim.x + filter_halfsize.x * 2;
 		const size_t tileHeight = blockDim.y + filter_halfsize.y * 2;
 		const size_t tileDepth = blockDim.z + filter_halfsize.z * 2;
@@ -58,8 +58,16 @@ namespace {
 		return tileWidth * tileHeight * tileDepth * sizeof(float);
 	}
 
-	std::string MakeSessionLabel(image::vec3ui blockDim, image::vec3i filter_halfsize) {
-		return bench::output::FormatVec3d(blockDim) + " " + std::to_string(CalcSharedMemSize(blockDim, filter_halfsize));
+	size_t CalcSharedMemSeparale(image::vec3ui blockDim, image::vec3i filter_halfsize) {
+		const size_t tileWidth = blockDim.x + filter_halfsize.x * 2;
+		const size_t tileHeight = blockDim.y + filter_halfsize.y * 2;
+		const size_t tileDepth = blockDim.z + filter_halfsize.z * 2;
+
+		return tileWidth * tileHeight * tileDepth * sizeof(float);
+	}
+
+	std::string MakeSessionLabel(image::vec3ui blockDim, size_t sharedMemSize) {
+		return bench::output::FormatVec3d(blockDim) + " " + std::to_string(sharedMemSize);
 	}
 
 	void WarmUpSobelNaive(
@@ -126,7 +134,7 @@ namespace {
 		{
 			// scoped session profile
 			{
-				auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, filter_halfsize));
+				auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, CalcSharedMemNaive(blockDim, filter_halfsize)));
 				auto kernelCtx = cuda::KernelContext{ stream, &session };
 
 				for (int i = 0; i < numRuns; ++i) {
@@ -139,6 +147,66 @@ namespace {
 						kernelCtx,
 						blockDim
 					);
+				}
+			}
+		}
+	}
+
+	void WarmUpSobelFusedSeparable(
+		image::GpuVolumeView<const float> input,
+		image::GpuVolumeView<float> output,
+		cudaStream_t stream,
+		int warmUpRuns)
+	{
+		auto dummyProfiler = bench::NullProfiler();
+		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
+
+		for (int i = 0; i < warmUpRuns; ++i) {
+			cuda::grad3d::SobelMagFusedSeparable(input, output, ctxNoProfile, { 32, 4, 1 });
+		}
+	}
+
+	void BenchSobelFusedSeparableImpl(
+		image::GpuVolumeView<const float> input,
+		image::GpuVolumeView<float> output,
+		cudaStream_t stream,
+		cuda::profile::BasicGpuProfiler& profiler,
+		int numRuns)
+	{
+		const std::vector<image::vec3ui> blockDims {
+			// 128 threads
+			{  8,  8, 2 },
+			{ 16,  8, 1 },
+			{ 32,  4, 1 },
+
+			// 256 threads
+			{  8,  8, 4 },
+			{ 16,  8, 2 },
+			{ 16, 16, 1 },
+			{ 32,  4, 2 },
+			{ 32,  8, 1 },
+			{ 64,  4, 1 },
+
+			// 512 threads
+			{  8,  8, 8 },
+			{ 16,  8, 4 },
+			{ 16, 16, 2 },
+			{ 32,  4, 4 },
+			{ 32,  8, 2 },
+			{ 32, 16, 1 },
+			{ 64,  4, 2 }
+		};
+
+		const image::vec3i filter_halfsize{ 1, 1, 1 };
+		for (const auto& blockDim : blockDims)
+		{
+			// scoped session profile
+			{
+				auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, CalcSharedMemSeparale(blockDim, filter_halfsize)));
+				auto kernelCtx = cuda::KernelContext{ stream, &session };
+
+				for (int i = 0; i < numRuns; ++i) {
+					cuda::grad3d::SobelMagFusedSeparable(input, output, kernelCtx, blockDim);
 				}
 			}
 		}
@@ -302,6 +370,39 @@ namespace bench {
 		auto profiler = cuda::profile::BasicGpuProfiler();
 
 		BenchSobelNaiveImpl(input_view, sobelX_span, sobelY_span, sobelZ_span, output_view, stream.Get(), profiler, runs);
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		bench::output::PrintKernelStats(profiler.GetResults());
+	}
+
+	void SobelMag3dFusedSeparableBench() {
+		bench::output::PrintCudaDevice();
+		bench::output::PrintSharedMemStats();
+
+		image::vec3ui inputDim = { 601, 310, 169 };
+		const image::vec3i filter_halfsize = { 1, 1, 1 };
+
+		std::cout << std::endl << "SobelMagFusedSeparable of volume of " << bench::output::FormatVec3d(inputDim) << std::endl;
+		std::cout << "filter_halfsize: " << bench::output::FormatVec3d(filter_halfsize) << std::endl;
+
+		const int runs = 100;
+		const int warmUpRuns = 20;
+
+		CudaStream stream;
+		image::CpuVolume<float> input = bench::data::GenerateRandomVolume(inputDim);
+
+		const auto input_gpu = cuda::gpu_image::Create(input, stream.Get());
+		cuda::gpu_image::GpuVolume<float> output(input_gpu.Dim());
+
+		const auto input_view = cuda::gpu_image::MakeVolumeView(input_gpu);
+		auto output_view = cuda::gpu_image::MakeVolumeView(output);
+
+		WarmUpSobelFusedSeparable(input_view, output_view, stream.Get(), warmUpRuns);
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		auto profiler = cuda::profile::BasicGpuProfiler();
+
+		BenchSobelFusedSeparableImpl(input_view, output_view, stream.Get(), profiler, runs);
 		cudaCheck(cudaStreamSynchronize(stream.Get()));
 
 		bench::output::PrintKernelStats(profiler.GetResults());
