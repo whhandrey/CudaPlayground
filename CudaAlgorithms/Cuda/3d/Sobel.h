@@ -15,5 +15,12 @@ namespace cuda {
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim = { 8, 8, 4 }
 		);
+
+		void SobelMagFusedSeparable(
+			image::GpuVolumeView<const float> input,
+			image::GpuVolumeView<float> output,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim = { 8, 8, 4 }
+		);
 	}
 }

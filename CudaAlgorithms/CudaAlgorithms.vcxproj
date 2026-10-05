@@ -175,7 +175,7 @@
     </Link>
     <CudaCompile>
       <CodeGeneration>compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
-      <AdditionalOptions>-lineinfo %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-lineinfo -Xptxas=-v %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
     <Lib>
       <AdditionalDependencies>cudart.lib</AdditionalDependencies>
@@ -200,7 +200,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <CudaCompile>
-      <AdditionalOptions>-lineinfo %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-lineinfo -Xptxas=-v %(AdditionalOptions)</AdditionalOptions>
       <CodeGeneration>compute_75,sm_75;compute_89,sm_89;compute_89,compute_89</CodeGeneration>
     </CudaCompile>
     <Lib>
