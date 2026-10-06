@@ -22,5 +22,13 @@ namespace cuda {
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim
 		);
+
+		void SobelMagFusedSeparableMultipleOutputs(
+			image::GpuVolumeView<const float> input,
+			image::GpuVolumeView<float> output,
+			int outputsPerThread,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim
+		);
 	}
 }

@@ -411,7 +411,7 @@ namespace cuda {
 				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparableMultipleOutputs: unsupported numOutputs");
 			}
 
-			const auto blockDimForGrid = image::vec3ui{ blockDim.x, blockDim.y, unsigned int(numOutputs * blockDim.z) };
+			const auto blockDimForGrid = image::vec3ui{ blockDim.x, blockDim.y, unsigned int(numOutputs) };
 			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDimForGrid);
 
 			const size_t tileWidth = blockDim.x;

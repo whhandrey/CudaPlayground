@@ -250,6 +250,109 @@ __global__  void SobelMag3dSeparableFusedKernel(
 	row[x] = magnitude;
 }
 
+__device__ __forceinline__ SobelPlane CalculatePlane(
+	const float* __restrict__ tile,
+	int centerX,
+	int centerY,
+	int tileZ,
+	int tileWidth,
+	int tilePlaneSize)
+{
+	const float* tilePlane = tile + tileZ * tilePlaneSize;
+	const SubPlane3x3 subPlane = ReadSubPlaneFromTile(tilePlane, centerX, centerY, tileWidth);
+
+	return CalculateSobelPlane(subPlane);
+}
+
+template <int outputsPerThread>
+__global__  void SobelMag3dSepFusedMultipleOutputsKernel(
+	const float* __restrict__ input,
+	size_t inPitch,
+	size_t inSlicePitch,
+	float* __restrict__ output,
+	size_t outPitch,
+	size_t outSlicePitch,
+	int3 dim)
+{
+	extern __shared__ float tile[];
+
+	constexpr int3 filter_halfsize = { 1, 1, 1 };
+	const int outputDepth = blockDim.z * outputsPerThread;
+
+	const int tileWidth = blockDim.x + filter_halfsize.x * 2;
+	const int tileHeight = blockDim.y + filter_halfsize.y * 2;
+	const int tileDepth = outputDepth + filter_halfsize.z * 2;
+
+	const int tileSize = tileWidth * tileHeight * tileDepth;
+	const int tilePlaneSize = tileWidth * tileHeight;
+
+	const int blockSize = blockDim.x * blockDim.y * blockDim.z;
+
+	const int originX = blockIdx.x * blockDim.x;
+	const int originY = blockIdx.y * blockDim.y;
+	const int originZ = blockIdx.z * outputDepth;
+
+	const int tid = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * (blockDim.x * blockDim.y);
+
+	// cooperative tile load into shared mem
+	for (int i = tid; i < tileSize; i += blockSize) {
+		const int tileZ = i / tilePlaneSize;
+		const int tileXY = i % tilePlaneSize;
+
+		const int tileY = tileXY / tileWidth;
+		const int tileX = tileXY % tileWidth;
+
+		int x = clamp(originX + tileX - filter_halfsize.x, 0, dim.x - 1);
+		int y = clamp(originY + tileY - filter_halfsize.y, 0, dim.y - 1);
+		int z = clamp(originZ + tileZ - filter_halfsize.z, 0, dim.z - 1);
+
+		const size_t offsetBytesToRow = OffsetToRowPitched(y, z, inPitch, inSlicePitch);
+		const float* row = (const float*)((const char*)input + offsetBytesToRow);
+
+		tile[i] = row[x];
+	}
+
+	__syncthreads();
+
+	const int centerX = threadIdx.x + filter_halfsize.x;
+	const int centerY = threadIdx.y + filter_halfsize.y;
+
+	const int x = originX + threadIdx.x;
+	const int y = originY + threadIdx.y;
+	const int firstOutputZ = originZ + threadIdx.z * outputsPerThread;
+
+	if (x >= dim.x || y >= dim.y || firstOutputZ >= dim.z) {
+		return;
+	}
+
+	SobelPlane prev = CalculatePlane(tile, centerX, centerY, threadIdx.z * outputsPerThread, tileWidth, tilePlaneSize);
+	SobelPlane curr = CalculatePlane(tile, centerX, centerY, threadIdx.z * outputsPerThread + 1, tileWidth, tilePlaneSize);
+	SobelPlane next;
+
+	for (int i = 0; i < outputsPerThread; ++i) {
+		next = CalculatePlane(tile, centerX, centerY, threadIdx.z * outputsPerThread + (i + 2), tileWidth, tilePlaneSize);
+		const int outputZ = firstOutputZ + i;
+
+		// All following Z positions will also be outside.
+		if (outputZ >= dim.z) {
+			return;
+		}
+
+		const float gx = SobelSmooth(prev.dxSy, curr.dxSy, next.dxSy);
+		const float gy = SobelSmooth(prev.sxDy, curr.sxDy, next.sxDy);
+		const float gz = SobelDerivative(prev.sxSy, next.sxSy);
+
+		const size_t offsetBytesToRow = OffsetToRowPitched(y, outputZ, outPitch, outSlicePitch);
+		float* row = (float*)((char*)output + offsetBytesToRow);
+
+		const float magnitude = sqrtf(gx * gx + gy * gy + gz * gz);
+		row[x] = magnitude;
+
+		prev = curr;
+		curr = next;
+	}
+}
+
 namespace cuda {
 	namespace grad3d {
 		void SobelMagNaiveSharedMem(
@@ -342,6 +445,151 @@ namespace cuda {
 					dim
 				);
 			});
+		}
+
+		void SobelMagFusedSeparableMultipleOutputs(image::GpuVolumeView<const float> input, image::GpuVolumeView<float> output, int outputsPerThread, cuda::KernelContext ctx, image::vec3ui blockDim) {
+			if (input.m_dim != output.m_dim) {
+				throw std::logic_error("CudaAlgoritms::SobelMagFusedSeparableMultipleOutputs: input/output dim mismatch");
+			}
+
+			if (outputsPerThread < 2 || outputsPerThread > 10) {
+				throw std::logic_error("CudaAlgoritms::SobelMagFusedSeparableMultipleOutputs: unsupported outputsPerThread");
+			}
+
+			const image::vec3ui filter_halfsize{ 1, 1, 1 };
+			
+			const auto blockDimGrid = image::vec3ui{ blockDim.x, blockDim.y, blockDim.z * unsigned int(outputsPerThread) };
+			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDimGrid);
+
+			const size_t tileWidth = blockDimGrid.x + filter_halfsize.x * 2;
+			const size_t tileHeight = blockDimGrid.y + filter_halfsize.y * 2;
+			const size_t tileDepth = blockDimGrid.z + filter_halfsize.z * 2;
+
+			const size_t sharedMemSize = tileWidth * tileHeight * tileDepth * sizeof(float);
+
+			const int3 dim = {
+				static_cast<int>(input.m_dim.x),
+				static_cast<int>(input.m_dim.y),
+				static_cast<int>(input.m_dim.z),
+			};
+
+			if (outputsPerThread == 2) {
+				cuda::TimedCall("SobelMag3dSepFusedMulOutsKernel<2>", ctx, [&]() {
+					SobelMag3dSepFusedMultipleOutputsKernel<2> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						dim
+					);
+				});
+			}
+			else if (outputsPerThread == 3) {
+				cuda::TimedCall("SobelMag3dSepFusedMulOutsKernel<3>", ctx, [&]() {
+					SobelMag3dSepFusedMultipleOutputsKernel<3> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						dim
+					);
+				});
+			}
+			else if (outputsPerThread == 4) {
+				cuda::TimedCall("SobelMag3dSepFusedMulOutsKernel<4>", ctx, [&]() {
+					SobelMag3dSepFusedMultipleOutputsKernel<4> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						dim
+					);
+				});
+			}
+			else if (outputsPerThread == 5) {
+				cuda::TimedCall("SobelMag3dSepFusedMulOutsKernel<5>", ctx, [&]() {
+					SobelMag3dSepFusedMultipleOutputsKernel<5> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						dim
+					);
+				});
+			}
+			else if (outputsPerThread == 6) {
+				cuda::TimedCall("SobelMag3dSepFusedMulOutsKernel<6>", ctx, [&]() {
+					SobelMag3dSepFusedMultipleOutputsKernel<6> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						dim
+					);
+				});
+			}
+			else if (outputsPerThread == 7) {
+				cuda::TimedCall("SobelMag3dSepFusedMulOutsKernel<7>", ctx, [&]() {
+					SobelMag3dSepFusedMultipleOutputsKernel<7> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						dim
+					);
+				});
+			}
+			else if (outputsPerThread == 8) {
+				cuda::TimedCall("SobelMag3dSepFusedMulOutsKernel<8>", ctx, [&]() {
+					SobelMag3dSepFusedMultipleOutputsKernel<8> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						dim
+					);
+				});
+			}
+			else if (outputsPerThread == 9) {
+				cuda::TimedCall("SobelMag3dSepFusedMulOutsKernel<9>", ctx, [&]() {
+					SobelMag3dSepFusedMultipleOutputsKernel<9> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						dim
+					);
+				});
+			}
+			else if (outputsPerThread == 10) {
+				cuda::TimedCall("SobelMag3dSepFusedMulOutsKernel<10>", ctx, [&]() {
+					SobelMag3dSepFusedMultipleOutputsKernel<10> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						dim
+					);
+				});
+			}
 		}
 	}
 }
