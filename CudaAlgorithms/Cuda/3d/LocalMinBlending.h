@@ -14,21 +14,23 @@ namespace cuda {
 			image::vec3ui blockDim = { 8, 8, 8 }
 		);
 
-		struct MixingParams {
-			bool compressedIntensity;
-			float weightIntThresh;
-			float weightIntSigm;
-			float mixWeightCompr;
-			float mixWeight;
-			float compensation3d;
+		struct BlendParams {
+			float gateThreshold;
+			float gateSlope;
+
+			float alternateBlendWeight;
+			float defaultBlendWeight;
+
+			float auxiliaryScale;
 		};
 
-		void MixingOpNaive(
-			image::GpuVolumeView<float> inputOutput,
-			image::GpuVolumeView<const float> log10Input,
-			image::GpuVolumeView<const float> gradData,
-			image::GpuVolumeView<const float> erodedData,
-			const MixingParams& params,
+		void BlendOp(
+			image::GpuVolumeView<float> baseData,
+			image::GpuVolumeView<const float> gateField,
+			image::GpuVolumeView<const float> activityField,
+			image::GpuVolumeView<const float> filteredData,
+			bool gateAlreadyProcessed,
+			const BlendParams& params,
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim = { 8, 8, 8 }
 		);

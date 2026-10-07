@@ -15,6 +15,9 @@
     <ClCompile Include="Benchmarks\3d\Sobel3dBenchmark.cpp">
       <Filter>Benchmarks\3d</Filter>
     </ClCompile>
+    <ClCompile Include="Benchmarks\3d\LocalMinBlendingBenchmark.cpp">
+      <Filter>Benchmarks\3d</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Image">
@@ -53,6 +56,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Benchmarks\3d\Sobel3dBenchmark.h">
+      <Filter>Benchmarks\3d</Filter>
+    </ClInclude>
+    <ClInclude Include="Benchmarks\3d\LocalMinBlendingBenchmark.h">
       <Filter>Benchmarks\3d</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,7 +1,8 @@
 #include "Benchmarks/3d/Conv3dBenchmark.h"
 #include "Benchmarks/3d/Sobel3dBenchmark.h"
+#include "Benchmarks/3d/LocalMinBlendingBenchmark.h"
 
 int main() {
-	bench::SobelMag3dFusedSepMultipleOutputsBench(2);
+	bench::localmin_blending3d::Blending3dBenchmark();
 	return 0;
 }

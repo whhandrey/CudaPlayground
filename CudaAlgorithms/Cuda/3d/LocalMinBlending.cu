@@ -1,7 +1,8 @@
-#include "LocalMinMixing.h"
+#include "LocalMinBlending.h"
 #include "Common.cuh"
 #include "../Math.cuh"
 #include <vector>
+#include <type_traits>
 
 #include <Cuda/TimedCudaCall.h>
 #include <Cuda/MathUtils.h>
@@ -85,6 +86,44 @@ __global__  void LocalMin3dFusedHaloKernel(
 	}
 }
 
+template <bool gateAlreadyProcessed>
+__global__ void BlendOpKernel(
+	image::GpuVolumeView<float> baseData,
+	image::GpuVolumeView<const float> gateField,
+	image::GpuVolumeView<const float> activityField,
+	image::GpuVolumeView<const float> filteredData,
+	cuda::erode3d::BlendParams params,
+	int3 dim)
+{
+	const int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const int z = blockIdx.z * blockDim.z + threadIdx.z;
+
+	if (x >= dim.x || y >= dim.y || z >= dim.z) {
+		return;
+	}
+
+	float gate = ReadPitched(gateField, x, y, z);
+	const float activity = ReadPitched(activityField, x, y, z);
+
+	if (!gateAlreadyProcessed) {
+		gate = expf(-params.gateSlope * fabsf(gate - params.gateThreshold));
+	}
+
+	float blend = __saturatef(0.5f * gate + 0.5f * activity);
+
+	const float blendExponent = gateAlreadyProcessed ? params.alternateBlendWeight : params.defaultBlendWeight;
+	blend = powf(blend, blendExponent);
+
+	float filtered = ReadPitched(filteredData, x, y, z) * params.auxiliaryScale;
+
+	const float original = ReadPitched(baseData, x, y, z);
+	const float mixed = original + blend * (filtered - original);
+
+	const float result = fminf(original, mixed);
+	WritePitched(baseData, result, x, y, z);
+}
+
 namespace cuda {
 	namespace detail {
 		bool CanRunFusedKernel(image::vec3ui blockDim, image::vec3ui blockOverlap) {
@@ -137,6 +176,56 @@ namespace cuda {
 					dim
 				);
 			});
+		}
+
+		void BlendOp(
+			image::GpuVolumeView<float> baseData,
+			image::GpuVolumeView<const float> gateField,
+			image::GpuVolumeView<const float> activityField,
+			image::GpuVolumeView<const float> filteredData,
+			bool gateAlreadyProcessed,
+			const BlendParams& params,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim)
+		{
+			static_assert(std::is_trivially_copyable_v<BlendParams>, "BlendParams must be trivially copyable");
+			static_assert(std::is_standard_layout_v<BlendParams>, "BlendParams must have standard layout");
+
+			if (baseData.m_dim != gateField.m_dim || baseData.m_dim != activityField.m_dim || baseData.m_dim != filteredData.m_dim) {
+				throw std::logic_error("CudaAlgoritms::MixingOp: input/output dim mismatch");
+			}
+
+			dim3 gridSize = cuda::math::DivUp(baseData.m_dim, blockDim);
+			const int3 dim = {
+				static_cast<int>(baseData.m_dim.x),
+				static_cast<int>(baseData.m_dim.y),
+				static_cast<int>(baseData.m_dim.z),
+			};
+
+			if (gateAlreadyProcessed) {
+				cuda::TimedCall("BlendOpKernel<true>", ctx, [&]() {
+					BlendOpKernel<true> <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
+						baseData,
+						gateField,
+						activityField,
+						filteredData,
+						params,
+						dim
+					);
+				});
+			}
+			else {
+				cuda::TimedCall("BlendOpKernel<false>", ctx, [&]() {
+					BlendOpKernel<false> <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
+						baseData,
+						gateField,
+						activityField,
+						filteredData,
+						params,
+						dim
+					);
+				});
+			}
 		}
 	}
 }

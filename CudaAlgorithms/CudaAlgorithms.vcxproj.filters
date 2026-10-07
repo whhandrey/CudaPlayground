@@ -92,7 +92,7 @@
     <ClInclude Include="Cuda\3d\Common.cuh">
       <Filter>Cuda\3d</Filter>
     </ClInclude>
-    <ClInclude Include="Cuda\3d\LocalMinMixing.h">
+    <ClInclude Include="Cuda\3d\LocalMinBlending.h">
       <Filter>Cuda\3d</Filter>
     </ClInclude>
   </ItemGroup>
@@ -127,7 +127,7 @@
     <CudaCompile Include="Cuda\3d\Conv3d.cu">
       <Filter>Cuda\3d</Filter>
     </CudaCompile>
-    <CudaCompile Include="Cuda\3d\LocalMinMixing.cu">
+    <CudaCompile Include="Cuda\3d\LocalMinBlending.cu">
       <Filter>Cuda\3d</Filter>
     </CudaCompile>
   </ItemGroup>
