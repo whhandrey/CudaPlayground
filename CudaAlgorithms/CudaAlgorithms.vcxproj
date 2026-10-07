@@ -27,6 +27,7 @@
     <ClInclude Include="Common\TypesCheck.h" />
     <ClInclude Include="Cuda\3d\Common.cuh" />
     <ClInclude Include="Cuda\3d\Conv3d.h" />
+    <ClInclude Include="Cuda\3d\LocalMinMixing.h" />
     <ClInclude Include="Cuda\3d\Sobel.h" />
     <ClInclude Include="Cuda\Common.cuh" />
     <ClInclude Include="Cuda\Filter.h" />
@@ -47,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\3d\Conv3d.cu" />
+    <CudaCompile Include="Cuda\3d\LocalMinMixing.cu" />
     <CudaCompile Include="Cuda\3d\Sobel.cu" />
     <CudaCompile Include="Cuda\Filter.cu">
       <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
