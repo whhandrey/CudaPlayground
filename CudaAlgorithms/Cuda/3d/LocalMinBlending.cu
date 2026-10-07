@@ -86,12 +86,12 @@ __global__  void LocalMin3dFusedHaloKernel(
 	}
 }
 
-template <bool gateAlreadyProcessed>
 __global__ void BlendOpKernel(
 	image::GpuVolumeView<float> baseData,
 	image::GpuVolumeView<const float> gateField,
 	image::GpuVolumeView<const float> activityField,
 	image::GpuVolumeView<const float> filteredData,
+	bool gateAlreadyProcessed,
 	cuda::erode3d::BlendParams params,
 	int3 dim)
 {
@@ -204,11 +204,12 @@ namespace cuda {
 
 			if (gateAlreadyProcessed) {
 				cuda::TimedCall("BlendOpKernel<true>", ctx, [&]() {
-					BlendOpKernel<true> <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
+					BlendOpKernel <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
 						baseData,
 						gateField,
 						activityField,
 						filteredData,
+						gateAlreadyProcessed,
 						params,
 						dim
 					);
@@ -216,11 +217,12 @@ namespace cuda {
 			}
 			else {
 				cuda::TimedCall("BlendOpKernel<false>", ctx, [&]() {
-					BlendOpKernel<false> <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
+					BlendOpKernel <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
 						baseData,
 						gateField,
 						activityField,
 						filteredData,
+						gateAlreadyProcessed,
 						params,
 						dim
 					);
