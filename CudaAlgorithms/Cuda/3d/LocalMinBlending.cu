@@ -202,32 +202,18 @@ namespace cuda {
 				static_cast<int>(baseData.m_dim.z),
 			};
 
-			if (gateAlreadyProcessed) {
-				cuda::TimedCall("BlendOpKernel<true>", ctx, [&]() {
-					BlendOpKernel <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
-						baseData,
-						gateField,
-						activityField,
-						filteredData,
-						gateAlreadyProcessed,
-						params,
-						dim
-					);
-				});
-			}
-			else {
-				cuda::TimedCall("BlendOpKernel<false>", ctx, [&]() {
-					BlendOpKernel <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
-						baseData,
-						gateField,
-						activityField,
-						filteredData,
-						gateAlreadyProcessed,
-						params,
-						dim
-					);
-				});
-			}
+			const std::string kernelName = gateAlreadyProcessed ? "BlendOpKernel(true)" : "BlendOpKernel(false)";
+			cuda::TimedCall(kernelName, ctx, [&]() {
+				BlendOpKernel <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
+					baseData,
+					gateField,
+					activityField,
+					filteredData,
+					gateAlreadyProcessed,
+					params,
+					dim
+				);
+			});
 		}
 	}
 }
