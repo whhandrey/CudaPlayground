@@ -290,4 +290,21 @@ namespace cuda::gpu_image {
 		Upload(in_view, cuda::gpu_image::MakeVolumeView(out), stream);
 		return out;
 	}
+
+	template <class T>
+	void CopyVolumeAsync(image::GpuVolumeView<const T> src, image::GpuVolumeView<T> dst, cudaStream_t stream) {
+		cudaMemcpy3DParms params{};
+
+		params.srcPtr = make_cudaPitchedPtr(const_cast<T*>(src.m_ptr), src.m_pitch, src.m_dim.x, src.m_dim.y);
+		params.dstPtr = make_cudaPitchedPtr(dst.m_ptr, dst.m_pitch, dst.m_dim.x, dst.m_dim.y);
+
+		params.extent = make_cudaExtent(
+			src.m_dim.x * sizeof(T), // width in bytes for pitched linear memory
+			src.m_dim.y,
+			src.m_dim.z);
+
+		params.kind = cudaMemcpyDeviceToDevice;
+
+		cudaCheck(cudaMemcpy3DAsync(&params, stream));
+	}
 }
