@@ -125,6 +125,111 @@ __global__ void BlendOpKernel(
 	WritePitched(baseData, result, x, y, z);
 }
 
+__global__  void LocalMin3dFusedSeparableKernel(
+	const float* __restrict__ input,
+	size_t inPitch,
+	size_t inSlicePitch,
+	float* __restrict__ output,
+	size_t outPitch,
+	size_t outSlicePitch,
+	image::vec3i filter_halfsize,
+	int3 dim)
+{
+	extern __shared__ float tile[];
+
+	const int tileXWidth = blockDim.x;
+	const int tileXHeight = blockDim.y + filter_halfsize.y * 2;
+	const int tileXDepth = blockDim.z + filter_halfsize.z * 2;
+
+	const int tileXSize = tileXWidth * tileXHeight * tileXDepth;
+	const int tileXPlaneSize = tileXWidth * tileXHeight;
+
+	const int blockSize = blockDim.x * blockDim.y * blockDim.z;
+
+	const int originX = blockIdx.x * blockDim.x;
+	const int originY = blockIdx.y * blockDim.y;
+	const int originZ = blockIdx.z * blockDim.z;
+
+	const int tid = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * (blockDim.x * blockDim.y);
+
+	// cooperative localMinX pass into sharedMem
+	for (int i = tid; i < tileXSize; i += blockSize) {
+		const int tileZ = i / tileXPlaneSize;
+		const int tileXYIdx = i % tileXPlaneSize;
+
+		const int tileY = tileXYIdx / tileXWidth;
+		const int tileX = tileXYIdx % tileXWidth;
+
+		int y = clamp(originY + tileY - filter_halfsize.y, 0, dim.y - 1);
+		int z = clamp(originZ + tileZ - filter_halfsize.z, 0, dim.z - 1);
+
+		float sampleMin = FLT_MAX;
+		const size_t offsetBytesToRow = OffsetToRowPitched(y, z, inPitch, inSlicePitch);
+		const float* row = (const float*)((const char*)input + offsetBytesToRow);
+
+		for (int dx = -filter_halfsize.x; dx <= filter_halfsize.x; ++dx) {
+			int x = clamp(originX + tileX + dx, 0, dim.x - 1);
+			sampleMin = fminf(sampleMin, row[x]);
+		}
+
+		tile[i] = sampleMin;
+	}
+
+	__syncthreads();
+
+	float* tileXY = tile + tileXSize;
+
+	const int tileXYWidth = blockDim.x;
+	const int tileXYHeight = blockDim.y;
+	const int tileXYDepth = blockDim.z + filter_halfsize.z * 2;
+	const int tileXYSize = tileXYWidth * tileXYHeight * tileXYDepth;
+	const int tileXYPlaneSize = tileXYWidth * tileXYHeight;
+
+	// cooperative localMinXY pass into sharedMem
+	for (int i = tid; i < tileXYSize; i += blockSize) {
+		const int tileZ = i / tileXYPlaneSize;
+		const int tileXYIdx = i % tileXYPlaneSize;
+
+		const int tileY = tileXYIdx / tileXYWidth;
+		const int tileX = tileXYIdx % tileXYWidth;
+		
+		// this is basically center in the tileX
+		// since it has halo we need to shift it to filter_halfsize.y
+		const int centerY = tileY + filter_halfsize.y;
+
+		float sampleMin = FLT_MAX;
+		for (int dy = -filter_halfsize.y; dy <= filter_halfsize.y; ++dy) {
+			const int flatIdx = tileX + (centerY + dy) * tileXWidth + tileZ * tileXPlaneSize;
+			sampleMin = fminf(sampleMin, tile[flatIdx]);
+		}
+
+		tileXY[i] = sampleMin;
+	}
+
+	__syncthreads();
+
+	float sampleMin = FLT_MAX;
+	const int centerZ = threadIdx.z + filter_halfsize.z;
+
+	for (int dz = -filter_halfsize.z; dz <= filter_halfsize.z; ++dz) {
+		const int flatIdx = threadIdx.x + threadIdx.y * tileXYWidth + (centerZ + dz) * tileXYPlaneSize;
+		sampleMin = fminf(sampleMin, tileXY[flatIdx]);
+	}
+
+	const int x = originX + threadIdx.x;
+	const int y = originY + threadIdx.y;
+	const int z = originZ + threadIdx.z;
+
+	if (x >= dim.x || y >= dim.y || z >= dim.z) {
+		return;
+	}
+
+	const size_t offsetBytesToRow = OffsetToRowPitched(y, z, outPitch, outSlicePitch);
+	float* row = (float*)((char*)output + offsetBytesToRow);
+
+	row[x] = sampleMin;
+}
+
 namespace cuda {
 	namespace detail {
 		bool CanRunFusedKernel(image::vec3ui blockDim, image::vec3ui blockOverlap) {
@@ -194,6 +299,44 @@ namespace cuda {
 
 			cuda::TimedCall("LocalMin3dFusedHaloKernel", ctx, [&]() {
 				LocalMin3dFusedHaloKernel <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					input.m_ptr,
+					input.m_pitch,
+					input.m_slicePitch,
+					output.m_ptr,
+					output.m_pitch,
+					output.m_slicePitch,
+					filter_halfsize,
+					dim
+				);
+			});
+		}
+
+		void LocalMin3dFusedSeparable(
+			image::GpuVolumeView<const float> input,
+			image::GpuVolumeView<float> output,
+			image::vec3i filter_halfsize,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim)
+		{
+			if (input.m_dim != output.m_dim) {
+				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedSeparable: input/output dim mismatch");
+			}
+
+			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDim);
+
+			const size_t tileSizeX = blockDim.x * (blockDim.y + filter_halfsize.y * 2) * (blockDim.z + filter_halfsize.z * 2);
+			const size_t tileSizeXY = blockDim.x * blockDim.y * (blockDim.z + filter_halfsize.z * 2);
+
+			const size_t sharedMemSize = (tileSizeX + tileSizeXY) * sizeof(float);
+
+			const int3 dim = {
+				static_cast<int>(input.m_dim.x),
+				static_cast<int>(input.m_dim.y),
+				static_cast<int>(input.m_dim.z),
+			};
+
+			cuda::TimedCall("LocalMin3dFusedSeparableKernel", ctx, [&]() {
+				LocalMin3dFusedSeparableKernel <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 					input.m_ptr,
 					input.m_pitch,
 					input.m_slicePitch,

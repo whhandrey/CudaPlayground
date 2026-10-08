@@ -28,6 +28,14 @@ namespace {
 		return sharedMemSize;
 	}
 
+	size_t CalcSharedMemFusedSeparable(image::vec3ui blockDim, image::vec3i filter_halfsize) {
+		const size_t tileSizeX = blockDim.x * (blockDim.y + filter_halfsize.y * 2) * (blockDim.z + filter_halfsize.z * 2);
+		const size_t tileSizeXY = blockDim.x * blockDim.y * (blockDim.z + filter_halfsize.z * 2);
+
+		const size_t sharedMemSize = (tileSizeX + tileSizeXY) * sizeof(float);
+		return sharedMemSize;
+	}
+
 	std::string MakeSessionLabel(image::vec3ui blockDim, size_t sharedMemSize) {
 		const auto formattedVec = bench::output::FormatVec3d(blockDim);
 		if (sharedMemSize > 0) {
@@ -41,7 +49,7 @@ namespace {
 		return bench::output::FormatVec3d(blockDimLocMin) + ":" + bench::output::FormatVec3d(blockDimBlend);
 	}
 
-	std::vector<image::vec3ui> LocalMinBlockDims(image::vec3i filter_halfsize) {
+	std::vector<image::vec3ui> LocalMinFusedHaloBlockDims(image::vec3i filter_halfsize) {
 		if (filter_halfsize.x == 1 && filter_halfsize.y == 1 && filter_halfsize.z == 1) {
 			return {
 				// 256 threads
@@ -209,7 +217,7 @@ namespace {
 		cuda::profile::BasicGpuProfiler& profiler,
 		int numRuns)
 	{
-		const auto blockDims = LocalMinBlockDims(filter_halfsize);
+		const auto blockDims = LocalMinFusedHaloBlockDims(filter_halfsize);
 
 		for (const auto& blockDim : blockDims)
 		{
@@ -221,6 +229,80 @@ namespace {
 				auto kernelCtx = cuda::KernelContext{ stream, &session };
 				for (int i = 0; i < numRuns; ++i) {
 					cuda::erode3d::LocalMin3dFusedHalo(input, output, filter_halfsize, kernelCtx, blockDim);
+				}
+			}
+		}
+	}
+
+	void WarmUpLocalMin3dFusedSeparable(
+		image::GpuVolumeView<const float> input,
+		image::GpuVolumeView<float> output,
+		image::vec3i filter_halfsize,
+		cudaStream_t stream,
+		int warmUpRuns)
+	{
+		auto dummyProfiler = bench::NullProfiler();
+		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
+
+		for (int i = 0; i < warmUpRuns; ++i) {
+			cuda::erode3d::LocalMin3dFusedSeparable(input, output, filter_halfsize, ctxNoProfile, { 8, 8, 8 });
+		}
+	}
+
+	void BenchLocalMin3dFusedSeparableImpl(
+		image::GpuVolumeView<const float> input,
+		image::GpuVolumeView<float> output,
+		image::vec3i filter_halfsize,
+		cudaStream_t stream,
+		cuda::profile::BasicGpuProfiler& profiler,
+		int numRuns)
+	{
+		const std::vector<image::vec3ui> blockDims {
+			// 128 threads
+			{  8,  8, 2 },
+			{ 16,  8, 1 },
+			{ 32,  4, 1 },
+
+			// 256 threads
+			{  8,  8, 4 },
+			{ 16,  8, 2 },
+			{ 16, 16, 1 },
+			{ 32,  4, 2 },
+			{ 32,  8, 1 },
+			{ 64,  4, 1 },
+
+			// 512 threads
+			{  8,  8, 8 },
+			{ 16,  8, 4 },
+			{ 16, 16, 2 },
+			{ 32,  4, 4 },
+			{ 32,  8, 2 },
+			{ 32, 16, 1 },
+			{ 64,  4, 2 },
+
+			// 640–800 threads
+			{  8, 10,  8 },  // 640
+			{  8,  8, 10 },  // 640
+			{  8, 12,  8 },  // 768
+			{  8, 16,  6 },  // 768
+			{  8, 10, 10 },  // 800
+
+			// 960–1024 threads
+			{  8, 12, 10 },  // 960
+			{  8, 16,  8 },  // 1024
+			{ 16,  8,  8 },  // 1024
+		};
+
+		for (const auto& blockDim : blockDims)
+		{
+			// scoped session profile
+			{
+				const size_t sharedMemSize = CalcSharedMemFusedSeparable(blockDim, filter_halfsize);
+				auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, sharedMemSize));
+
+				auto kernelCtx = cuda::KernelContext{ stream, &session };
+				for (int i = 0; i < numRuns; ++i) {
+					cuda::erode3d::LocalMin3dFusedSeparable(input, output, filter_halfsize, kernelCtx, blockDim);
 				}
 			}
 		}
@@ -281,10 +363,10 @@ namespace {
 		//	{ 16, 8, 8 }
 		//};
 
-		//const std::vector<image::vec3ui> bestBlockDimsLocMinR2 {
-		//	{ 8, 12, 10 },
-		//	{ 8, 16, 8 }
-		//};
+		const std::vector<image::vec3ui> bestBlockDimsLocMinR2 {
+			{ 8, 16, 8 },
+			{ 8, 12, 10 }
+		};
 
 		// both T1200 and RTX 5060
 		const std::vector<image::vec3ui> bestBlockDimsBlend {
@@ -298,10 +380,10 @@ namespace {
 		//	{ 8, 10, 8 }
 		//};
 
-		const std::vector<image::vec3ui> bestBlockDimsLocMinR2 {
-			{ 8, 8, 12 },
-			{ 8, 12, 8 }
-		};
+		//const std::vector<image::vec3ui> bestBlockDimsLocMinR2 {
+		//	{ 8, 8, 12 },
+		//	{ 8, 12, 8 }
+		//};
 
 		for (const auto& blockDimBlend : bestBlockDimsBlend)
 		{
@@ -453,7 +535,7 @@ namespace bench::localmin_blending3d {
 		output::PrintSharedMemStats();
 
 		const image::vec3ui inputDim = { 601, 310, 169 };
-		const image::vec3i filter_halfsize = { 2, 2, 2 };
+		const image::vec3i filter_halfsize = { 1, 1, 1 };
 
 		std::cout << std::endl << "LocalMin3dThenBlend3d of volume of " << output::FormatVec3d(inputDim) << std::endl;
 		std::cout << std::endl << "filter_halfsize: " << output::FormatVec3d(filter_halfsize) << std::endl;
@@ -503,6 +585,50 @@ namespace bench::localmin_blending3d {
 			cuda::gpu_image::MakeVolumeView(gpuActivityField),
 			cuda::gpu_image::MakeVolumeView(gpuFilteredData),
 			params,
+			filter_halfsize,
+			stream.Get(),
+			profiler,
+			runs
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		output::PrintKernelStats(profiler.GetResults());
+	}
+
+	void LocalMin3dFusedSeparableBenchmark() {
+		output::PrintCudaDevice();
+		output::PrintSharedMemStats();
+
+		const image::vec3ui inputDim = { 601, 310, 169 };
+		const image::vec3i filter_halfsize{ 2, 2, 2 };
+
+		std::cout << std::endl << "LocalMin3dFusedSeparable of volume of " << output::FormatVec3d(inputDim) << std::endl;
+		std::cout << std::endl << "filter_halfsize: " << output::FormatVec3d(filter_halfsize) << std::endl;
+
+		const int runs = 100;
+		const int warmUpRuns = 20;
+
+		CudaStream stream;
+		image::CpuVolume<float> input = data::GenerateRandomVolume(inputDim);
+
+		const auto gpuInput = cuda::gpu_image::Create(input, stream.Get());
+		cuda::gpu_image::GpuVolume<float> output(input.Dim());
+
+		WarmUpLocalMin3dFusedSeparable(
+			cuda::gpu_image::MakeVolumeView(gpuInput),
+			cuda::gpu_image::MakeVolumeView(output),
+			filter_halfsize,
+			stream.Get(),
+			warmUpRuns
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		auto profiler = cuda::profile::BasicGpuProfiler();
+		BenchLocalMin3dFusedSeparableImpl(
+			cuda::gpu_image::MakeVolumeView(gpuInput),
+			cuda::gpu_image::MakeVolumeView(output),
 			filter_halfsize,
 			stream.Get(),
 			profiler,
