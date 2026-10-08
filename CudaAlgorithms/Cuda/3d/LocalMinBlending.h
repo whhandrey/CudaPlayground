@@ -34,5 +34,18 @@ namespace cuda {
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim = { 8, 8, 8 }
 		);
+
+		void LocalMin3dThenBlendOp(
+			image::GpuVolumeView<float> baseData,
+			image::GpuVolumeView<const float> gateField,
+			image::GpuVolumeView<const float> activityField,
+			image::GpuVolumeView<float> filteredData,
+			bool gateAlreadyProcessed,
+			const BlendParams& params,
+			image::vec3i filter_halfsize,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDimLocMin,
+			image::vec3ui blockDimBlend
+		);
 	}
 }

@@ -4,6 +4,7 @@
 #include <vector>
 #include <type_traits>
 
+#include <Cuda/GpuImage/GpuImageView.h>
 #include <Cuda/TimedCudaCall.h>
 #include <Cuda/MathUtils.h>
 
@@ -131,6 +132,38 @@ namespace cuda {
 				&& blockDim.y > blockOverlap.y
 				&& blockDim.z > blockOverlap.z;
 		}
+
+		void CheckValidLocalMin3dInput(
+			image::vec3ui inputDim,
+			image::vec3ui outputDim,
+			image::vec3ui blockDim,
+			image::vec3i filter_halfsize)
+		{
+			if (inputDim != outputDim) {
+				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHalo: input/output dim mismatch");
+			}
+
+			const image::vec3ui blockOverlap{ 0, unsigned int(filter_halfsize.y) * 2, unsigned int(filter_halfsize.z) * 2 };
+			if (!CanRunFusedKernel(blockDim, blockOverlap)) {
+				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHalo: unsupported large filter_halfsize");
+			}
+		}
+
+		void CheckValidBlend3dInput(
+			image::vec3ui baseDataDim,
+			image::vec3ui gateFieldDim,
+			image::vec3ui activityFieldDim,
+			image::vec3ui filteredDataDim)
+		{
+			using cuda::erode3d::BlendParams;
+
+			static_assert(std::is_trivially_copyable_v<BlendParams>, "BlendParams must be trivially copyable");
+			static_assert(std::is_standard_layout_v<BlendParams>, "BlendParams must have standard layout");
+
+			if (baseDataDim != gateFieldDim || baseDataDim != activityFieldDim || baseDataDim != filteredDataDim) {
+				throw std::logic_error("CudaAlgoritms::Blend3dOp: input/output dim mismatch");
+			}
+		}
 	}
 
 	namespace erode3d {
@@ -141,16 +174,11 @@ namespace cuda {
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim)
 		{
-			if (input.m_dim != output.m_dim) {
-				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHalo: input/output dim mismatch");
-			}
+			detail::CheckValidLocalMin3dInput(input.m_dim, output.m_dim, blockDim, filter_halfsize);
 
 			const image::vec3ui blockOverlap{ 0, unsigned int(filter_halfsize.y) * 2, unsigned int(filter_halfsize.z) * 2 };
-			if (!detail::CanRunFusedKernel(blockDim, blockOverlap)) {
-				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHalo: unsupported large filter_halfsize");
-			}
-
 			const auto blockDimGrid = image::vec3ui{ blockDim.x, blockDim.y - blockOverlap.y, blockDim.z - blockOverlap.z };
+
 			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDimGrid);
 
 			const size_t tileSizeX = blockDim.x * blockDim.y * blockDim.z;
@@ -188,12 +216,7 @@ namespace cuda {
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim)
 		{
-			static_assert(std::is_trivially_copyable_v<BlendParams>, "BlendParams must be trivially copyable");
-			static_assert(std::is_standard_layout_v<BlendParams>, "BlendParams must have standard layout");
-
-			if (baseData.m_dim != gateField.m_dim || baseData.m_dim != activityField.m_dim || baseData.m_dim != filteredData.m_dim) {
-				throw std::logic_error("CudaAlgoritms::MixingOp: input/output dim mismatch");
-			}
+			detail::CheckValidBlend3dInput(baseData.m_dim, gateField.m_dim, activityField.m_dim, filteredData.m_dim);
 
 			dim3 gridSize = cuda::math::DivUp(baseData.m_dim, blockDim);
 			const int3 dim = {
@@ -213,6 +236,66 @@ namespace cuda {
 					params,
 					dim
 				);
+			});
+		}
+
+		void LocalMin3dThenBlendOp(
+			image::GpuVolumeView<float> baseData,
+			image::GpuVolumeView<const float> gateField,
+			image::GpuVolumeView<const float> activityField,
+			image::GpuVolumeView<float> filteredData,
+			bool gateAlreadyProcessed,
+			const BlendParams& params,
+			image::vec3i filter_halfsize,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDimLocMin,
+			image::vec3ui blockDimBlend)
+		{
+			detail::CheckValidLocalMin3dInput(baseData.m_dim, filteredData.m_dim, blockDimLocMin, filter_halfsize);
+			detail::CheckValidBlend3dInput(baseData.m_dim, gateField.m_dim, activityField.m_dim, filteredData.m_dim);
+
+			const image::vec3ui blockOverlap{ 0, unsigned int(filter_halfsize.y) * 2, unsigned int(filter_halfsize.z) * 2 };
+			const auto blockDimGridLocMin = image::vec3ui{ blockDimLocMin.x, blockDimLocMin.y - blockOverlap.y, blockDimLocMin.z - blockOverlap.z };
+
+			dim3 gridSizeLocMin = cuda::math::DivUp(baseData.m_dim, blockDimGridLocMin);
+			dim3 gridSizeBlend = cuda::math::DivUp(baseData.m_dim, blockDimBlend);
+
+			const size_t tileSizeX = blockDimLocMin.x * blockDimLocMin.y * blockDimLocMin.z;
+			const size_t tileSizeXY = blockDimLocMin.x * (blockDimLocMin.y - filter_halfsize.y * 2) * blockDimLocMin.z;
+
+			const size_t sharedMemSize = (tileSizeX + tileSizeXY) * sizeof(float);
+
+			const int3 dim = {
+				static_cast<int>(baseData.m_dim.x),
+				static_cast<int>(baseData.m_dim.y),
+				static_cast<int>(baseData.m_dim.z),
+			};
+
+			cuda::TimedCall("LocalMin3dAndBlend3dKernels", ctx, [&]() {
+				LocalMin3dFusedHaloKernel <<<gridSizeLocMin, cuda::math::vecTodim3(blockDimLocMin), sharedMemSize, ctx.stream>>> (
+					baseData.m_ptr,
+					baseData.m_pitch,
+					baseData.m_slicePitch,
+					filteredData.m_ptr,
+					filteredData.m_pitch,
+					filteredData.m_slicePitch,
+					filter_halfsize,
+					dim
+				);
+
+				cudaCheck(cudaPeekAtLastError());
+
+				BlendOpKernel <<<gridSizeBlend, cuda::math::vecTodim3(blockDimBlend), 0, ctx.stream>>> (
+					baseData,
+					gateField,
+					activityField,
+					cuda::gpu_image::ToConstView(filteredData),
+					gateAlreadyProcessed,
+					params,
+					dim
+				);
+
+				cudaCheck(cudaPeekAtLastError());
 			});
 		}
 	}
