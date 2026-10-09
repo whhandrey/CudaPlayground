@@ -230,6 +230,85 @@ __global__  void LocalMin3dFusedSeparableKernel(
 	row[x] = sampleMin;
 }
 
+template <int planesPerBatch>
+__global__  void LocalMin3dFusedHaloStreamZKernel(
+	const float* __restrict__ input,
+	size_t inPitch,
+	size_t inSlicePitch,
+	float* __restrict__ output,
+	size_t outPitch,
+	size_t outSlicePitch,
+	image::vec3i filter_halfsize,
+	int3 dim)
+{
+	extern __shared__ float tile[];
+
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+
+	// some y's will be pointing to the halo of particular blockDim
+	// threadIdx.y:  0   1 | 2   3   4   5   6   7 | 8   9
+	// global y :   -2  -1 | 0   1   2   3   4   5 | 6   7
+	// role :         halo |     useful outputs    | halo
+	int y = blockIdx.y * (blockDim.y - filter_halfsize.y * 2) + int(threadIdx.y) - filter_halfsize.y;
+	int z = blockIdx.z;
+
+	const int y_idx = clamp(y, 0, dim.y - 1);
+	const bool processY = threadIdx.y >= filter_halfsize.y && threadIdx.y < blockDim.y - filter_halfsize.y;
+
+	float sampleMinXYZ = FLT_MAX;
+	for (int dz = -filter_halfsize.z; dz <= filter_halfsize.z; dz += planesPerBatch) {
+		const int validPlanes = min(planesPerBatch, filter_halfsize.z - dz + 1);
+
+		for (int planeIndex = 0; planeIndex < validPlanes; ++planeIndex) {
+
+			float sampleMin = FLT_MAX;
+			const int z_idx = clamp(z + dz + planeIndex, 0, dim.z - 1);
+
+			const size_t offsetBytesToRow = OffsetToRowPitched(y_idx, z_idx, inPitch, inSlicePitch);
+			const float* row = (const float*)((const char*)input + offsetBytesToRow);
+
+			for (int dx = -filter_halfsize.x; dx <= filter_halfsize.x; ++dx) {
+				int x_idx = clamp(x + dx, 0, dim.x - 1);
+				sampleMin = fminf(sampleMin, row[x_idx]);
+			}
+
+			const int tileIdx = FlatIdx(threadIdx.x, threadIdx.y, planeIndex, blockDim.x, blockDim.y);
+			tile[tileIdx] = sampleMin;
+		}
+
+		__syncthreads();
+
+		if (processY) {
+			float sampleMinXY = FLT_MAX;
+
+			for (int planeIndex = 0; planeIndex < validPlanes; ++planeIndex) {
+
+				float sampleMin = FLT_MAX;
+
+				for (int dy = -filter_halfsize.y; dy <= filter_halfsize.y; ++dy) {
+					const int flatIdx = threadIdx.x + (threadIdx.y + dy) * blockDim.x + planeIndex * (blockDim.x * blockDim.y);
+					sampleMin = fminf(sampleMin, tile[flatIdx]);
+				}
+
+				sampleMinXY = fminf(sampleMinXY, sampleMin);
+			}
+			
+			sampleMinXYZ = fminf(sampleMinXYZ, sampleMinXY);
+		}
+
+		if (dz + planesPerBatch <= filter_halfsize.z) {
+			__syncthreads();
+		}
+	}
+
+	if (processY && x < dim.x && y < dim.y && z < dim.z) {
+		const size_t offsetBytesToRow = OffsetToRowPitched(y, z, outPitch, outSlicePitch);
+		float* row = (float*)((char*)output + offsetBytesToRow);
+
+		row[x] = sampleMinXYZ;
+	}
+}
+
 namespace cuda {
 	namespace detail {
 		bool CanRunFusedKernel(image::vec3ui blockDim, image::vec3ui blockOverlap) {
@@ -347,6 +426,114 @@ namespace cuda {
 					dim
 				);
 			});
+		}
+
+		void LocalMin3dFusedHaloStreamZ(
+			image::GpuVolumeView<const float> input,
+			image::GpuVolumeView<float> output,
+			image::vec3i filter_halfsize,
+			int planesPerBatch,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim)
+		{
+			if (input.m_dim != output.m_dim) {
+				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHaloStreamZ: input/output dim mismatch");
+			}
+
+			const image::vec3ui blockOverlap{ 0, unsigned int(filter_halfsize.y) * 2, 0 };
+			if (!detail::CanRunFusedKernel(blockDim, blockOverlap)) {
+				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHaloStreamZ: unsupported large filter_halfsize.y");
+			}
+
+			if (planesPerBatch > filter_halfsize.z * 2 + 1) {
+				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHaloStreamZ: requested more planesPerBatch than filterLengthZ");
+			}
+
+			if (blockDim.z != 1u) {
+				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHaloStreamZ: blockDim.z must be 1");
+			}
+
+			const auto blockDimGrid = image::vec3ui{ blockDim.x, blockDim.y - unsigned int(filter_halfsize.y) * 2, 1u };
+			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDimGrid);
+
+			const size_t sharedMemSize = (blockDim.x * blockDim.y * planesPerBatch) * sizeof(float);
+
+			const int3 dim = {
+				static_cast<int>(input.m_dim.x),
+				static_cast<int>(input.m_dim.y),
+				static_cast<int>(input.m_dim.z),
+			};
+
+			if (planesPerBatch == 1) {
+				cuda::TimedCall("LocalMin3dFusedHaloStreamZKernel<1>", ctx, [&]() {
+					LocalMin3dFusedHaloStreamZKernel<1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (planesPerBatch == 2) {
+				cuda::TimedCall("LocalMin3dFusedHaloStreamZKernel<2>", ctx, [&]() {
+					LocalMin3dFusedHaloStreamZKernel<2> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (planesPerBatch == 3) {
+				cuda::TimedCall("LocalMin3dFusedHaloStreamZKernel<3>", ctx, [&]() {
+					LocalMin3dFusedHaloStreamZKernel<3> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (planesPerBatch == 4) {
+				cuda::TimedCall("LocalMin3dFusedHaloStreamZKernel<4>", ctx, [&]() {
+					LocalMin3dFusedHaloStreamZKernel<4> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (planesPerBatch == 5) {
+				cuda::TimedCall("LocalMin3dFusedHaloStreamZKernel<5>", ctx, [&]() {
+					LocalMin3dFusedHaloStreamZKernel<5> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
 		}
 
 		void BlendOp(

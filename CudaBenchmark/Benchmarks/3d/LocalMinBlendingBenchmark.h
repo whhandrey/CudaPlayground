@@ -6,4 +6,5 @@ namespace bench::localmin_blending3d {
 	void LocalMin3dThenBlend3dBenchmark();
 
 	void LocalMin3dFusedSeparableBenchmark();
+	void LocalMin3dFusedHaloStreamZBenchmark(int planesPerBatch);
 }

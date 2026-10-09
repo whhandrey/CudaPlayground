@@ -3,6 +3,6 @@
 #include "Benchmarks/3d/LocalMinBlendingBenchmark.h"
 
 int main() {
-	bench::localmin_blending3d::LocalMin3dFusedSeparableBenchmark();
+	bench::localmin_blending3d::LocalMin3dFusedHaloStreamZBenchmark(5);
 	return 0;
 }

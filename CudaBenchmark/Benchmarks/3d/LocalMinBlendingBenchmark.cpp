@@ -49,6 +49,10 @@ namespace {
 		return bench::output::FormatVec3d(blockDimLocMin) + ":" + bench::output::FormatVec3d(blockDimBlend);
 	}
 
+	size_t CalcSharedMemFusedHaloStreamZ(image::vec3ui blockDim, int planesPerBatch) {
+		return size_t(blockDim.x) * size_t(blockDim.y) * size_t(planesPerBatch) * sizeof(float);
+	}
+
 	std::vector<image::vec3ui> LocalMinFusedHaloBlockDims(image::vec3i filter_halfsize) {
 		if (filter_halfsize.x == 1 && filter_halfsize.y == 1 && filter_halfsize.z == 1) {
 			return {
@@ -415,6 +419,80 @@ namespace {
 			}
 		}
 	}
+
+	void WarmUpLocalMin3dFusedHaloStreamZ(
+		image::GpuVolumeView<const float> input,
+		image::GpuVolumeView<float> output,
+		image::vec3i filter_halfsize,
+		int planesPerBatch,
+		cudaStream_t stream,
+		int warmUpRuns)
+	{
+		auto dummyProfiler = bench::NullProfiler();
+		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
+
+		for (int i = 0; i < warmUpRuns; ++i) {
+			cuda::erode3d::LocalMin3dFusedHaloStreamZ(
+				input,
+				output,
+				filter_halfsize,
+				planesPerBatch,
+				ctxNoProfile,
+				{ 16, 16, 1 }
+			);
+		}
+	}
+
+	void BenchLocalMin3dFusedHaloStreamZImpl(
+		image::GpuVolumeView<const float> input,
+		image::GpuVolumeView<float> output,
+		image::vec3i filter_halfsize,
+		int planesPerBatch,
+		cudaStream_t stream,
+		cuda::profile::BasicGpuProfiler& profiler,
+		int numRuns)
+	{
+		const std::vector<image::vec3ui> blockDims {
+			// 64 threads
+			{  8,  8, 1 },
+
+			// 128 threads
+			{  8, 16, 1 },
+			{ 16,  8, 1 },
+
+			// 256 threads
+			{  8, 32, 1 },
+			{ 16, 16, 1 },
+			{ 32,  8, 1 },
+
+			// 512 threads
+			{ 16, 32, 1 },
+			{ 32, 16, 1 },
+			{ 64,  8, 1 },
+
+			// 1024 threads
+			{ 32, 32, 1 },
+			{ 64, 16, 1 }
+		};
+
+		for (const auto& blockDim : blockDims) {
+			const size_t sharedMemSize = CalcSharedMemFusedHaloStreamZ(blockDim, planesPerBatch);
+
+			auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, sharedMemSize));
+			auto kernelCtx = cuda::KernelContext{ stream, &session };
+
+			for (int i = 0; i < numRuns; ++i) {
+				cuda::erode3d::LocalMin3dFusedHaloStreamZ(
+					input,
+					output,
+					filter_halfsize,
+					planesPerBatch,
+					kernelCtx,
+					blockDim
+				);
+			}
+		}
+	}
 }
 
 namespace bench::localmin_blending3d {
@@ -630,6 +708,58 @@ namespace bench::localmin_blending3d {
 			cuda::gpu_image::MakeVolumeView(gpuInput),
 			cuda::gpu_image::MakeVolumeView(output),
 			filter_halfsize,
+			stream.Get(),
+			profiler,
+			runs
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		output::PrintKernelStats(profiler.GetResults());
+	}
+
+	void LocalMin3dFusedHaloStreamZBenchmark(int planesPerBatch)
+	{
+		output::PrintCudaDevice();
+		output::PrintSharedMemStats();
+
+		const image::vec3ui inputDim = { 601, 310, 169 };
+		const image::vec3i filter_halfsize = { 2, 2, 2 };
+
+		std::cout << std::endl << "LocalMin3dFusedHaloStreamZ of volume of " << output::FormatVec3d(inputDim) << std::endl;
+		std::cout << "filter_halfsize: " << output::FormatVec3d(filter_halfsize) << std::endl;
+
+		const int runs = 100;
+		const int warmUpRuns = 20;
+
+		CudaStream stream;
+
+		image::CpuVolume<float> input = data::GenerateRandomVolume(inputDim);
+
+		const auto gpuInput = cuda::gpu_image::Create(input, stream.Get());
+		cuda::gpu_image::GpuVolume<float> gpuOutput(inputDim);
+
+		const auto inputView = cuda::gpu_image::MakeVolumeView(gpuInput);
+		auto outputView = cuda::gpu_image::MakeVolumeView(gpuOutput);
+
+		WarmUpLocalMin3dFusedHaloStreamZ(
+			inputView,
+			outputView,
+			filter_halfsize,
+			planesPerBatch,
+			stream.Get(),
+			warmUpRuns
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		auto profiler = cuda::profile::BasicGpuProfiler();
+
+		BenchLocalMin3dFusedHaloStreamZImpl(
+			inputView,
+			outputView,
+			filter_halfsize,
+			planesPerBatch,
 			stream.Get(),
 			profiler,
 			runs
