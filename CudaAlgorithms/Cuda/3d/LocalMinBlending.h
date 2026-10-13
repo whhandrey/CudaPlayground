@@ -31,7 +31,18 @@ namespace cuda {
 			image::vec3ui blockDim = { 8, 8, 8 }
 		);
 
+		// rawTile -> x-pass
 		void LocalMin3dSepFusedMultipleOutputs(
+			image::GpuVolumeView<const float> input,
+			image::GpuVolumeView<float> output,
+			image::vec3i filter_halfsize,
+			int outputsPerThread,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim = { 8, 8, 8 }
+		);
+
+		// global x-pass
+		void LocalMin3dSepFusedMultipleOutputsV2(
 			image::GpuVolumeView<const float> input,
 			image::GpuVolumeView<float> output,
 			image::vec3i filter_halfsize,
