@@ -53,6 +53,20 @@ namespace {
 		return size_t(blockDim.x) * size_t(blockDim.y) * size_t(planesPerBatch) * sizeof(float);
 	}
 
+	size_t CalcSharedMemFusedSepMultipleOutputs(image::vec3ui blockDim, image::vec3i filter_halfsize, int outputsPerThread) {
+		const unsigned int depthZ = blockDim.z * unsigned int(outputsPerThread);
+
+		const size_t rawTileCount = (blockDim.x + filter_halfsize.x * 2)
+			* (blockDim.y + filter_halfsize.y * 2)
+			* (depthZ + filter_halfsize.z * 2);
+
+		const size_t xTileCount = blockDim.x
+			* (blockDim.y + filter_halfsize.y * 2)
+			* (depthZ + filter_halfsize.z * 2);
+
+		return (rawTileCount + xTileCount) * sizeof(float);
+	}
+
 	std::vector<image::vec3ui> LocalMinFusedHaloBlockDims(image::vec3i filter_halfsize) {
 		if (filter_halfsize.x == 1 && filter_halfsize.y == 1 && filter_halfsize.z == 1) {
 			return {
@@ -493,6 +507,90 @@ namespace {
 			}
 		}
 	}
+
+	void WarmUpLocalMin3dFusedSepMultipleOutputs(
+		image::GpuVolumeView<const float> input,
+		image::GpuVolumeView<float> output,
+		image::vec3i filter_halfsize,
+		int outputsPerThread,
+		cudaStream_t stream,
+		int warmUpRuns)
+	{
+		auto dummyProfiler = bench::NullProfiler();
+		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
+
+		for (int i = 0; i < warmUpRuns; ++i) {
+			cuda::erode3d::LocalMin3dSepFusedMultipleOutputs(
+				input,
+				output,
+				filter_halfsize,
+				outputsPerThread,
+				ctxNoProfile,
+				{ 8, 8, 1 }
+			);
+		}
+	}
+
+	void BenchLocalMin3dFusedSepMultipleOutputsImpl(
+		image::GpuVolumeView<const float> input,
+		image::GpuVolumeView<float> output,
+		image::vec3i filter_halfsize,
+		int outputsPerThread,
+		cudaStream_t stream,
+		cuda::profile::BasicGpuProfiler& profiler,
+		int numRuns)
+	{
+		const std::vector<image::vec3ui> blockDims {
+			// 128 threads
+			{  8,  8, 2 },
+			{ 16,  4, 2 },
+			{ 16,  8, 1 },
+			{ 32,  4, 1 },
+
+			// 256 threads
+			{  8,  8, 4 },
+			{  8, 16, 2 },
+			{ 16,  4, 4 },
+			{ 16,  8, 2 },
+			{ 16, 16, 1 },
+			{ 32,  4, 2 },
+			{ 32,  8, 1 },
+
+			// 512 threads
+			{  8,  8, 8 },
+			{  8, 16, 4 },
+			{ 16,  8, 4 },
+			{ 16, 16, 2 },
+			{ 32,  8, 2 },
+			{ 32, 16, 1 },
+
+			// 1024 threads
+			//{  8, 16, 8 },
+			//{ 16,  8, 8 },
+			//{ 16, 16, 4 },
+			//{ 32,  8, 4 },
+			//{ 32, 16, 2 },
+			//{ 32, 32, 1 }
+		};
+
+		for (const auto& blockDim : blockDims) {
+			const size_t sharedMemSize = CalcSharedMemFusedSepMultipleOutputs(blockDim, filter_halfsize, outputsPerThread);
+
+			auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, sharedMemSize));
+			auto kernelCtx = cuda::KernelContext{ stream, &session };
+
+			for (int i = 0; i < numRuns; ++i) {
+				cuda::erode3d::LocalMin3dSepFusedMultipleOutputs(
+					input,
+					output,
+					filter_halfsize,
+					outputsPerThread,
+					kernelCtx,
+					blockDim
+				);
+			}
+		}
+	}
 }
 
 namespace bench::localmin_blending3d {
@@ -760,6 +858,57 @@ namespace bench::localmin_blending3d {
 			outputView,
 			filter_halfsize,
 			planesPerBatch,
+			stream.Get(),
+			profiler,
+			runs
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		output::PrintKernelStats(profiler.GetResults());
+	}
+
+	void LocalMin3dFusedSepMultipleOutputsBenchmark(int outputsPerThread) {
+		output::PrintCudaDevice();
+		output::PrintSharedMemStats();
+
+		const image::vec3ui inputDim = { 601, 310, 169 };
+		const image::vec3i filter_halfsize = { 1, 1, 1 };
+
+		std::cout << std::endl << "LocalMin3dFusedSepMultipleOutputs of volume of " << output::FormatVec3d(inputDim) << std::endl;
+		std::cout << "filter_halfsize: " << output::FormatVec3d(filter_halfsize) << std::endl;
+
+		const int runs = 100;
+		const int warmUpRuns = 20;
+
+		CudaStream stream;
+
+		image::CpuVolume<float> input = data::GenerateRandomVolume(inputDim);
+
+		const auto gpuInput = cuda::gpu_image::Create(input, stream.Get());
+		cuda::gpu_image::GpuVolume<float> gpuOutput(inputDim);
+
+		const auto inputView = cuda::gpu_image::MakeVolumeView(gpuInput);
+		auto outputView = cuda::gpu_image::MakeVolumeView(gpuOutput);
+
+		WarmUpLocalMin3dFusedSepMultipleOutputs(
+			inputView,
+			outputView,
+			filter_halfsize,
+			outputsPerThread,
+			stream.Get(),
+			warmUpRuns
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		auto profiler = cuda::profile::BasicGpuProfiler();
+
+		BenchLocalMin3dFusedSepMultipleOutputsImpl(
+			inputView,
+			outputView,
+			filter_halfsize,
+			outputsPerThread,
 			stream.Get(),
 			profiler,
 			runs

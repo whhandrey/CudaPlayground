@@ -31,6 +31,15 @@ namespace cuda {
 			image::vec3ui blockDim = { 8, 8, 8 }
 		);
 
+		void LocalMin3dSepFusedMultipleOutputs(
+			image::GpuVolumeView<const float> input,
+			image::GpuVolumeView<float> output,
+			image::vec3i filter_halfsize,
+			int outputsPerThread,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim = { 8, 8, 8 }
+		);
+
 		struct BlendParams {
 			float gateThreshold;
 			float gateSlope;
