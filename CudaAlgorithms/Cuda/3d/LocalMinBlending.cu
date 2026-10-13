@@ -3,6 +3,7 @@
 #include "../Math.cuh"
 #include <vector>
 #include <type_traits>
+#include <iostream>
 
 #include <Cuda/GpuImage/GpuImageView.h>
 #include <Cuda/TimedCudaCall.h>
@@ -658,6 +659,59 @@ namespace cuda {
 			}
 		}
 
+		template <int outputsPerThread>
+		void PrintLocalMinOccupancy(image::vec3ui blockDim, image::vec3i filter_halfsize) {
+			const unsigned int outputDepth = blockDim.z * static_cast<unsigned int>(outputsPerThread);
+
+			const size_t rawTileCount =
+				(blockDim.x + 2 * filter_halfsize.x) *
+				(blockDim.y + 2 * filter_halfsize.y) *
+				(outputDepth + 2 * filter_halfsize.z);
+
+			const size_t xTileCount =
+				blockDim.x *
+				(blockDim.y + 2 * filter_halfsize.y) *
+				(outputDepth + 2 * filter_halfsize.z);
+
+			const size_t sharedMemSize = (rawTileCount + xTileCount) * sizeof(float);
+			const int threadsPerBlock = static_cast<int>(blockDim.x * blockDim.y * blockDim.z);
+
+			int device = 0;
+			cudaGetDevice(&device);
+
+			cudaDeviceProp prop{};
+			cudaGetDeviceProperties(&prop, device);
+
+			int activeBlocksPerSM = 0;
+			
+			cudaCheck(cudaOccupancyMaxActiveBlocksPerMultiprocessor(
+				&activeBlocksPerSM,
+				LocalMin3dSepFusedMultipleOutputsKernel<outputsPerThread>,
+				threadsPerBlock,
+				sharedMemSize)
+			);
+
+			const int warpsPerBlock = (threadsPerBlock + prop.warpSize - 1) / prop.warpSize;
+			const int activeWarpsPerSM = activeBlocksPerSM * warpsPerBlock;
+			const int maxWarpsPerSM = prop.maxThreadsPerMultiProcessor / prop.warpSize;
+
+			const float occupancy = static_cast<float>(activeWarpsPerSM) / static_cast<float>(maxWarpsPerSM);
+
+			std::cout
+				<< "Kernel<" << outputsPerThread << ">\n"
+				<< "Block: "
+				<< blockDim.x << "x"
+				<< blockDim.y << "x"
+				<< blockDim.z << "\n"
+				<< "Threads/block: " << threadsPerBlock << "\n"
+				<< "Shared/block: " << sharedMemSize << " bytes\n"
+				<< "Active blocks/SM: " << activeBlocksPerSM << "\n"
+				<< "Active warps/SM: " << activeWarpsPerSM
+				<< " / " << maxWarpsPerSM << "\n"
+				<< "Theoretical occupancy: "
+				<< occupancy * 100.0f << "%\n";
+		}
+
 		void LocalMin3dSepFusedMultipleOutputs(
 			image::GpuVolumeView<const float> input,
 			image::GpuVolumeView<float> output,
@@ -673,6 +727,14 @@ namespace cuda {
 			if (outputsPerThread < 1 || outputsPerThread > 10) {
 				throw std::logic_error("CudaAlgoritms::LocalMin3dSepFusedMultipleOutputs: invalid outputsPerThread");
 			}
+
+			//static bool print = true;
+			//if (print) {
+			//	PrintLocalMinOccupancy<6>({ 16, 8, 2 }, { 1, 1, 1 });
+			//	print = false;
+			//}
+
+			//return;
 
 			const unsigned int depthZ = blockDim.z * unsigned int(outputsPerThread);
 
