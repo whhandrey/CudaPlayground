@@ -10,4 +10,6 @@ namespace bench::localmin_blending3d {
 
 	void LocalMin3dFusedSepMultipleOutputsBenchmark(int outputsPerThread);
 	void LocalMin3dFusedSepMultipleOutputsV2Benchmark(int outputsPerThread);
+
+	void LocalMin3dFusedHaloYMultipleOutputsBenchmark(int outputsPerThread);
 }
