@@ -6,6 +6,57 @@
 #include <Cuda/TimedCudaCall.h>
 #include <Cuda/MathUtils.h>
 
+__global__  void Conv3dNaiveKernel(
+	const float* __restrict__ input,
+	size_t inPitch,
+	size_t inSlicePitch,
+	float* __restrict__ output,
+	size_t outPitch,
+	size_t outSlicePitch,
+	const float* __restrict__ coeffs3d,
+	image::vec3i filter_halfsize,
+	int3 dim)
+{
+	const int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const int z = blockIdx.z * blockDim.z + threadIdx.z;
+
+	if (x >= dim.x || y >= dim.y || z >= dim.z) {
+		return;
+	}
+
+	const int filterWidth = filter_halfsize.x * 2 + 1;
+	const int filterArea = filterWidth * (filter_halfsize.y * 2 + 1);
+
+	float sampleOut = 0.0f;
+
+	for (int dz = -filter_halfsize.z; dz <= filter_halfsize.z; dz++) {
+		const int z_idx = clamp(z + dz, 0, dim.z - 1);
+
+		for (int dy = -filter_halfsize.y; dy <= filter_halfsize.y; dy++) {
+			const int y_idx = clamp(y + dy, 0, dim.y - 1);
+
+			const size_t offsetBytesToRow = OffsetToRowPitched(y_idx, z_idx, inPitch, inSlicePitch);
+			const float* row = (const float*)((const char*)input + offsetBytesToRow);
+
+			for (int dx = -filter_halfsize.x; dx <= filter_halfsize.x; dx++) {
+				const int x_idx = clamp(x + dx, 0, dim.x - 1);
+
+				const int coeffIndex = (dx + filter_halfsize.x)
+					+ (dy + filter_halfsize.y) * filterWidth
+					+ (dz + filter_halfsize.z) * filterArea;
+
+				sampleOut += row[x_idx] * coeffs3d[coeffIndex];
+			}
+		}
+	}
+
+	const size_t offsetBytesToRow = OffsetToRowPitched(y, z, outPitch, outSlicePitch);
+
+	float* row = (float*)((char*)output + offsetBytesToRow);
+	row[x] = sampleOut;
+}
+
 __global__  void Conv3dNaiveSharedMemKernel(
 	const float* __restrict__ input,
 	size_t inPitch,
@@ -270,6 +321,46 @@ __global__  void Conv3dSeparableFusedMultipleOutKernel(
 
 namespace cuda {
 	namespace conv3d {
+		void Conv3dNaive(
+			image::GpuVolumeView<const float> input,
+			memory::GpuSpan<const float> coeffs3d,
+			image::GpuVolumeView<float> output,
+			image::vec3i filter_halfsize,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim)
+		{
+			const int coeffsSize = (filter_halfsize.x * 2 + 1) * (filter_halfsize.y * 2 + 1) * (filter_halfsize.z * 2 + 1);
+			if (coeffs3d.m_size != size_t(coeffsSize)) {
+				throw std::logic_error("CudaAlgoritms::Conv3d: invalid coeffs3d size");
+			}
+
+			if (input.m_dim != output.m_dim) {
+				throw std::logic_error("CudaAlgoritms::Conv3d: input/output dim mismatch");
+			}
+
+			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDim);
+
+			const int3 dim = {
+				static_cast<int>(input.m_dim.x),
+				static_cast<int>(input.m_dim.y),
+				static_cast<int>(input.m_dim.z),
+			};
+
+			cuda::TimedCall("Conv3dNaiveKernel", ctx, [&]() {
+				Conv3dNaiveKernel <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
+					input.m_ptr,
+					input.m_pitch,
+					input.m_slicePitch,
+					output.m_ptr,
+					output.m_pitch,
+					output.m_slicePitch,
+					coeffs3d.m_ptr,
+					filter_halfsize,
+					dim
+				);
+			});
+		}
+
 		void Conv3dNaiveSharedMem(
 			image::GpuVolumeView<const float> input,
 			memory::GpuSpan<const float> coeffs3d,

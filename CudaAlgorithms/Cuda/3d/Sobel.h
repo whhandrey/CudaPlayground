@@ -6,6 +6,16 @@
 
 namespace cuda {
 	namespace grad3d {
+		void SobelMagNaive(
+			image::GpuVolumeView<const float> input,
+			memory::GpuSpan<const float> sobelX,
+			memory::GpuSpan<const float> sobelY,
+			memory::GpuSpan<const float> sobelZ,
+			image::GpuVolumeView<float> output,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim
+		);
+
 		void SobelMagNaiveSharedMem(
 			image::GpuVolumeView<const float> input,
 			memory::GpuSpan<const float> sobelX,
@@ -24,6 +34,14 @@ namespace cuda {
 		);
 
 		void SobelMagFusedSeparableMultipleOutputs(
+			image::GpuVolumeView<const float> input,
+			image::GpuVolumeView<float> output,
+			int outputsPerThread,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim
+		);
+
+		void SobelMagFusedSeparableMultipleOutputsV2(
 			image::GpuVolumeView<const float> input,
 			image::GpuVolumeView<float> output,
 			int outputsPerThread,

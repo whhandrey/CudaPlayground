@@ -8,7 +8,9 @@ namespace bench {
 
 	void Conv3dCheckIfMatchWithNaive(Conv3dType type);
 
+	void Conv3dNaiveBench();
 	void Conv3dNaiveSharedMemBench();
+
 	void Conv3dFusedSeparableBench();
 	void Conv3dFusedSeparableMultipleOutputsBench(int numOutputs);
 }
