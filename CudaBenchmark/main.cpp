@@ -3,6 +3,6 @@
 #include "Benchmarks/3d/LocalMinBlendingBenchmark.h"
 
 int main() {
-	bench::SobelMag3dFusedSepMultipleOutputsV2Bench(17);
+	bench::Conv3dFusedSeparableMultipleOutputsBench(17);
 	return 0;
 }

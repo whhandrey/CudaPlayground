@@ -237,7 +237,7 @@ namespace {
 				filter_halfsize,
 				numOutputs,
 				ctx,
-				{ 8, 8, 8 });
+				{ 8, 8, 1 });
 		}
 	}
 
@@ -274,7 +274,13 @@ namespace {
 			// 512 threads
 			{ 16, 32, 1 },
 			{ 32, 16, 1 },
-			{ 64,  8, 1 }
+			{ 64,  8, 1 },
+
+			// 1024 threads
+			{ 16, 64, 1 },
+			{ 32, 32, 1 },
+			{ 64, 16, 1 },
+			{ 128, 8, 1 }
 		};
 
 		for (const auto& blockDim : blockDims)

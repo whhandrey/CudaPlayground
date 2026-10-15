@@ -498,7 +498,7 @@ namespace cuda {
 				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparableMultipleOutputs: blockDim.z must be equal to 1");
 			}
 
-			if (numOutputs < 2 || numOutputs > 10) {
+			if (numOutputs < 2 || numOutputs > 17) {
 				throw std::logic_error("CudaAlgoritms::Conv3dFusedSeparableMultipleOutputs: unsupported numOutputs");
 			}
 
@@ -517,7 +517,7 @@ namespace cuda {
 			};
 
 			if (numOutputs == 2) {
-				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<2>", ctx, [&]() {
 					Conv3dSeparableFusedMultipleOutKernel<2> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
@@ -534,7 +534,7 @@ namespace cuda {
 				});
 			}
 			else if (numOutputs == 3) {
-				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<3>", ctx, [&]() {
 					Conv3dSeparableFusedMultipleOutKernel<3> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
@@ -551,7 +551,7 @@ namespace cuda {
 				});
 			}
 			else if (numOutputs == 4) {
-				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<4>", ctx, [&]() {
 					Conv3dSeparableFusedMultipleOutKernel<4> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
@@ -568,7 +568,7 @@ namespace cuda {
 				});
 			}
 			else if (numOutputs == 5) {
-				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<5>", ctx, [&]() {
 					Conv3dSeparableFusedMultipleOutKernel<5> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
@@ -585,7 +585,7 @@ namespace cuda {
 				});
 			}
 			else if (numOutputs == 6) {
-				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<6>", ctx, [&]() {
 					Conv3dSeparableFusedMultipleOutKernel<6> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
@@ -602,7 +602,7 @@ namespace cuda {
 				});
 			}
 			else if (numOutputs == 7) {
-				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<7>", ctx, [&]() {
 					Conv3dSeparableFusedMultipleOutKernel<7> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
@@ -619,7 +619,7 @@ namespace cuda {
 				});
 			}
 			else if (numOutputs == 8) {
-				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<8>", ctx, [&]() {
 					Conv3dSeparableFusedMultipleOutKernel<8> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
@@ -636,7 +636,7 @@ namespace cuda {
 				});
 			}
 			else if (numOutputs == 9) {
-				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<9>", ctx, [&]() {
 					Conv3dSeparableFusedMultipleOutKernel<9> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
@@ -653,8 +653,127 @@ namespace cuda {
 				});
 			}
 			else if (numOutputs == 10) {
-				cuda::TimedCall("Conv3dSeparableFusedMultipleOutKernel", ctx, [&]() {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<10>", ctx, [&]() {
 					Conv3dSeparableFusedMultipleOutKernel<10> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 11) {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<11>", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<11> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 12) {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<12>", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<12> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 13) {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<13>", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<13> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 14) {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<14>", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<14> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 15) {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<15>", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<15> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 16) {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<16>", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<16> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						input.m_ptr,
+						input.m_pitch,
+						input.m_slicePitch,
+						output.m_ptr,
+						output.m_pitch,
+						output.m_slicePitch,
+						coeffsX.m_ptr,
+						coeffsY.m_ptr,
+						coeffsZ.m_ptr,
+						filter_halfsize,
+						dim
+					);
+				});
+			}
+			else if (numOutputs == 17) {
+				cuda::TimedCall("Conv3dSepFusedMultOutsKernel<17>", ctx, [&]() {
+					Conv3dSeparableFusedMultipleOutKernel<17> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
