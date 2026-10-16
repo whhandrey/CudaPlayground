@@ -400,10 +400,10 @@ namespace {
 		//	{ 16, 8, 8 }
 		//};
 
-		const std::vector<image::vec3ui> bestBlockDimsLocMinR2 {
-			{ 8, 16, 8 },
-			{ 8, 12, 10 }
-		};
+		//const std::vector<image::vec3ui> bestBlockDimsLocMinR2 {
+		//	{ 8, 16, 8 },
+		//	{ 8, 12, 10 }
+		//};
 
 		// both T1200 and RTX 5060
 		const std::vector<image::vec3ui> bestBlockDimsBlend {
@@ -412,10 +412,10 @@ namespace {
 		};
 
 		// RTX 5060
-		//const std::vector<image::vec3ui> bestBlockDimsLocMinR1 {
-		//	{ 8, 8, 12 },
-		//	{ 8, 10, 8 }
-		//};
+		const std::vector<image::vec3ui> bestBlockDimsLocMinR1 {
+			{ 8, 8, 12 },
+			{ 8, 10, 8 }
+		};
 
 		//const std::vector<image::vec3ui> bestBlockDimsLocMinR2 {
 		//	{ 8, 8, 12 },
@@ -424,7 +424,7 @@ namespace {
 
 		for (const auto& blockDimBlend : bestBlockDimsBlend)
 		{
-			for (const auto& blockDimLocMin : bestBlockDimsLocMinR2)
+			for (const auto& blockDimLocMin : bestBlockDimsLocMinR1)
 			{
 				// scoped session profile
 				{
@@ -448,6 +448,83 @@ namespace {
 							blockDimBlend
 						);
 					}
+				}
+			}
+		}
+	}
+
+	void WarmUpLocalMin3dWithBlend3dFused(
+		image::GpuVolumeView<const float> baseData,
+		image::GpuVolumeView<float> baseDataCpy,
+		image::GpuVolumeView<const float> gateField,
+		image::GpuVolumeView<const float> activityField,
+		image::GpuVolumeView<float> output,
+		const cuda::erode3d::BlendParams& params,
+		image::vec3i filter_halfsize,
+		cudaStream_t stream,
+		int warmUpRuns)
+	{
+		auto dummyProfiler = bench::NullProfiler();
+		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
+
+		for (int i = 0; i < warmUpRuns; ++i) {
+			bool gateAlreadyProcessed = false;
+			cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
+
+			for (int i = 0; i < 2; ++i) {
+				cuda::erode3d::LocalMin3dWithBlendOpFusedOld(
+					cuda::gpu_image::ToConstView(baseDataCpy),
+					gateField,
+					activityField,
+					output,
+					gateAlreadyProcessed,
+					params,
+					filter_halfsize,
+					ctxNoProfile,
+					{ 8, 8, 8 }
+				);
+
+				gateAlreadyProcessed = true;
+			}
+		}
+	}
+
+	void BenchLocalMin3dWithBlend3dFusedImpl(
+		image::GpuVolumeView<const float> baseData,
+		image::GpuVolumeView<float> baseDataCpy,
+		image::GpuVolumeView<const float> gateField,
+		image::GpuVolumeView<const float> activityField,
+		image::GpuVolumeView<float> output,
+		const cuda::erode3d::BlendParams& params,
+		image::vec3i filter_halfsize,
+		cudaStream_t stream,
+		cuda::profile::BasicGpuProfiler& profiler,
+		int numRuns)
+	{
+		const auto blockDims = LocalMinFusedHaloBlockDims(filter_halfsize);
+
+		for (const auto& blockDim : blockDims)
+		{
+			// scoped session profile
+			{
+				auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, 0));
+				auto kernelCtx = cuda::KernelContext{ stream, &session };
+
+				bool gateAlreadyProcessed = false;
+				cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
+
+				for (int i = 0; i < numRuns; ++i) {
+					cuda::erode3d::LocalMin3dWithBlendOpFusedOld(
+						cuda::gpu_image::ToConstView(baseDataCpy),
+						gateField,
+						activityField,
+						output,
+						gateAlreadyProcessed,
+						params,
+						filter_halfsize,
+						kernelCtx,
+						blockDim
+					);
 				}
 			}
 		}
@@ -775,6 +852,227 @@ namespace {
 			}
 		}
 	}
+
+	void WarmUpLocalMin3dOptThenBlend3d(
+		image::GpuVolumeView<const float> baseData,
+		image::GpuVolumeView<float> baseDataCpy,
+		image::GpuVolumeView<const float> gateField,
+		image::GpuVolumeView<const float> activityField,
+		image::GpuVolumeView<float> filteredData,
+		const cuda::erode3d::BlendParams& params,
+		image::vec3i filter_halfsize,
+		int outputsPerThread,
+		cudaStream_t stream,
+		int warmUpRuns)
+	{
+		auto dummyProfiler = bench::NullProfiler();
+		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
+
+		for (int i = 0; i < warmUpRuns; ++i) {
+			bool gateAlreadyProcessed = false;
+			cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
+
+			for (int i = 0; i < 2; ++i) {
+				cuda::erode3d::LocalMin3dOptThenBlendOp(
+					baseDataCpy,
+					gateField,
+					activityField,
+					filteredData,
+					gateAlreadyProcessed,
+					params,
+					filter_halfsize,
+					outputsPerThread,
+					ctxNoProfile,
+					{ 8, 8, 8 },
+					{ 8, 8, 4 }
+				);
+
+				gateAlreadyProcessed = true;
+			}
+		}
+	}
+
+	void BenchLocalMin3dOptThenBlend3dImpl(
+		image::GpuVolumeView<const float> baseData,
+		image::GpuVolumeView<float> baseDataCpy,
+		image::GpuVolumeView<const float> gateField,
+		image::GpuVolumeView<const float> activityField,
+		image::GpuVolumeView<float> filteredData,
+		const cuda::erode3d::BlendParams& params,
+		image::vec3i filter_halfsize,
+		int outputsPerThread,
+		cudaStream_t stream,
+		cuda::profile::BasicGpuProfiler& profiler,
+		int numRuns)
+	{
+		// T1200
+		//const std::vector<image::vec3ui> bestBlockDimsLocMinR1 {
+		//	{ 8, 16, 8 },
+		//	{ 16, 8, 8 }
+		//};
+
+		//const std::vector<image::vec3ui> bestBlockDimsLocMinR2 {
+		//	{ 8, 16, 8 },
+		//	{ 8, 12, 10 }
+		//};
+
+		// both T1200 and RTX 5060
+		const std::vector<image::vec3ui> bestBlockDimsBlend {
+			{ 32, 4, 1 },
+			{ 64, 4, 1 }
+		};
+
+		// RTX 5060
+		const std::vector<image::vec3ui> bestBlockDimsLocMinR1 {
+			{ 16, 16, 1 },
+			{ 32, 16, 1 }
+		};
+
+		//const std::vector<image::vec3ui> bestBlockDimsLocMinR2 {
+		//	{ 8, 8, 12 },
+		//	{ 8, 12, 8 }
+		//};
+
+		for (const auto& blockDimBlend : bestBlockDimsBlend)
+		{
+			for (const auto& blockDimLocMin : bestBlockDimsLocMinR1)
+			{
+				// scoped session profile
+				{
+					auto session = profiler.CreateSession("benchmark", MakeCombinedSessionLabel(blockDimLocMin, blockDimBlend));
+					auto kernelCtx = cuda::KernelContext{ stream, &session };
+
+					bool gateAlreadyProcessed = false;
+					cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
+
+					for (int i = 0; i < numRuns; ++i) {
+						cuda::erode3d::LocalMin3dOptThenBlendOp(
+							baseDataCpy,
+							gateField,
+							activityField,
+							filteredData,
+							gateAlreadyProcessed,
+							params,
+							filter_halfsize,
+							outputsPerThread,
+							kernelCtx,
+							blockDimLocMin,
+							blockDimBlend
+						);
+					}
+				}
+			}
+		}
+	}
+
+	void WarmUpLocalMin3dOptWithBlend3dFused(
+		image::GpuVolumeView<const float> baseData,
+		image::GpuVolumeView<float> baseDataCpy,
+		image::GpuVolumeView<const float> gateField,
+		image::GpuVolumeView<const float> activityField,
+		image::GpuVolumeView<float> output,
+		const cuda::erode3d::BlendParams& params,
+		image::vec3i filter_halfsize,
+		int outputsPerThread,
+		cudaStream_t stream,
+		int warmUpRuns)
+	{
+		auto dummyProfiler = bench::NullProfiler();
+		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
+
+		for (int i = 0; i < warmUpRuns; ++i) {
+			bool gateAlreadyProcessed = false;
+			cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
+
+			for (int i = 0; i < 2; ++i) {
+				cuda::erode3d::LocalMin3dOptWithBlendOpFusedNew(
+					cuda::gpu_image::ToConstView(baseDataCpy),
+					gateField,
+					activityField,
+					output,
+					gateAlreadyProcessed,
+					params,
+					filter_halfsize,
+					outputsPerThread,
+					ctxNoProfile,
+					{ 8, 8, 8 }
+				);
+
+				gateAlreadyProcessed = true;
+			}
+		}
+	}
+
+	void BenchLocalMin3dOptWithBlend3dFusedImpl(
+		image::GpuVolumeView<const float> baseData,
+		image::GpuVolumeView<float> baseDataCpy,
+		image::GpuVolumeView<const float> gateField,
+		image::GpuVolumeView<const float> activityField,
+		image::GpuVolumeView<float> output,
+		const cuda::erode3d::BlendParams& params,
+		image::vec3i filter_halfsize,
+		int outputsPerThread,
+		cudaStream_t stream,
+		cuda::profile::BasicGpuProfiler& profiler,
+		int numRuns)
+	{
+		const std::vector<image::vec3ui> blockDims {
+			// 128 threads
+			{  8,  8, 2 },
+			{ 16,  4, 2 },
+			{ 16,  8, 1 },
+			{ 32,  4, 1 },
+
+			// 256 threads
+			{  8,  8, 4 },
+			{  8, 16, 2 },
+			{ 16,  4, 4 },
+			{ 16,  8, 2 },
+			{ 16, 16, 1 },
+			{ 32,  4, 2 },
+			{ 32,  8, 1 },
+
+			// 512 threads
+			{  8,  8, 8 },
+			{  8, 16, 4 },
+			{ 16,  8, 4 },
+			{ 16, 16, 2 },
+			{ 32,  8, 2 },
+			{ 32, 16, 1 }
+		};
+
+		for (const auto& blockDim : blockDims)
+		{
+			// scoped session profile
+			{
+				auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, 0));
+				auto kernelCtx = cuda::KernelContext{ stream, &session };
+
+				bool gateAlreadyProcessed = false;
+				cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
+
+				try {
+					for (int i = 0; i < numRuns; ++i) {
+						cuda::erode3d::LocalMin3dOptWithBlendOpFusedNew(
+							cuda::gpu_image::ToConstView(baseDataCpy),
+							gateField,
+							activityField,
+							output,
+							gateAlreadyProcessed,
+							params,
+							filter_halfsize,
+							outputsPerThread,
+							kernelCtx,
+							blockDim
+						);
+					}
+				}
+				catch (const std::exception&) {
+					// no
+				}
+			}
+		}
+	}
 }
 
 namespace bench::localmin_blending3d {
@@ -939,6 +1237,72 @@ namespace bench::localmin_blending3d {
 
 		auto profiler = cuda::profile::BasicGpuProfiler();
 		BenchLocalMin3dThenBlend3dImpl(
+			cuda::gpu_image::MakeVolumeView(gpuBaseData),
+			cuda::gpu_image::MakeVolumeView(gpuBaseDataCpy),
+			cuda::gpu_image::MakeVolumeView(gpuGateField),
+			cuda::gpu_image::MakeVolumeView(gpuActivityField),
+			cuda::gpu_image::MakeVolumeView(gpuFilteredData),
+			params,
+			filter_halfsize,
+			stream.Get(),
+			profiler,
+			runs
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		output::PrintKernelStats(profiler.GetResults());
+	}
+
+	void LocalMin3dWithBlend3dFusedBenchmark() {
+		output::PrintCudaDevice();
+		output::PrintSharedMemStats();
+
+		const image::vec3ui inputDim = { 601, 310, 169 };
+		const image::vec3i filter_halfsize = { 1, 1, 1 };
+
+		std::cout << std::endl << "LocalMin3dWithBlend3dFused of volume of " << output::FormatVec3d(inputDim) << std::endl;
+		std::cout << std::endl << "filter_halfsize: " << output::FormatVec3d(filter_halfsize) << std::endl;
+
+		const int runs = 100;
+		const int warmUpRuns = 20;
+
+		CudaStream stream;
+		image::CpuVolume<float> baseData = data::GenerateRandomVolume(inputDim);
+		image::CpuVolume<float> gateField = data::GenerateRandomVolume(inputDim);
+		image::CpuVolume<float> activityField = data::GenerateRandomVolume(inputDim);
+
+		const auto gpuBaseData = cuda::gpu_image::Create(baseData, stream.Get());
+		cuda::gpu_image::GpuVolume<float> gpuBaseDataCpy(gpuBaseData.Dim());
+
+		const auto gpuGateField = cuda::gpu_image::Create(gateField, stream.Get());
+		const auto gpuActivityField = cuda::gpu_image::Create(activityField, stream.Get());
+		cuda::gpu_image::GpuVolume<float> gpuFilteredData(gpuBaseData.Dim());
+
+		const auto params = cuda::erode3d::BlendParams {
+			0.4f,  // gateThreshold
+			5.0f,  // gateSlope: keep >= 0
+			0.8f,  // alternateBlendWeight: keep > 0
+			1.2f,  // defaultBlendWeight: keep > 0
+			0.9f   // auxiliaryScale
+		};
+
+		WarmUpLocalMin3dWithBlend3dFused(
+			cuda::gpu_image::MakeVolumeView(gpuBaseData),
+			cuda::gpu_image::MakeVolumeView(gpuBaseDataCpy),
+			cuda::gpu_image::MakeVolumeView(gpuGateField),
+			cuda::gpu_image::MakeVolumeView(gpuActivityField),
+			cuda::gpu_image::MakeVolumeView(gpuFilteredData),
+			params,
+			filter_halfsize,
+			stream.Get(),
+			warmUpRuns
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		auto profiler = cuda::profile::BasicGpuProfiler();
+		BenchLocalMin3dWithBlend3dFusedImpl(
 			cuda::gpu_image::MakeVolumeView(gpuBaseData),
 			cuda::gpu_image::MakeVolumeView(gpuBaseDataCpy),
 			cuda::gpu_image::MakeVolumeView(gpuGateField),
@@ -1193,6 +1557,144 @@ namespace bench::localmin_blending3d {
 		BenchLocalMin3dFusedHaloYMultipleOutputsImpl(
 			inputView,
 			outputView,
+			filter_halfsize,
+			outputsPerThread,
+			stream.Get(),
+			profiler,
+			runs
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		output::PrintKernelStats(profiler.GetResults());
+	}
+
+	void LocalMin3dOptThenBlend3dBenchmark() {
+		output::PrintCudaDevice();
+		output::PrintSharedMemStats();
+
+		const image::vec3ui inputDim = { 601, 310, 169 };
+		const image::vec3i filter_halfsize = { 2, 2, 2 };
+		const int outputsPerThread = filter_halfsize.x == 1 ? 9 : 10;
+
+		std::cout << std::endl << "LocalMin3dOptThenBlend3d of volume of " << output::FormatVec3d(inputDim) << std::endl;
+		std::cout << std::endl << "filter_halfsize: " << output::FormatVec3d(filter_halfsize) << std::endl;
+
+		const int runs = 100;
+		const int warmUpRuns = 20;
+
+		CudaStream stream;
+		image::CpuVolume<float> baseData = data::GenerateRandomVolume(inputDim);
+		image::CpuVolume<float> gateField = data::GenerateRandomVolume(inputDim);
+		image::CpuVolume<float> activityField = data::GenerateRandomVolume(inputDim);
+
+		const auto gpuBaseData = cuda::gpu_image::Create(baseData, stream.Get());
+		cuda::gpu_image::GpuVolume<float> gpuBaseDataCpy(gpuBaseData.Dim());
+
+		const auto gpuGateField = cuda::gpu_image::Create(gateField, stream.Get());
+		const auto gpuActivityField = cuda::gpu_image::Create(activityField, stream.Get());
+		cuda::gpu_image::GpuVolume<float> gpuFilteredData(gpuBaseData.Dim());
+
+		const auto params = cuda::erode3d::BlendParams{
+			0.4f,  // gateThreshold
+			5.0f,  // gateSlope: keep >= 0
+			0.8f,  // alternateBlendWeight: keep > 0
+			1.2f,  // defaultBlendWeight: keep > 0
+			0.9f   // auxiliaryScale
+		};
+
+		WarmUpLocalMin3dOptThenBlend3d(
+			cuda::gpu_image::MakeVolumeView(gpuBaseData),
+			cuda::gpu_image::MakeVolumeView(gpuBaseDataCpy),
+			cuda::gpu_image::MakeVolumeView(gpuGateField),
+			cuda::gpu_image::MakeVolumeView(gpuActivityField),
+			cuda::gpu_image::MakeVolumeView(gpuFilteredData),
+			params,
+			filter_halfsize,
+			outputsPerThread,
+			stream.Get(),
+			warmUpRuns
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		auto profiler = cuda::profile::BasicGpuProfiler();
+		BenchLocalMin3dOptThenBlend3dImpl(
+			cuda::gpu_image::MakeVolumeView(gpuBaseData),
+			cuda::gpu_image::MakeVolumeView(gpuBaseDataCpy),
+			cuda::gpu_image::MakeVolumeView(gpuGateField),
+			cuda::gpu_image::MakeVolumeView(gpuActivityField),
+			cuda::gpu_image::MakeVolumeView(gpuFilteredData),
+			params,
+			filter_halfsize,
+			outputsPerThread,
+			stream.Get(),
+			profiler,
+			runs
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		output::PrintKernelStats(profiler.GetResults());
+	}
+
+	void LocalMin3dOptWithBlend3dFusedBenchmark() {
+		output::PrintCudaDevice();
+		output::PrintSharedMemStats();
+
+		const image::vec3ui inputDim = { 601, 310, 169 };
+		const image::vec3i filter_halfsize = { 2, 2, 2 };
+		const int outputsPerThread = filter_halfsize.x == 1 ? 9 : 10;
+
+		std::cout << std::endl << "LocalMin3dOptWithBlend3dFused of volume of " << output::FormatVec3d(inputDim) << std::endl;
+		std::cout << std::endl << "filter_halfsize: " << output::FormatVec3d(filter_halfsize) << std::endl;
+
+		const int runs = 100;
+		const int warmUpRuns = 20;
+
+		CudaStream stream;
+		image::CpuVolume<float> baseData = data::GenerateRandomVolume(inputDim);
+		image::CpuVolume<float> gateField = data::GenerateRandomVolume(inputDim);
+		image::CpuVolume<float> activityField = data::GenerateRandomVolume(inputDim);
+
+		const auto gpuBaseData = cuda::gpu_image::Create(baseData, stream.Get());
+		cuda::gpu_image::GpuVolume<float> gpuBaseDataCpy(gpuBaseData.Dim());
+
+		const auto gpuGateField = cuda::gpu_image::Create(gateField, stream.Get());
+		const auto gpuActivityField = cuda::gpu_image::Create(activityField, stream.Get());
+		cuda::gpu_image::GpuVolume<float> gpuFilteredData(gpuBaseData.Dim());
+
+		const auto params = cuda::erode3d::BlendParams{
+			0.4f,  // gateThreshold
+			5.0f,  // gateSlope: keep >= 0
+			0.8f,  // alternateBlendWeight: keep > 0
+			1.2f,  // defaultBlendWeight: keep > 0
+			0.9f   // auxiliaryScale
+		};
+
+		WarmUpLocalMin3dOptWithBlend3dFused(
+			cuda::gpu_image::MakeVolumeView(gpuBaseData),
+			cuda::gpu_image::MakeVolumeView(gpuBaseDataCpy),
+			cuda::gpu_image::MakeVolumeView(gpuGateField),
+			cuda::gpu_image::MakeVolumeView(gpuActivityField),
+			cuda::gpu_image::MakeVolumeView(gpuFilteredData),
+			params,
+			filter_halfsize,
+			outputsPerThread,
+			stream.Get(),
+			warmUpRuns
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		auto profiler = cuda::profile::BasicGpuProfiler();
+		BenchLocalMin3dOptWithBlend3dFusedImpl(
+			cuda::gpu_image::MakeVolumeView(gpuBaseData),
+			cuda::gpu_image::MakeVolumeView(gpuBaseDataCpy),
+			cuda::gpu_image::MakeVolumeView(gpuGateField),
+			cuda::gpu_image::MakeVolumeView(gpuActivityField),
+			cuda::gpu_image::MakeVolumeView(gpuFilteredData),
+			params,
 			filter_halfsize,
 			outputsPerThread,
 			stream.Get(),

@@ -126,6 +126,111 @@ __global__ void BlendOpKernel(
 	WritePitched(baseData, result, x, y, z);
 }
 
+__device__ float BlendSample(
+	float originalSample,
+	float gateSample,
+	float activitySample,
+	float erodedSample,
+	bool gateAlreadyProcessed,
+	const cuda::erode3d::BlendParams& params)
+{
+	if (!gateAlreadyProcessed) {
+		gateSample = expf(-params.gateSlope * fabsf(gateSample - params.gateThreshold));
+	}
+
+	float blend = __saturatef(0.5f * gateSample + 0.5f * activitySample);
+
+	const float blendExponent = gateAlreadyProcessed ? params.alternateBlendWeight : params.defaultBlendWeight;
+	blend = powf(blend, blendExponent);
+
+	float filtered = erodedSample * params.auxiliaryScale;
+	const float mixed = originalSample + blend * (filtered - originalSample);
+
+	return fminf(originalSample, mixed);
+}
+
+__global__  void LocalMin3dFusedHaloWithBlendKernel(
+	image::GpuVolumeView<const float> baseData,
+	image::GpuVolumeView<const float> gateField,
+	image::GpuVolumeView<const float> activityField,
+	image::GpuVolumeView<float> output,
+	image::vec3i filter_halfsize,
+	bool gateAlreadyProcessed,
+	cuda::erode3d::BlendParams params,
+	int3 dim)
+{
+	extern __shared__ float tile[];
+
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+
+	// some y's will be pointing to the halo of particular blockDim
+	int y = blockIdx.y * (blockDim.y - filter_halfsize.y * 2) + int(threadIdx.y) - filter_halfsize.y;
+	int z = blockIdx.z * (blockDim.z - filter_halfsize.z * 2) + int(threadIdx.z) - filter_halfsize.z;
+
+	// x-pass
+	int y_idx = clamp(y, 0, dim.y - 1);
+	int z_idx = clamp(z, 0, dim.z - 1);
+
+	float sampleMin = FLT_MAX;
+	for (int dx = -filter_halfsize.x; dx <= filter_halfsize.x; ++dx) {
+		int x_idx = clamp(x + dx, 0, dim.x - 1);
+
+		const size_t offsetBytesToRow = OffsetToRowPitched(y_idx, z_idx, baseData.m_pitch, baseData.m_slicePitch);
+		const float* row = (const float*)((const char*)baseData.m_ptr + offsetBytesToRow);
+
+		sampleMin = min(sampleMin, row[x_idx]);
+	}
+
+	const int tileIdx = FlatIdx(threadIdx.x, threadIdx.y, threadIdx.z, blockDim.x, blockDim.y);
+	tile[tileIdx] = sampleMin;
+
+	__syncthreads();
+
+	const int threadIdxY = threadIdx.y - filter_halfsize.y;
+	const int blockDimY = blockDim.y - filter_halfsize.y * 2;
+
+	float* xyTile = tile + (blockDim.x * blockDim.y * blockDim.z);
+	const bool processY = threadIdx.y >= filter_halfsize.y && threadIdx.y < blockDim.y - filter_halfsize.y;
+
+	if (processY) {
+		sampleMin = FLT_MAX;
+
+		for (int dy = -filter_halfsize.y; dy <= filter_halfsize.y; ++dy) {
+			const int tileXIdx = FlatIdx(threadIdx.x, threadIdx.y + dy, threadIdx.z, blockDim.x, blockDim.y);
+			sampleMin = min(sampleMin, tile[tileXIdx]);
+		}
+
+		const int tileXYIdx = FlatIdx(threadIdx.x, threadIdxY, threadIdx.z, blockDim.x, blockDimY);
+		xyTile[tileXYIdx] = sampleMin;
+	}
+
+	__syncthreads();
+
+	const bool processZ = processY
+		&& threadIdx.z >= filter_halfsize.z && threadIdx.z < blockDim.z - filter_halfsize.z
+		&& x < dim.x && y < dim.y && z < dim.z;
+
+	if (processZ) {
+		sampleMin = FLT_MAX;
+
+		for (int dz = -filter_halfsize.z; dz <= filter_halfsize.z; ++dz) {
+			const int tileXYIdx = FlatIdx(threadIdx.x, threadIdxY, threadIdx.z + dz, blockDim.x, blockDimY);
+			sampleMin = min(sampleMin, xyTile[tileXYIdx]);
+		}
+
+		float finalSample = BlendSample(
+			ReadPitched(baseData, x, y, z),
+			ReadPitched(gateField, x, y, z),
+			ReadPitched(activityField, x, y, z),
+			sampleMin,
+			gateAlreadyProcessed,
+			params
+		);
+
+		WritePitched(output, finalSample, x, y, z);
+	}
+}
+
 __global__  void LocalMin3dFusedSeparableKernel(
 	const float* __restrict__ input,
 	size_t inPitch,
@@ -621,6 +726,99 @@ __global__  void LocalMin3dSepHaloYMultipleOutputsKernel(
 	}
 }
 
+template <int outputsPerThread>
+__global__  void LocalMin3dSepHaloYMultOutsBlend3dFusedKernel(
+	image::GpuVolumeView<const float> baseData,
+	image::GpuVolumeView<const float> gateField,
+	image::GpuVolumeView<const float> activityField,
+	image::GpuVolumeView<float> output,
+	image::vec3i filter_halfsize,
+	bool gateAlreadyProcessed,
+	cuda::erode3d::BlendParams params,
+	int3 dim)
+{
+	extern __shared__ float xTile[];
+
+	const int outputDepth = blockDim.z * outputsPerThread;
+	const int tileDepth = outputDepth + filter_halfsize.z * 2;
+
+	const int originX = blockIdx.x * blockDim.x;
+	const int originY = blockIdx.y * (blockDim.y - filter_halfsize.y * 2);
+	const int originZ = blockIdx.z * outputDepth;
+
+	for (int tileZ = threadIdx.z; tileZ < tileDepth; tileZ += blockDim.z) {
+		int y = clamp(originY + int(threadIdx.y) - filter_halfsize.y, 0, dim.y - 1);
+		int z = clamp(originZ + tileZ - filter_halfsize.z, 0, dim.z - 1);
+
+		const size_t offsetBytesToRow = OffsetToRowPitched(y, z, baseData.m_pitch, baseData.m_slicePitch);
+		const float* row = (const float*)((const char*)baseData.m_ptr + offsetBytesToRow);
+
+		float sampleMin = FLT_MAX;
+		for (int dx = -filter_halfsize.x; dx <= filter_halfsize.x; ++dx) {
+			const int x = clamp(originX + int(threadIdx.x) + dx, 0, dim.x - 1);
+			sampleMin = fminf(sampleMin, row[x]);
+		}
+
+		const int flatIdx = threadIdx.x + threadIdx.y * blockDim.x + tileZ * (blockDim.x * blockDim.y);
+		xTile[flatIdx] = sampleMin;
+	}
+
+	__syncthreads();
+
+	const int x = originX + int(threadIdx.x);
+	const int y = originY + int(threadIdx.y) - filter_halfsize.y;
+
+	const int firstOutputZ = originZ + int(threadIdx.z) * outputsPerThread;
+	const bool processY = threadIdx.y >= filter_halfsize.y && threadIdx.y < blockDim.y - filter_halfsize.y;
+
+	if (x >= dim.x || y >= dim.y || firstOutputZ >= dim.z || !processY) {
+		return;
+	}
+
+	float zMin[outputsPerThread];
+
+	#pragma unroll
+	for (int i = 0; i < outputsPerThread; ++i) {
+		zMin[i] = FLT_MAX;
+	}
+
+	const int groupFirstTileZ = threadIdx.z * outputsPerThread;
+	for (int dz = -filter_halfsize.z; dz < filter_halfsize.z + outputsPerThread; ++dz) {
+
+		float sampleMin = FLT_MAX;
+		const int tileZ = groupFirstTileZ + dz + filter_halfsize.z;
+
+		for (int dy = -filter_halfsize.y; dy <= filter_halfsize.y; ++dy) {
+			const int flatIdx = FlatIdx(threadIdx.x, threadIdx.y + dy, tileZ, blockDim.x, blockDim.y);
+			sampleMin = fminf(sampleMin, xTile[flatIdx]);
+		}
+
+		for (int j = 0; j < outputsPerThread; j++) {
+			const int relativeZ = j - dz;
+			if (relativeZ >= -filter_halfsize.z && relativeZ <= filter_halfsize.z) {
+				zMin[j] = fminf(zMin[j], sampleMin);
+			}
+		}
+	}
+
+	for (int i = 0; i < outputsPerThread; ++i) {
+		const int outputZ = firstOutputZ + i;
+
+		if (outputZ < dim.z) {
+			float finalSample = BlendSample(
+				ReadPitched(baseData, x, y, outputZ),
+				ReadPitched(gateField, x, y, outputZ),
+				ReadPitched(activityField, x, y, outputZ),
+				zMin[i],
+				gateAlreadyProcessed,
+				params
+			);
+
+			WritePitched(output, finalSample, x, y, outputZ);
+		}
+	}
+}
+
 namespace cuda {
 	namespace detail {
 		bool CanRunFusedKernel(image::vec3ui blockDim, image::vec3ui blockOverlap) {
@@ -633,15 +831,15 @@ namespace cuda {
 			image::vec3ui inputDim,
 			image::vec3ui outputDim,
 			image::vec3ui blockDim,
+			image::vec3ui blockOverlap,
 			image::vec3i filter_halfsize)
 		{
 			if (inputDim != outputDim) {
-				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHalo: input/output dim mismatch");
+				throw std::logic_error("CudaAlgoritms::LocalMin3dSepFusedHalo: input/output dim mismatch");
 			}
 
-			const image::vec3ui blockOverlap{ 0, unsigned int(filter_halfsize.y) * 2, unsigned int(filter_halfsize.z) * 2 };
 			if (!CanRunFusedKernel(blockDim, blockOverlap)) {
-				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHalo: unsupported large filter_halfsize");
+				throw std::logic_error("CudaAlgoritms::LocalMin3dSepFusedHalo: unsupported large filter_halfsize");
 			}
 		}
 
@@ -670,11 +868,10 @@ namespace cuda {
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim)
 		{
-			detail::CheckValidLocalMin3dInput(input.m_dim, output.m_dim, blockDim, filter_halfsize);
-
 			const image::vec3ui blockOverlap{ 0, unsigned int(filter_halfsize.y) * 2, unsigned int(filter_halfsize.z) * 2 };
-			const auto blockDimGrid = image::vec3ui{ blockDim.x, blockDim.y - blockOverlap.y, blockDim.z - blockOverlap.z };
+			detail::CheckValidLocalMin3dInput(input.m_dim, output.m_dim, blockDim, blockOverlap, filter_halfsize);
 
+			const auto blockDimGrid = image::vec3ui{ blockDim.x, blockDim.y - blockOverlap.y, blockDim.z - blockOverlap.z };
 			dim3 gridSize = cuda::math::DivUp(input.m_dim, blockDimGrid);
 
 			const size_t tileSizeX = blockDim.x * blockDim.y * blockDim.z;
@@ -1487,10 +1684,11 @@ namespace cuda {
 			image::vec3ui blockDimLocMin,
 			image::vec3ui blockDimBlend)
 		{
-			detail::CheckValidLocalMin3dInput(baseData.m_dim, filteredData.m_dim, blockDimLocMin, filter_halfsize);
+			const image::vec3ui blockOverlap{ 0, unsigned int(filter_halfsize.y) * 2, unsigned int(filter_halfsize.z) * 2 };
+
+			detail::CheckValidLocalMin3dInput(baseData.m_dim, filteredData.m_dim, blockDimLocMin, blockOverlap, filter_halfsize);
 			detail::CheckValidBlend3dInput(baseData.m_dim, gateField.m_dim, activityField.m_dim, filteredData.m_dim);
 
-			const image::vec3ui blockOverlap{ 0, unsigned int(filter_halfsize.y) * 2, unsigned int(filter_halfsize.z) * 2 };
 			const auto blockDimGridLocMin = image::vec3ui{ blockDimLocMin.x, blockDimLocMin.y - blockOverlap.y, blockDimLocMin.z - blockOverlap.z };
 
 			dim3 gridSizeLocMin = cuda::math::DivUp(baseData.m_dim, blockDimGridLocMin);
@@ -1533,6 +1731,224 @@ namespace cuda {
 
 				cudaCheck(cudaPeekAtLastError());
 			});
+		}
+
+		void LocalMin3dWithBlendOpFusedOld(
+			image::GpuVolumeView<const float> baseData,
+			image::GpuVolumeView<const float> gateField,
+			image::GpuVolumeView<const float> activityField,
+			image::GpuVolumeView<float> output,
+			bool gateAlreadyProcessed,
+			const BlendParams& params,
+			image::vec3i filter_halfsize,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim)
+		{
+			const image::vec3ui blockOverlap {
+				0,
+				unsigned int(filter_halfsize.y) * 2,
+				unsigned int(filter_halfsize.z) * 2
+			};
+
+			detail::CheckValidLocalMin3dInput(baseData.m_dim, output.m_dim, blockDim, blockOverlap, filter_halfsize);
+			detail::CheckValidBlend3dInput(baseData.m_dim, gateField.m_dim, activityField.m_dim, output.m_dim);
+
+			const auto blockDimGrid = image::vec3ui {
+				blockDim.x,
+				blockDim.y - blockOverlap.y,
+				blockDim.z - blockOverlap.z
+			};
+
+			const dim3 gridSize = cuda::math::DivUp(baseData.m_dim, blockDimGrid);
+
+			const size_t tileSizeX = blockDim.x * blockDim.y * blockDim.z;
+			const size_t tileSizeXY = blockDim.x * (blockDim.y - filter_halfsize.y * 2) * blockDim.z;
+
+			const size_t sharedMemSize = (tileSizeX + tileSizeXY) * sizeof(float);
+
+			const int3 dim = {
+				static_cast<int>(baseData.m_dim.x),
+				static_cast<int>(baseData.m_dim.y),
+				static_cast<int>(baseData.m_dim.z),
+			};
+
+			cuda::TimedCall("LocalMin3dFusedHaloWithBlendKernel", ctx, [&]() {
+				LocalMin3dFusedHaloWithBlendKernel <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					baseData,
+					gateField,
+					activityField,
+					output,
+					filter_halfsize,
+					gateAlreadyProcessed,
+					params,
+					dim
+				);
+			});
+		}
+
+		void LocalMin3dOptThenBlendOp(
+			image::GpuVolumeView<float> baseData,
+			image::GpuVolumeView<const float> gateField,
+			image::GpuVolumeView<const float> activityField,
+			image::GpuVolumeView<float> filteredData,
+			bool gateAlreadyProcessed,
+			const BlendParams& params,
+			image::vec3i filter_halfsize,
+			int outputsPerThread,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDimLocMin,
+			image::vec3ui blockDimBlend)
+		{
+			const image::vec3ui blockOverlap{ 0, unsigned int(filter_halfsize.y) * 2, 0 };
+
+			detail::CheckValidLocalMin3dInput(baseData.m_dim, filteredData.m_dim, blockDimLocMin, blockOverlap, filter_halfsize);
+			detail::CheckValidBlend3dInput(baseData.m_dim, gateField.m_dim, activityField.m_dim, filteredData.m_dim);
+
+			if (outputsPerThread < 9 || outputsPerThread > 10) {
+				throw std::logic_error("CudaAlgoritms::LocalMin3dFusedHaloYMultipleOutputs: unsupported or invalid outputsPerThread");
+			}
+
+			const unsigned int depthZ = blockDimLocMin.z * unsigned int(outputsPerThread);
+			const auto blockDimGridLocMin = image::vec3ui{
+				blockDimLocMin.x,
+				blockDimLocMin.y - unsigned int(filter_halfsize.y) * 2,
+				depthZ
+			};
+
+			const dim3 gridSizeLocMin = cuda::math::DivUp(baseData.m_dim, blockDimGridLocMin);
+			const size_t sharedMemSize = blockDimLocMin.x * blockDimLocMin.y * (depthZ + unsigned int(filter_halfsize.z) * 2) * sizeof(float);
+
+			const dim3 gridSizeBlend = cuda::math::DivUp(baseData.m_dim, blockDimBlend);
+
+			const int3 dim = {
+				static_cast<int>(baseData.m_dim.x),
+				static_cast<int>(baseData.m_dim.y),
+				static_cast<int>(baseData.m_dim.z),
+			};
+
+			if (outputsPerThread == 9) {
+				cuda::TimedCall("LocalMin3dOptThenBlend3dKernel<9>", ctx, [&]() {
+					LocalMin3dSepHaloYMultipleOutputsKernel<9> <<<gridSizeLocMin, cuda::math::vecTodim3(blockDimLocMin), sharedMemSize, ctx.stream>>> (
+						baseData.m_ptr,
+						baseData.m_pitch,
+						baseData.m_slicePitch,
+						filteredData.m_ptr,
+						filteredData.m_pitch,
+						filteredData.m_slicePitch,
+						filter_halfsize,
+						dim
+					);
+
+					cudaCheck(cudaPeekAtLastError());
+
+					BlendOpKernel <<<gridSizeBlend, cuda::math::vecTodim3(blockDimBlend), 0, ctx.stream>>> (
+						baseData,
+						gateField,
+						activityField,
+						cuda::gpu_image::ToConstView(filteredData),
+						gateAlreadyProcessed,
+						params,
+						dim
+					);
+
+					cudaCheck(cudaPeekAtLastError());
+				});
+			}
+			else if (outputsPerThread == 10) {
+				cuda::TimedCall("LocalMin3dOptThenBlend3dKernel<10>", ctx, [&]() {
+					LocalMin3dSepHaloYMultipleOutputsKernel<10> <<<gridSizeLocMin, cuda::math::vecTodim3(blockDimLocMin), sharedMemSize, ctx.stream>>> (
+						baseData.m_ptr,
+						baseData.m_pitch,
+						baseData.m_slicePitch,
+						filteredData.m_ptr,
+						filteredData.m_pitch,
+						filteredData.m_slicePitch,
+						filter_halfsize,
+						dim
+						);
+
+					cudaCheck(cudaPeekAtLastError());
+
+					BlendOpKernel <<<gridSizeBlend, cuda::math::vecTodim3(blockDimBlend), 0, ctx.stream>>> (
+						baseData,
+						gateField,
+						activityField,
+						cuda::gpu_image::ToConstView(filteredData),
+						gateAlreadyProcessed,
+						params,
+						dim
+						);
+
+					cudaCheck(cudaPeekAtLastError());
+				});
+			}
+		}
+
+		void LocalMin3dOptWithBlendOpFusedNew(
+			image::GpuVolumeView<const float> baseData,
+			image::GpuVolumeView<const float> gateField,
+			image::GpuVolumeView<const float> activityField,
+			image::GpuVolumeView<float> output,
+			bool gateAlreadyProcessed,
+			const BlendParams& params,
+			image::vec3i filter_halfsize,
+			int outputsPerThread,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim)
+		{
+			const image::vec3ui blockOverlap { 0, unsigned int(filter_halfsize.y) * 2, 0 };
+
+			detail::CheckValidLocalMin3dInput(baseData.m_dim, output.m_dim, blockDim, blockOverlap, filter_halfsize);
+			detail::CheckValidBlend3dInput(baseData.m_dim, gateField.m_dim, activityField.m_dim, output.m_dim);
+
+			if (outputsPerThread < 9 || outputsPerThread > 10) {
+				throw std::logic_error("CudaAlgoritms::LocalMin3dOptWithBlendOpFusedNew: unsupported or invalid outputsPerThread");
+			}
+
+			const unsigned int depthZ = blockDim.z * unsigned int(outputsPerThread);
+			const auto blockDimGrid = image::vec3ui {
+				blockDim.x,
+				blockDim.y - unsigned int(filter_halfsize.y) * 2,
+				depthZ
+			};
+
+			const dim3 gridSize = cuda::math::DivUp(baseData.m_dim, blockDimGrid);
+			const size_t sharedMemSize = blockDim.x * blockDim.y * (depthZ + unsigned int(filter_halfsize.z) * 2) * sizeof(float);
+
+			const int3 dim = {
+				static_cast<int>(baseData.m_dim.x),
+				static_cast<int>(baseData.m_dim.y),
+				static_cast<int>(baseData.m_dim.z),
+			};
+
+			if (outputsPerThread == 9) {
+				cuda::TimedCall("LocalMin3dOptBlend3dFusedKernel<9>", ctx, [&]() {
+					LocalMin3dSepHaloYMultOutsBlend3dFusedKernel<9> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						baseData,
+						gateField,
+						activityField,
+						output,
+						filter_halfsize,
+						gateAlreadyProcessed,
+						params,
+						dim
+					);
+				});
+			}
+			else if (outputsPerThread == 10) {
+				cuda::TimedCall("LocalMin3dOptBlend3dFusedKernel<10>", ctx, [&]() {
+					LocalMin3dSepHaloYMultOutsBlend3dFusedKernel<10> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+						baseData,
+						gateField,
+						activityField,
+						output,
+						filter_halfsize,
+						gateAlreadyProcessed,
+						params,
+						dim
+					);
+				});
+			}
 		}
 	}
 }

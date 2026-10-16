@@ -93,5 +93,44 @@ namespace cuda {
 			image::vec3ui blockDimLocMin,
 			image::vec3ui blockDimBlend
 		);
+
+		void LocalMin3dWithBlendOpFusedOld(
+			image::GpuVolumeView<const float> baseData,
+			image::GpuVolumeView<const float> gateField,
+			image::GpuVolumeView<const float> activityField,
+			image::GpuVolumeView<float> output,
+			bool gateAlreadyProcessed,
+			const BlendParams& params,
+			image::vec3i filter_halfsize,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim
+		);
+
+		void LocalMin3dOptThenBlendOp(
+			image::GpuVolumeView<float> baseData,
+			image::GpuVolumeView<const float> gateField,
+			image::GpuVolumeView<const float> activityField,
+			image::GpuVolumeView<float> filteredData,
+			bool gateAlreadyProcessed,
+			const BlendParams& params,
+			image::vec3i filter_halfsize,
+			int outputsPerThread,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDimLocMin,
+			image::vec3ui blockDimBlend
+		);
+
+		void LocalMin3dOptWithBlendOpFusedNew(
+			image::GpuVolumeView<const float> baseData,
+			image::GpuVolumeView<const float> gateField,
+			image::GpuVolumeView<const float> activityField,
+			image::GpuVolumeView<float> output,
+			bool gateAlreadyProcessed,
+			const BlendParams& params,
+			image::vec3i filter_halfsize,
+			int outputsPerThread,
+			cuda::KernelContext ctx,
+			image::vec3ui blockDim
+		);
 	}
 }
