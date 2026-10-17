@@ -28,6 +28,18 @@ namespace {
 		return tileWidth * tileHeight * tileDepth * sizeof(float);
 	}
 
+	size_t CalcSeparableBatchSharedMemSize(
+		image::vec3ui blockDim,
+		image::vec3i filter_halfsize,
+		unsigned int planesPerBatch)
+	{
+		const size_t tileWidth = blockDim.x;
+		const size_t tileHeight = blockDim.y + size_t(filter_halfsize.y) * 2;
+		const size_t tileDepth = planesPerBatch;
+
+		return tileWidth * tileHeight * tileDepth * sizeof(float);
+	}
+
 	std::string MakeSessionLabel(image::vec3ui blockDim, image::vec3i filter_halfsize) {
 		return bench::output::FormatVec3d(blockDim) + " " + std::to_string(CalcSharedMemSize(blockDim, filter_halfsize));
 	}
@@ -223,7 +235,7 @@ namespace {
 		memory::GpuSpan<const float> weightsZ,
 		image::GpuVolumeView<float> output,
 		image::vec3i filter_halfsize,
-		int numOutputs,
+		int outputsPerThread,
 		cuda::KernelContext ctx,
 		int warmUpRuns)
 	{
@@ -235,9 +247,10 @@ namespace {
 				weightsZ,
 				output,
 				filter_halfsize,
-				numOutputs,
+				outputsPerThread,
 				ctx,
-				{ 8, 8, 1 });
+				{ 8, 8, 1 }
+			);
 		}
 	}
 
@@ -248,7 +261,7 @@ namespace {
 		memory::GpuSpan<const float> weightsZ,
 		image::GpuVolumeView<float> output,
 		image::vec3i filter_halfsize,
-		int numOutputs,
+		int outputsPerThread,
 		const CudaStream& stream,
 		cuda::profile::BasicGpuProfiler& profiler,
 		int numRuns)
@@ -298,9 +311,106 @@ namespace {
 						weightsZ,
 						output,
 						filter_halfsize,
-						numOutputs,
+						outputsPerThread,
 						kernelCtx,
-						blockDim);
+						blockDim
+					);
+				}
+			}
+		}
+	}
+
+	void WarmUpFusedSepMultOutsPlanesBatch(
+		image::GpuVolumeView<const float> input,
+		memory::GpuSpan<const float> weightsX,
+		memory::GpuSpan<const float> weightsY,
+		memory::GpuSpan<const float> weightsZ,
+		image::GpuVolumeView<float> output,
+		image::vec3i filter_halfsize,
+		int outputsPerThread,
+		int planesPerBatch,
+		cuda::KernelContext ctx,
+		int warmUpRuns)
+	{
+		for (int i = 0; i < warmUpRuns; ++i) {
+			cuda::conv3d::Conv3dFusedSeparableMultipleOutputs(
+				input,
+				weightsX,
+				weightsY,
+				weightsZ,
+				output,
+				filter_halfsize,
+				outputsPerThread,
+				planesPerBatch,
+				ctx,
+				{ 8, 8, 1 }
+			);
+		}
+	}
+
+	void BenchFusedSepMultOutsPlanesBatchImpl(
+		image::GpuVolumeView<const float> input,
+		memory::GpuSpan<const float> weightsX,
+		memory::GpuSpan<const float> weightsY,
+		memory::GpuSpan<const float> weightsZ,
+		image::GpuVolumeView<float> output,
+		image::vec3i filter_halfsize,
+		int outputsPerThread,
+		int planesPerBatch,
+		const CudaStream& stream,
+		cuda::profile::BasicGpuProfiler& profiler,
+		int numRuns)
+	{
+		const std::vector<image::vec3ui> blockDims {
+			// 64 threads
+			{  8,  8, 1 },
+			{ 16,  4, 1 },
+			{ 32,  2, 1 },
+
+			// 128 threads
+			{  8, 16, 1 },
+			{ 16,  8, 1 },
+			{ 32,  4, 1 },
+			{ 64,  2, 1 },
+
+			// 256 threads
+			{  8, 32, 1 },
+			{ 16, 16, 1 },
+			{ 32,  8, 1 },
+			{ 64,  4, 1 },
+
+			// 512 threads
+			{ 16, 32, 1 },
+			{ 32, 16, 1 },
+			{ 64,  8, 1 },
+
+			// 1024 threads
+			{ 16, 64, 1 },
+			{ 32, 32, 1 },
+			{ 64, 16, 1 },
+			{ 128, 8, 1 }
+		};
+
+		for (const auto& blockDim : blockDims)
+		{
+			// scoped session profile
+			{
+				auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, filter_halfsize));
+				auto kernelCtx = cuda::KernelContext{ stream.Get(), &session };
+
+				for (int i = 0; i < numRuns; ++i) {
+					cuda::conv3d::Conv3dFusedSeparableMultipleOutputs(
+						input,
+						weightsX,
+						weightsY,
+						weightsZ,
+						output,
+						filter_halfsize,
+						outputsPerThread,
+						planesPerBatch,
+						kernelCtx,
+						blockDim
+					);
 				}
 			}
 		}
@@ -570,7 +680,7 @@ namespace bench {
 		bench::output::PrintKernelStats(profiler.GetResults());
 	}
 
-	void Conv3dFusedSeparableMultipleOutputsBench(int numOutputs) {
+	void Conv3dFusedSeparableMultipleOutputsBench(int outputsPerThread) {
 		CudaStream stream;
 
 		auto dummyProfiler = bench::NullProfiler();
@@ -590,7 +700,6 @@ namespace bench {
 
 		std::cout << std::endl << "Conv3dFusedSeparableMultipleOutputs of volume of " << bench::output::FormatVec3d(inputDim) << std::endl;
 		std::cout << "filter_halfsize: " << bench::output::FormatVec3d(filter_halfsize) << std::endl;
-		std::cout << "numOutputs: " << numOutputs << std::endl;
 
 		const int runs = 100;
 		const int warmUpRuns = 20;
@@ -609,12 +718,109 @@ namespace bench {
 		const auto weightsY_span = cuda::gpu_buffer::MakeSpan(weightsY_buf);
 		const auto weightsZ_span = cuda::gpu_buffer::MakeSpan(weightsZ_buf);
 
-		WarmUpFusedSeparableMultipleOutputs(input_view, weightsX_span, weightsY_span, weightsZ_span, output_view, filter_halfsize, numOutputs, ctxNoProfile, warmUpRuns);
+		WarmUpFusedSeparableMultipleOutputs(
+			input_view,
+			weightsX_span,
+			weightsY_span,
+			weightsZ_span,
+			output_view,
+			filter_halfsize,
+			outputsPerThread,
+			ctxNoProfile,
+			warmUpRuns
+		);
+
 		cudaCheck(cudaStreamSynchronize(stream.Get()));
 
 		auto profiler = cuda::profile::BasicGpuProfiler();
 
-		BenchFusedSeparableMultipleOutputsImpl(input_view, weightsX_span, weightsY_span, weightsZ_span, output_view, filter_halfsize, numOutputs, stream, profiler, runs);
+		BenchFusedSeparableMultipleOutputsImpl(
+			input_view,
+			weightsX_span,
+			weightsY_span,
+			weightsZ_span,
+			output_view,
+			filter_halfsize,
+			outputsPerThread,
+			stream,
+			profiler,
+			runs
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		bench::output::PrintKernelStats(profiler.GetResults());
+	}
+
+	void Conv3dFusedSeparableMultipleOutputsBench(int outputsPerThread, int planesPerBatch) {
+		CudaStream stream;
+
+		auto dummyProfiler = bench::NullProfiler();
+		auto ctxNoProfile = cuda::KernelContext{ stream.Get(), &dummyProfiler };
+
+		image::vec3ui inputDim = { 601, 310, 169 };
+		image::CpuVolume<float> input = bench::data::GenerateRandomVolume(inputDim);
+
+		image::vec3i filter_halfsize = { 7, 5, 3 };
+
+		std::vector<float> weightsX = bench::data::GenerateRandomWeights(filter_halfsize.x);
+		std::vector<float> weightsY = bench::data::GenerateRandomWeights(filter_halfsize.y);
+		std::vector<float> weightsZ = bench::data::GenerateRandomWeights(filter_halfsize.z);
+
+		bench::output::PrintCudaDevice();
+		bench::output::PrintSharedMemStats();
+
+		std::cout << std::endl << "Conv3dFusedSepMultOutsPlanesBatch of volume of " << bench::output::FormatVec3d(inputDim) << std::endl;
+		std::cout << "filter_halfsize: " << bench::output::FormatVec3d(filter_halfsize) << std::endl;
+
+		const int runs = 100;
+		const int warmUpRuns = 20;
+
+		const auto input_gpu = cuda::gpu_image::Create(input, stream.Get());
+		cuda::gpu_image::GpuVolume<float> output(input_gpu.Dim());
+
+		const auto weightsX_buf = cuda::gpu_buffer::Upload(weightsX, stream.Get());
+		const auto weightsY_buf = cuda::gpu_buffer::Upload(weightsY, stream.Get());
+		const auto weightsZ_buf = cuda::gpu_buffer::Upload(weightsZ, stream.Get());
+
+		const auto input_view = cuda::gpu_image::MakeVolumeView(input_gpu);
+		auto output_view = cuda::gpu_image::MakeVolumeView(output);
+
+		const auto weightsX_span = cuda::gpu_buffer::MakeSpan(weightsX_buf);
+		const auto weightsY_span = cuda::gpu_buffer::MakeSpan(weightsY_buf);
+		const auto weightsZ_span = cuda::gpu_buffer::MakeSpan(weightsZ_buf);
+
+		WarmUpFusedSepMultOutsPlanesBatch(
+			input_view,
+			weightsX_span,
+			weightsY_span,
+			weightsZ_span,
+			output_view,
+			filter_halfsize,
+			outputsPerThread,
+			planesPerBatch,
+			ctxNoProfile,
+			warmUpRuns
+		);
+
+		cudaCheck(cudaStreamSynchronize(stream.Get()));
+
+		auto profiler = cuda::profile::BasicGpuProfiler();
+
+		BenchFusedSepMultOutsPlanesBatchImpl(
+			input_view,
+			weightsX_span,
+			weightsY_span,
+			weightsZ_span,
+			output_view,
+			filter_halfsize,
+			outputsPerThread,
+			planesPerBatch,
+			stream,
+			profiler,
+			runs
+		);
+
 		cudaCheck(cudaStreamSynchronize(stream.Get()));
 
 		bench::output::PrintKernelStats(profiler.GetResults());
