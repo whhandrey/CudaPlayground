@@ -639,7 +639,7 @@ __global__  void LocalMin3dSepFusedMultipleOutputsV2Kernel(
 	}
 }
 
-template <int outputsPerThread>
+template <int outputsPerThread, int radiusX, int radiusY, int radiusZ>
 __global__  void LocalMin3dSepHaloYMultipleOutputsKernel(
 	const float* __restrict__ input,
 	size_t inPitch,
@@ -647,27 +647,26 @@ __global__  void LocalMin3dSepHaloYMultipleOutputsKernel(
 	float* __restrict__ output,
 	size_t outPitch,
 	size_t outSlicePitch,
-	image::vec3i filter_halfsize,
 	int3 dim)
 {
 	extern __shared__ float xTile[];
 
 	const int outputDepth = blockDim.z * outputsPerThread;
-	const int tileDepth = outputDepth + filter_halfsize.z * 2;
+	const int tileDepth = outputDepth + radiusZ * 2;
 
 	const int originX = blockIdx.x * blockDim.x;
-	const int originY = blockIdx.y * (blockDim.y - filter_halfsize.y * 2);
+	const int originY = blockIdx.y * (blockDim.y - radiusY * 2);
 	const int originZ = blockIdx.z * outputDepth;
 
 	for (int tileZ = threadIdx.z; tileZ < tileDepth; tileZ += blockDim.z) {
-		int y = clamp(originY + int(threadIdx.y) - filter_halfsize.y, 0, dim.y - 1);
-		int z = clamp(originZ + tileZ - filter_halfsize.z, 0, dim.z - 1);
+		int y = clamp(originY + int(threadIdx.y) - radiusY, 0, dim.y - 1);
+		int z = clamp(originZ + tileZ - radiusZ, 0, dim.z - 1);
 
 		const size_t offsetBytesToRow = OffsetToRowPitched(y, z, inPitch, inSlicePitch);
 		const float* row = (const float*)((const char*)input + offsetBytesToRow);
 
 		float sampleMin = FLT_MAX;
-		for (int dx = -filter_halfsize.x; dx <= filter_halfsize.x; ++dx) {
+		for (int dx = -radiusX; dx <= radiusX; ++dx) {
 			const int x = clamp(originX + int(threadIdx.x) + dx, 0, dim.x - 1);
 			sampleMin = fminf(sampleMin, row[x]);
 		}
@@ -679,10 +678,10 @@ __global__  void LocalMin3dSepHaloYMultipleOutputsKernel(
 	__syncthreads();
 
 	const int x = originX + int(threadIdx.x);
-	const int y = originY + int(threadIdx.y) - filter_halfsize.y;
+	const int y = originY + int(threadIdx.y) - radiusY;
 
 	const int firstOutputZ = originZ + int(threadIdx.z) * outputsPerThread;
-	const bool processY = threadIdx.y >= filter_halfsize.y && threadIdx.y < blockDim.y - filter_halfsize.y;
+	const bool processY = threadIdx.y >= radiusY && threadIdx.y < blockDim.y - radiusY;
 
 	if (x >= dim.x || y >= dim.y || firstOutputZ >= dim.z || !processY) {
 		return;
@@ -696,19 +695,19 @@ __global__  void LocalMin3dSepHaloYMultipleOutputsKernel(
 	}
 	
 	const int groupFirstTileZ = threadIdx.z * outputsPerThread;
-	for (int dz = -filter_halfsize.z; dz < filter_halfsize.z + outputsPerThread; ++dz) {
+	for (int dz = -radiusZ; dz < radiusZ + outputsPerThread; ++dz) {
 
 		float sampleMin = FLT_MAX;
-		const int tileZ = groupFirstTileZ + dz + filter_halfsize.z;
+		const int tileZ = groupFirstTileZ + dz + radiusZ;
 
-		for (int dy = -filter_halfsize.y; dy <= filter_halfsize.y; ++dy) {
+		for (int dy = -radiusY; dy <= radiusY; ++dy) {
 			const int flatIdx = FlatIdx(threadIdx.x, threadIdx.y + dy, tileZ, blockDim.x, blockDim.y);
 			sampleMin = fminf(sampleMin, xTile[flatIdx]);
 		}
 
 		for (int j = 0; j < outputsPerThread; j++) {
 			const int relativeZ = j - dz;
-			if (relativeZ >= -filter_halfsize.z && relativeZ <= filter_halfsize.z) {
+			if (relativeZ >= -radiusZ && relativeZ <= radiusZ) {
 				zMin[j] = fminf(zMin[j], sampleMin);
 			}
 		}
@@ -1499,140 +1498,130 @@ namespace cuda {
 
 			if (outputsPerThread == 1) {
 				cuda::TimedCall("LocalMin3dSepHaloYMultOutsKernel<1>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<1, 1, 1, 1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
 						output.m_ptr,
 						output.m_pitch,
 						output.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 				});
 			}
 			else if (outputsPerThread == 2) {
 				cuda::TimedCall("LocalMin3dSepHaloYMultOutsKernel<2>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<2> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<2, 1, 1, 1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
 						output.m_ptr,
 						output.m_pitch,
 						output.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 				});
 			}
 			else if (outputsPerThread == 3) {
 				cuda::TimedCall("LocalMin3dSepHaloYMultOutsKernel<3>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<3> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<3, 1, 1, 1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
 						output.m_ptr,
 						output.m_pitch,
 						output.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 				});
 			}
 			else if (outputsPerThread == 4) {
 				cuda::TimedCall("LocalMin3dSepHaloYMultOutsKernel<4>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<4> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<4, 1, 1, 1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
 						output.m_ptr,
 						output.m_pitch,
 						output.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 				});
 			}
 			else if (outputsPerThread == 5) {
 				cuda::TimedCall("LocalMin3dSepHaloYMultOutsKernel<5>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<5> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<5, 1, 1, 1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
 						output.m_ptr,
 						output.m_pitch,
 						output.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 				});
 			}
 			else if (outputsPerThread == 6) {
 				cuda::TimedCall("LocalMin3dSepHaloYMultOutsKernel<6>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<6> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<6, 1, 1, 1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
 						output.m_ptr,
 						output.m_pitch,
 						output.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 				});
 			}
 			else if (outputsPerThread == 7) {
 				cuda::TimedCall("LocalMin3dSepHaloYMultOutsKernel<7>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<7> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<7, 1, 1, 1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
 						output.m_ptr,
 						output.m_pitch,
 						output.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 				});
 			}
 			else if (outputsPerThread == 8) {
 				cuda::TimedCall("LocalMin3dSepHaloYMultOutsKernel<8>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<8> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<8, 1, 1, 1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
 						output.m_ptr,
 						output.m_pitch,
 						output.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 				});
 			}
 			else if (outputsPerThread == 9) {
 				cuda::TimedCall("LocalMin3dSepHaloYMultOutsKernel<9>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<9> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<9, 2, 2, 2> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
 						output.m_ptr,
 						output.m_pitch,
 						output.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 				});
 			}
 			else if (outputsPerThread == 10) {
 				cuda::TimedCall("LocalMin3dSepHaloYMultOutsKernel<10>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<10> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<10, 2, 2, 2> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						input.m_ptr,
 						input.m_pitch,
 						input.m_slicePitch,
 						output.m_ptr,
 						output.m_pitch,
 						output.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 				});
@@ -1828,14 +1817,13 @@ namespace cuda {
 
 			if (outputsPerThread == 9) {
 				cuda::TimedCall("LocalMin3dOptThenBlend3dKernel<9>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<9> <<<gridSizeLocMin, cuda::math::vecTodim3(blockDimLocMin), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<9, 1, 1, 1> <<<gridSizeLocMin, cuda::math::vecTodim3(blockDimLocMin), sharedMemSize, ctx.stream>>> (
 						baseData.m_ptr,
 						baseData.m_pitch,
 						baseData.m_slicePitch,
 						filteredData.m_ptr,
 						filteredData.m_pitch,
 						filteredData.m_slicePitch,
-						filter_halfsize,
 						dim
 					);
 
@@ -1856,16 +1844,15 @@ namespace cuda {
 			}
 			else if (outputsPerThread == 10) {
 				cuda::TimedCall("LocalMin3dOptThenBlend3dKernel<10>", ctx, [&]() {
-					LocalMin3dSepHaloYMultipleOutputsKernel<10> <<<gridSizeLocMin, cuda::math::vecTodim3(blockDimLocMin), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultipleOutputsKernel<10, 1, 1, 1> <<<gridSizeLocMin, cuda::math::vecTodim3(blockDimLocMin), sharedMemSize, ctx.stream>>> (
 						baseData.m_ptr,
 						baseData.m_pitch,
 						baseData.m_slicePitch,
 						filteredData.m_ptr,
 						filteredData.m_pitch,
 						filteredData.m_slicePitch,
-						filter_halfsize,
 						dim
-						);
+					);
 
 					cudaCheck(cudaPeekAtLastError());
 
@@ -1877,7 +1864,7 @@ namespace cuda {
 						gateAlreadyProcessed,
 						params,
 						dim
-						);
+					);
 
 					cudaCheck(cudaPeekAtLastError());
 				});

@@ -175,7 +175,7 @@ namespace {
 		int warmUpRuns)
 	{
 		for (int i = 0; i < warmUpRuns; ++i) {
-			cuda::conv3d::Conv3dFusedSeparable(input, weightsX, weightsY, weightsZ, output, filter_halfsize, ctx, { 8, 8, 8 });
+			cuda::conv3d::Conv3dFusedSeparable(input, weightsX, weightsY, weightsZ, output, filter_halfsize, ctx, { 8, 8, 1 });
 		}
 	}
 

@@ -1472,7 +1472,7 @@ namespace bench::localmin_blending3d {
 		output::PrintSharedMemStats();
 
 		const image::vec3ui inputDim = { 601, 310, 169 };
-		const image::vec3i filter_halfsize = { 13, 3, 3 };
+		const image::vec3i filter_halfsize = { 1, 1, 1 };
 
 		std::cout << std::endl << "LocalMin3dFusedSepMultipleOutputsV2 of volume of " << output::FormatVec3d(inputDim) << std::endl;
 		std::cout << "filter_halfsize: " << output::FormatVec3d(filter_halfsize) << std::endl;
@@ -1523,7 +1523,7 @@ namespace bench::localmin_blending3d {
 		output::PrintSharedMemStats();
 
 		const image::vec3ui inputDim = { 601, 310, 169 };
-		const image::vec3i filter_halfsize = { 1, 1, 1 };
+		const image::vec3i filter_halfsize = { 2, 2, 2 };
 
 		std::cout << std::endl << "LocalMin3dFusedHaloYMultipleOutputs of volume of " << output::FormatVec3d(inputDim) << std::endl;
 		std::cout << "filter_halfsize: " << output::FormatVec3d(filter_halfsize) << std::endl;
