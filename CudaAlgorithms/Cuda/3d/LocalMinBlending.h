@@ -64,9 +64,7 @@ namespace cuda {
 			float gateThreshold;
 			float gateSlope;
 
-			float alternateBlendWeight;
-			float defaultBlendWeight;
-
+			float blendWeight;
 			float auxiliaryScale;
 		};
 
@@ -75,7 +73,6 @@ namespace cuda {
 			image::GpuVolumeView<const float> gateField,
 			image::GpuVolumeView<const float> activityField,
 			image::GpuVolumeView<const float> filteredData,
-			bool gateAlreadyProcessed,
 			const BlendParams& params,
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim = { 8, 8, 8 }
@@ -86,7 +83,6 @@ namespace cuda {
 			image::GpuVolumeView<const float> gateField,
 			image::GpuVolumeView<const float> activityField,
 			image::GpuVolumeView<float> filteredData,
-			bool gateAlreadyProcessed,
 			const BlendParams& params,
 			image::vec3i filter_halfsize,
 			cuda::KernelContext ctx,
@@ -99,7 +95,6 @@ namespace cuda {
 			image::GpuVolumeView<const float> gateField,
 			image::GpuVolumeView<const float> activityField,
 			image::GpuVolumeView<float> output,
-			bool gateAlreadyProcessed,
 			const BlendParams& params,
 			image::vec3i filter_halfsize,
 			cuda::KernelContext ctx,
@@ -111,7 +106,6 @@ namespace cuda {
 			image::GpuVolumeView<const float> gateField,
 			image::GpuVolumeView<const float> activityField,
 			image::GpuVolumeView<float> filteredData,
-			bool gateAlreadyProcessed,
 			const BlendParams& params,
 			image::vec3i filter_halfsize,
 			int outputsPerThread,
@@ -125,10 +119,10 @@ namespace cuda {
 			image::GpuVolumeView<const float> gateField,
 			image::GpuVolumeView<const float> activityField,
 			image::GpuVolumeView<float> output,
-			bool gateAlreadyProcessed,
 			const BlendParams& params,
 			image::vec3i filter_halfsize,
 			int outputsPerThread,
+			bool runLog10,
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim
 		);

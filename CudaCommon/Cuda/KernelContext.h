@@ -8,4 +8,11 @@ namespace cuda {
 		cudaStream_t stream;
 		profile::IGpuProfiler* profiler;
 	};
+
+	inline KernelContext ContextWithoutProfiling(const KernelContext& ctx) {
+		return {
+			ctx.stream,
+			nullptr
+		};
+	}
 }

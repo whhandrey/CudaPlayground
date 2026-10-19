@@ -173,7 +173,6 @@ namespace {
 		image::GpuVolumeView<const float> gateField,
 		image::GpuVolumeView<const float> activityField,
 		image::GpuVolumeView<const float> filteredData,
-		bool gateAlreadyProcessed,
 		const cuda::erode3d::BlendParams& params,
 		cudaStream_t stream,
 		int warmUpRuns)
@@ -187,7 +186,6 @@ namespace {
 				gateField,
 				activityField,
 				filteredData,
-				gateAlreadyProcessed,
 				params,
 				ctxNoProfile,
 				{ 8, 8, 4 }
@@ -200,7 +198,6 @@ namespace {
 		image::GpuVolumeView<const float> gateField,
 		image::GpuVolumeView<const float> activityField,
 		image::GpuVolumeView<const float> filteredData,
-		bool gateAlreadyProcessed,
 		const cuda::erode3d::BlendParams& params,
 		cudaStream_t stream,
 		cuda::profile::BasicGpuProfiler& profiler,
@@ -221,7 +218,6 @@ namespace {
 						gateField,
 						activityField,
 						filteredData,
-						gateAlreadyProcessed,
 						params,
 						kernelCtx,
 						blockDim
@@ -360,7 +356,6 @@ namespace {
 		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
 
 		for (int i = 0; i < warmUpRuns; ++i) {
-			bool gateAlreadyProcessed = false;
 			cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
 
 			for (int i = 0; i < 2; ++i) {
@@ -369,15 +364,12 @@ namespace {
 					gateField,
 					activityField,
 					filteredData,
-					gateAlreadyProcessed,
 					params,
 					filter_halfsize,
 					ctxNoProfile,
 					{ 8, 8, 8 },
 					{ 8, 8, 4 }
 				);
-
-				gateAlreadyProcessed = true;
 			}
 		}
 	}
@@ -431,7 +423,6 @@ namespace {
 					auto session = profiler.CreateSession("benchmark", MakeCombinedSessionLabel(blockDimLocMin, blockDimBlend));
 					auto kernelCtx = cuda::KernelContext{ stream, &session };
 
-					bool gateAlreadyProcessed = false;
 					cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
 
 					for (int i = 0; i < numRuns; ++i) {
@@ -440,7 +431,6 @@ namespace {
 							gateField,
 							activityField,
 							filteredData,
-							gateAlreadyProcessed,
 							params,
 							filter_halfsize,
 							kernelCtx,
@@ -468,7 +458,6 @@ namespace {
 		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
 
 		for (int i = 0; i < warmUpRuns; ++i) {
-			bool gateAlreadyProcessed = false;
 			cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
 
 			for (int i = 0; i < 2; ++i) {
@@ -477,14 +466,11 @@ namespace {
 					gateField,
 					activityField,
 					output,
-					gateAlreadyProcessed,
 					params,
 					filter_halfsize,
 					ctxNoProfile,
 					{ 8, 8, 8 }
 				);
-
-				gateAlreadyProcessed = true;
 			}
 		}
 	}
@@ -510,7 +496,6 @@ namespace {
 				auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, 0));
 				auto kernelCtx = cuda::KernelContext{ stream, &session };
 
-				bool gateAlreadyProcessed = false;
 				cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
 
 				for (int i = 0; i < numRuns; ++i) {
@@ -519,7 +504,6 @@ namespace {
 						gateField,
 						activityField,
 						output,
-						gateAlreadyProcessed,
 						params,
 						filter_halfsize,
 						kernelCtx,
@@ -869,7 +853,6 @@ namespace {
 		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
 
 		for (int i = 0; i < warmUpRuns; ++i) {
-			bool gateAlreadyProcessed = false;
 			cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
 
 			for (int i = 0; i < 2; ++i) {
@@ -878,7 +861,6 @@ namespace {
 					gateField,
 					activityField,
 					filteredData,
-					gateAlreadyProcessed,
 					params,
 					filter_halfsize,
 					outputsPerThread,
@@ -886,8 +868,6 @@ namespace {
 					{ 8, 8, 8 },
 					{ 8, 8, 4 }
 				);
-
-				gateAlreadyProcessed = true;
 			}
 		}
 	}
@@ -942,7 +922,6 @@ namespace {
 					auto session = profiler.CreateSession("benchmark", MakeCombinedSessionLabel(blockDimLocMin, blockDimBlend));
 					auto kernelCtx = cuda::KernelContext{ stream, &session };
 
-					bool gateAlreadyProcessed = false;
 					cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
 
 					for (int i = 0; i < numRuns; ++i) {
@@ -951,7 +930,6 @@ namespace {
 							gateField,
 							activityField,
 							filteredData,
-							gateAlreadyProcessed,
 							params,
 							filter_halfsize,
 							outputsPerThread,
@@ -981,7 +959,6 @@ namespace {
 		auto ctxNoProfile = cuda::KernelContext{ stream, &dummyProfiler };
 
 		for (int i = 0; i < warmUpRuns; ++i) {
-			bool gateAlreadyProcessed = false;
 			cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
 
 			for (int i = 0; i < 2; ++i) {
@@ -990,15 +967,13 @@ namespace {
 					gateField,
 					activityField,
 					output,
-					gateAlreadyProcessed,
 					params,
 					filter_halfsize,
 					outputsPerThread,
+					false,
 					ctxNoProfile,
 					{ 8, 8, 8 }
 				);
-
-				gateAlreadyProcessed = true;
 			}
 		}
 	}
@@ -1048,7 +1023,6 @@ namespace {
 				auto session = profiler.CreateSession("benchmark", MakeSessionLabel(blockDim, 0));
 				auto kernelCtx = cuda::KernelContext{ stream, &session };
 
-				bool gateAlreadyProcessed = false;
 				cuda::gpu_image::CopyVolumeAsync(baseData, baseDataCpy, stream);
 
 				try {
@@ -1058,10 +1032,10 @@ namespace {
 							gateField,
 							activityField,
 							output,
-							gateAlreadyProcessed,
 							params,
 							filter_halfsize,
 							outputsPerThread,
+							false,
 							kernelCtx,
 							blockDim
 						);
@@ -1100,19 +1074,15 @@ namespace bench::localmin_blending3d {
 		const auto params = cuda::erode3d::BlendParams {
 			0.4f,  // gateThreshold
 			5.0f,  // gateSlope: keep >= 0
-			0.8f,  // alternateBlendWeight: keep > 0
-			1.2f,  // defaultBlendWeight: keep > 0
+			1.2f,  // blendWeight: keep > 0
 			0.9f   // auxiliaryScale
 		};
-
-		bool gateAlreadyProcessed = false;
 
 		WarmUpBlending3d(
 			cuda::gpu_image::MakeVolumeView(gpuBaseData),
 			cuda::gpu_image::MakeVolumeView(gpuGateField),
 			cuda::gpu_image::MakeVolumeView(gpuActivityField),
 			cuda::gpu_image::MakeVolumeView(gpuFilteredData),
-			gateAlreadyProcessed,
 			params,
 			stream.Get(),
 			warmUpRuns
@@ -1129,14 +1099,11 @@ namespace bench::localmin_blending3d {
 				cuda::gpu_image::MakeVolumeView(gpuGateField),
 				cuda::gpu_image::MakeVolumeView(gpuActivityField),
 				cuda::gpu_image::MakeVolumeView(gpuFilteredData),
-				gateAlreadyProcessed,
 				params,
 				stream.Get(),
 				profiler,
 				runs
 			);
-
-			gateAlreadyProcessed = true;
 		}
 
 		cudaCheck(cudaStreamSynchronize(stream.Get()));
@@ -1217,8 +1184,7 @@ namespace bench::localmin_blending3d {
 			0.4f,  // gateThreshold
 			5.0f,  // gateSlope: keep >= 0
 			0.8f,  // alternateBlendWeight: keep > 0
-			1.2f,  // defaultBlendWeight: keep > 0
-			0.9f   // auxiliaryScale
+			1.2f,  // blendWeight: keep > 0
 		};
 
 		WarmUpLocalMin3dAndBlending(
@@ -1282,8 +1248,7 @@ namespace bench::localmin_blending3d {
 		const auto params = cuda::erode3d::BlendParams {
 			0.4f,  // gateThreshold
 			5.0f,  // gateSlope: keep >= 0
-			0.8f,  // alternateBlendWeight: keep > 0
-			1.2f,  // defaultBlendWeight: keep > 0
+			1.2f,  // blendWeight: keep > 0
 			0.9f   // auxiliaryScale
 		};
 
@@ -1598,8 +1563,7 @@ namespace bench::localmin_blending3d {
 		const auto params = cuda::erode3d::BlendParams{
 			0.4f,  // gateThreshold
 			5.0f,  // gateSlope: keep >= 0
-			0.8f,  // alternateBlendWeight: keep > 0
-			1.2f,  // defaultBlendWeight: keep > 0
+			1.2f,  // blendWeight: keep > 0
 			0.9f   // auxiliaryScale
 		};
 
@@ -1664,11 +1628,10 @@ namespace bench::localmin_blending3d {
 		const auto gpuActivityField = cuda::gpu_image::Create(activityField, stream.Get());
 		cuda::gpu_image::GpuVolume<float> gpuFilteredData(gpuBaseData.Dim());
 
-		const auto params = cuda::erode3d::BlendParams{
+		const auto params = cuda::erode3d::BlendParams {
 			0.4f,  // gateThreshold
 			5.0f,  // gateSlope: keep >= 0
-			0.8f,  // alternateBlendWeight: keep > 0
-			1.2f,  // defaultBlendWeight: keep > 0
+			1.2f,  // blendWeight: keep > 0
 			0.9f   // auxiliaryScale
 		};
 

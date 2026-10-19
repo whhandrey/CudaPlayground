@@ -93,7 +93,6 @@ __global__ void BlendOpKernel(
 	image::GpuVolumeView<const float> gateField,
 	image::GpuVolumeView<const float> activityField,
 	image::GpuVolumeView<const float> filteredData,
-	bool gateAlreadyProcessed,
 	cuda::erode3d::BlendParams params,
 	int3 dim)
 {
@@ -105,17 +104,13 @@ __global__ void BlendOpKernel(
 		return;
 	}
 
-	float gate = ReadPitched(gateField, x, y, z);
 	const float activity = ReadPitched(activityField, x, y, z);
 
-	if (!gateAlreadyProcessed) {
-		gate = expf(-params.gateSlope * fabsf(gate - params.gateThreshold));
-	}
+	float gate = ReadPitched(gateField, x, y, z);
+	gate = expf(-params.gateSlope * fabsf(gate - params.gateThreshold));
 
 	float blend = __saturatef(0.5f * gate + 0.5f * activity);
-
-	const float blendExponent = gateAlreadyProcessed ? params.alternateBlendWeight : params.defaultBlendWeight;
-	blend = powf(blend, blendExponent);
+	blend = powf(blend, params.blendWeight);
 
 	float filtered = ReadPitched(filteredData, x, y, z) * params.auxiliaryScale;
 
@@ -131,17 +126,12 @@ __device__ float BlendSample(
 	float gateSample,
 	float activitySample,
 	float erodedSample,
-	bool gateAlreadyProcessed,
 	const cuda::erode3d::BlendParams& params)
 {
-	if (!gateAlreadyProcessed) {
-		gateSample = expf(-params.gateSlope * fabsf(gateSample - params.gateThreshold));
-	}
+	gateSample = expf(-params.gateSlope * fabsf(gateSample - params.gateThreshold));
 
 	float blend = __saturatef(0.5f * gateSample + 0.5f * activitySample);
-
-	const float blendExponent = gateAlreadyProcessed ? params.alternateBlendWeight : params.defaultBlendWeight;
-	blend = powf(blend, blendExponent);
+	blend = powf(blend, params.blendWeight);
 
 	float filtered = erodedSample * params.auxiliaryScale;
 	const float mixed = originalSample + blend * (filtered - originalSample);
@@ -155,7 +145,6 @@ __global__  void LocalMin3dFusedHaloWithBlendKernel(
 	image::GpuVolumeView<const float> activityField,
 	image::GpuVolumeView<float> output,
 	image::vec3i filter_halfsize,
-	bool gateAlreadyProcessed,
 	cuda::erode3d::BlendParams params,
 	int3 dim)
 {
@@ -223,7 +212,6 @@ __global__  void LocalMin3dFusedHaloWithBlendKernel(
 			ReadPitched(gateField, x, y, z),
 			ReadPitched(activityField, x, y, z),
 			sampleMin,
-			gateAlreadyProcessed,
 			params
 		);
 
@@ -725,35 +713,35 @@ __global__  void LocalMin3dSepHaloYMultipleOutputsKernel(
 	}
 }
 
-template <int outputsPerThread>
+template <int outputsPerThread, int radiusX, int radiusY, int radiusZ>
 __global__  void LocalMin3dSepHaloYMultOutsBlend3dFusedKernel(
 	image::GpuVolumeView<const float> baseData,
 	image::GpuVolumeView<const float> gateField,
 	image::GpuVolumeView<const float> activityField,
 	image::GpuVolumeView<float> output,
 	image::vec3i filter_halfsize,
-	bool gateAlreadyProcessed,
+	bool runLog10,
 	cuda::erode3d::BlendParams params,
 	int3 dim)
 {
 	extern __shared__ float xTile[];
 
 	const int outputDepth = blockDim.z * outputsPerThread;
-	const int tileDepth = outputDepth + filter_halfsize.z * 2;
+	const int tileDepth = outputDepth + radiusZ * 2;
 
 	const int originX = blockIdx.x * blockDim.x;
-	const int originY = blockIdx.y * (blockDim.y - filter_halfsize.y * 2);
+	const int originY = blockIdx.y * (blockDim.y - radiusY * 2);
 	const int originZ = blockIdx.z * outputDepth;
 
 	for (int tileZ = threadIdx.z; tileZ < tileDepth; tileZ += blockDim.z) {
-		int y = clamp(originY + int(threadIdx.y) - filter_halfsize.y, 0, dim.y - 1);
-		int z = clamp(originZ + tileZ - filter_halfsize.z, 0, dim.z - 1);
+		int y = clamp(originY + int(threadIdx.y) - radiusY, 0, dim.y - 1);
+		int z = clamp(originZ + tileZ - radiusZ, 0, dim.z - 1);
 
 		const size_t offsetBytesToRow = OffsetToRowPitched(y, z, baseData.m_pitch, baseData.m_slicePitch);
 		const float* row = (const float*)((const char*)baseData.m_ptr + offsetBytesToRow);
 
 		float sampleMin = FLT_MAX;
-		for (int dx = -filter_halfsize.x; dx <= filter_halfsize.x; ++dx) {
+		for (int dx = -radiusX; dx <= radiusX; ++dx) {
 			const int x = clamp(originX + int(threadIdx.x) + dx, 0, dim.x - 1);
 			sampleMin = fminf(sampleMin, row[x]);
 		}
@@ -765,10 +753,10 @@ __global__  void LocalMin3dSepHaloYMultOutsBlend3dFusedKernel(
 	__syncthreads();
 
 	const int x = originX + int(threadIdx.x);
-	const int y = originY + int(threadIdx.y) - filter_halfsize.y;
+	const int y = originY + int(threadIdx.y) - radiusY;
 
 	const int firstOutputZ = originZ + int(threadIdx.z) * outputsPerThread;
-	const bool processY = threadIdx.y >= filter_halfsize.y && threadIdx.y < blockDim.y - filter_halfsize.y;
+	const bool processY = threadIdx.y >= radiusY && threadIdx.y < blockDim.y - radiusY;
 
 	if (x >= dim.x || y >= dim.y || firstOutputZ >= dim.z || !processY) {
 		return;
@@ -782,19 +770,19 @@ __global__  void LocalMin3dSepHaloYMultOutsBlend3dFusedKernel(
 	}
 
 	const int groupFirstTileZ = threadIdx.z * outputsPerThread;
-	for (int dz = -filter_halfsize.z; dz < filter_halfsize.z + outputsPerThread; ++dz) {
+	for (int dz = -radiusZ; dz < radiusZ + outputsPerThread; ++dz) {
 
 		float sampleMin = FLT_MAX;
-		const int tileZ = groupFirstTileZ + dz + filter_halfsize.z;
+		const int tileZ = groupFirstTileZ + dz + radiusZ;
 
-		for (int dy = -filter_halfsize.y; dy <= filter_halfsize.y; ++dy) {
+		for (int dy = -radiusY; dy <= radiusY; ++dy) {
 			const int flatIdx = FlatIdx(threadIdx.x, threadIdx.y + dy, tileZ, blockDim.x, blockDim.y);
 			sampleMin = fminf(sampleMin, xTile[flatIdx]);
 		}
 
 		for (int j = 0; j < outputsPerThread; j++) {
 			const int relativeZ = j - dz;
-			if (relativeZ >= -filter_halfsize.z && relativeZ <= filter_halfsize.z) {
+			if (relativeZ >= -radiusZ && relativeZ <= radiusZ) {
 				zMin[j] = fminf(zMin[j], sampleMin);
 			}
 		}
@@ -809,10 +797,10 @@ __global__  void LocalMin3dSepHaloYMultOutsBlend3dFusedKernel(
 				ReadPitched(gateField, x, y, outputZ),
 				ReadPitched(activityField, x, y, outputZ),
 				zMin[i],
-				gateAlreadyProcessed,
 				params
 			);
 
+			finalSample = runLog10 ? log10f(fmaxf(finalSample, 1e-6f)) : finalSample;
 			WritePitched(output, finalSample, x, y, outputZ);
 		}
 	}
@@ -1633,7 +1621,6 @@ namespace cuda {
 			image::GpuVolumeView<const float> gateField,
 			image::GpuVolumeView<const float> activityField,
 			image::GpuVolumeView<const float> filteredData,
-			bool gateAlreadyProcessed,
 			const BlendParams& params,
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim)
@@ -1647,14 +1634,12 @@ namespace cuda {
 				static_cast<int>(baseData.m_dim.z),
 			};
 
-			const std::string kernelName = gateAlreadyProcessed ? "BlendOpKernel(true)" : "BlendOpKernel(false)";
-			cuda::TimedCall(kernelName, ctx, [&]() {
+			cuda::TimedCall("BlendOpKernel", ctx, [&]() {
 				BlendOpKernel <<<gridSize, cuda::math::vecTodim3(blockDim), 0, ctx.stream>>> (
 					baseData,
 					gateField,
 					activityField,
 					filteredData,
-					gateAlreadyProcessed,
 					params,
 					dim
 				);
@@ -1666,7 +1651,6 @@ namespace cuda {
 			image::GpuVolumeView<const float> gateField,
 			image::GpuVolumeView<const float> activityField,
 			image::GpuVolumeView<float> filteredData,
-			bool gateAlreadyProcessed,
 			const BlendParams& params,
 			image::vec3i filter_halfsize,
 			cuda::KernelContext ctx,
@@ -1713,7 +1697,6 @@ namespace cuda {
 					gateField,
 					activityField,
 					cuda::gpu_image::ToConstView(filteredData),
-					gateAlreadyProcessed,
 					params,
 					dim
 				);
@@ -1727,7 +1710,6 @@ namespace cuda {
 			image::GpuVolumeView<const float> gateField,
 			image::GpuVolumeView<const float> activityField,
 			image::GpuVolumeView<float> output,
-			bool gateAlreadyProcessed,
 			const BlendParams& params,
 			image::vec3i filter_halfsize,
 			cuda::KernelContext ctx,
@@ -1768,7 +1750,6 @@ namespace cuda {
 					activityField,
 					output,
 					filter_halfsize,
-					gateAlreadyProcessed,
 					params,
 					dim
 				);
@@ -1780,7 +1761,6 @@ namespace cuda {
 			image::GpuVolumeView<const float> gateField,
 			image::GpuVolumeView<const float> activityField,
 			image::GpuVolumeView<float> filteredData,
-			bool gateAlreadyProcessed,
 			const BlendParams& params,
 			image::vec3i filter_halfsize,
 			int outputsPerThread,
@@ -1834,7 +1814,6 @@ namespace cuda {
 						gateField,
 						activityField,
 						cuda::gpu_image::ToConstView(filteredData),
-						gateAlreadyProcessed,
 						params,
 						dim
 					);
@@ -1861,7 +1840,6 @@ namespace cuda {
 						gateField,
 						activityField,
 						cuda::gpu_image::ToConstView(filteredData),
-						gateAlreadyProcessed,
 						params,
 						dim
 					);
@@ -1876,10 +1854,10 @@ namespace cuda {
 			image::GpuVolumeView<const float> gateField,
 			image::GpuVolumeView<const float> activityField,
 			image::GpuVolumeView<float> output,
-			bool gateAlreadyProcessed,
 			const BlendParams& params,
 			image::vec3i filter_halfsize,
 			int outputsPerThread,
+			bool runLog10,
 			cuda::KernelContext ctx,
 			image::vec3ui blockDim)
 		{
@@ -1910,13 +1888,13 @@ namespace cuda {
 
 			if (outputsPerThread == 9) {
 				cuda::TimedCall("LocalMin3dOptBlend3dFusedKernel<9>", ctx, [&]() {
-					LocalMin3dSepHaloYMultOutsBlend3dFusedKernel<9> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultOutsBlend3dFusedKernel<9, 1, 1, 1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						baseData,
 						gateField,
 						activityField,
 						output,
 						filter_halfsize,
-						gateAlreadyProcessed,
+						runLog10,
 						params,
 						dim
 					);
@@ -1924,13 +1902,13 @@ namespace cuda {
 			}
 			else if (outputsPerThread == 10) {
 				cuda::TimedCall("LocalMin3dOptBlend3dFusedKernel<10>", ctx, [&]() {
-					LocalMin3dSepHaloYMultOutsBlend3dFusedKernel<10> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
+					LocalMin3dSepHaloYMultOutsBlend3dFusedKernel<10, 1, 1, 1> <<<gridSize, cuda::math::vecTodim3(blockDim), sharedMemSize, ctx.stream>>> (
 						baseData,
 						gateField,
 						activityField,
 						output,
 						filter_halfsize,
-						gateAlreadyProcessed,
+						runLog10,
 						params,
 						dim
 					);

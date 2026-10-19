@@ -22,6 +22,7 @@
     <ClCompile Include="Benchmarks\3d\Conv3dBenchmark.cpp" />
     <ClCompile Include="Benchmarks\3d\LocalMinBlendingBenchmark.cpp" />
     <ClCompile Include="Benchmarks\3d\Sobel3dBenchmark.cpp" />
+    <ClCompile Include="Benchmarks\3d\SynthVolumePipelineBench.cpp" />
     <ClCompile Include="Benchmarks\BenchOutput.cpp" />
     <ClCompile Include="Common\RandomData.cpp" />
     <ClCompile Include="main.cpp" />
@@ -39,6 +40,7 @@
     <ClInclude Include="Benchmarks\3d\Conv3dBenchmark.h" />
     <ClInclude Include="Benchmarks\3d\LocalMinBlendingBenchmark.h" />
     <ClInclude Include="Benchmarks\3d\Sobel3dBenchmark.h" />
+    <ClInclude Include="Benchmarks\3d\SynthVolumePipelineBench.h" />
     <ClInclude Include="Benchmarks\BenchOutput.h" />
     <ClInclude Include="Common\CudaStream.h" />
     <ClInclude Include="Common\NullProfiler.h" />

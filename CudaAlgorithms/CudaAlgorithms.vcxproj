@@ -29,6 +29,7 @@
     <ClInclude Include="Cuda\3d\Conv3d.h" />
     <ClInclude Include="Cuda\3d\LocalMinBlending.h" />
     <ClInclude Include="Cuda\3d\Sobel.h" />
+    <ClInclude Include="Cuda\3d\SyntheticVolumePipeline.h" />
     <ClInclude Include="Cuda\Common.cuh" />
     <ClInclude Include="Cuda\Filter.h" />
     <ClInclude Include="Cuda\KernelCommon.h" />
@@ -50,6 +51,7 @@
     <CudaCompile Include="Cuda\3d\Conv3d.cu" />
     <CudaCompile Include="Cuda\3d\LocalMinBlending.cu" />
     <CudaCompile Include="Cuda\3d\Sobel.cu" />
+    <CudaCompile Include="Cuda\3d\SyntheticVolumePipeline.cu" />
     <CudaCompile Include="Cuda\Filter.cu">
       <CodeGeneration Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </CodeGeneration>

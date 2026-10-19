@@ -45,6 +45,13 @@ namespace cuda {
 
 	template <class Fn>
 	void TimedCall(const std::string& kernelName, cuda::KernelContext& ctx, Fn&& cudaKernel) {
+        if (ctx.profiler == nullptr) {
+            std::forward<Fn>(cudaKernel)();
+
+            cudaCheck(cudaPeekAtLastError());
+            return;
+        }
+
         const auto id = ctx.profiler->BeginSample(kernelName, ctx.stream);
 			
         std::forward<Fn>(cudaKernel)();

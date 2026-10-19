@@ -1,8 +1,9 @@
 #include "Benchmarks/3d/Conv3dBenchmark.h"
 #include "Benchmarks/3d/Sobel3dBenchmark.h"
 #include "Benchmarks/3d/LocalMinBlendingBenchmark.h"
+#include "Benchmarks/3d/SynthVolumePipelineBench.h"
 
 int main() {
-	bench::localmin_blending3d::LocalMin3dFusedHaloYMultipleOutputsBenchmark(9);
+	bench::synth_pipeline::SynthVolPipelineOptBench();
 	return 0;
 }

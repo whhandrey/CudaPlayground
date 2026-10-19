@@ -95,6 +95,9 @@
     <ClInclude Include="Cuda\3d\LocalMinBlending.h">
       <Filter>Cuda\3d</Filter>
     </ClInclude>
+    <ClInclude Include="Cuda\3d\SyntheticVolumePipeline.h">
+      <Filter>Cuda\3d</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Cuda\Filter.cu">
@@ -128,6 +131,9 @@
       <Filter>Cuda\3d</Filter>
     </CudaCompile>
     <CudaCompile Include="Cuda\3d\LocalMinBlending.cu">
+      <Filter>Cuda\3d</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Cuda\3d\SyntheticVolumePipeline.cu">
       <Filter>Cuda\3d</Filter>
     </CudaCompile>
   </ItemGroup>

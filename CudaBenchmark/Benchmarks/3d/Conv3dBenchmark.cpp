@@ -640,7 +640,7 @@ namespace bench {
 		image::vec3ui inputDim = { 601, 310, 169 };
 		image::CpuVolume<float> input = bench::data::GenerateRandomVolume(inputDim);
 
-		image::vec3i filter_halfsize = { 7, 5, 3 };
+		image::vec3i filter_halfsize = { 7, 5, 5 };
 
 		std::vector<float> weightsX = bench::data::GenerateRandomWeights(filter_halfsize.x);
 		std::vector<float> weightsY = bench::data::GenerateRandomWeights(filter_halfsize.y);
@@ -689,7 +689,7 @@ namespace bench {
 		image::vec3ui inputDim = { 601, 310, 169 };
 		image::CpuVolume<float> input = bench::data::GenerateRandomVolume(inputDim);
 
-		image::vec3i filter_halfsize = { 7, 5, 3 };
+		image::vec3i filter_halfsize = { 7, 5, 5 };
 
 		std::vector<float> weightsX = bench::data::GenerateRandomWeights(filter_halfsize.x);
 		std::vector<float> weightsY = bench::data::GenerateRandomWeights(filter_halfsize.y);
